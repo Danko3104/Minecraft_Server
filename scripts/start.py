@@ -1,1 +1,457 @@
-# TODO
+"""
+Script de arranque del MineColab Panel.
+Se ejecuta desde la celda única del notebook en Google Colab.
+"""
+
+import os
+import sys
+import time
+import threading
+import subprocess
+import re
+from typing import Optional
+
+# Agregar el path del proyecto para poder importar panel
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from rich.console import Console
+from rich.panel import Panel
+
+# =============================================================================
+# VARIABLES GLOBALES
+# =============================================================================
+
+console = Console()
+
+cloudflared_process = None  # Proceso de cloudflared (global para poder detenerlo)
+flask_thread = None         # Hilo de Flask
+panel_url = None            # URL del panel Cloudflare
+
+# Paths
+DRIVE_MOUNT = '/content/drive/MyDrive'
+MINECRAFT_DIR = os.path.join(DRIVE_MOUNT, 'minecraft')
+BACKUP_DIR = os.path.join(MINECRAFT_DIR, 'backup')
+BACKUP_WORLD_DIR = os.path.join(BACKUP_DIR, 'world')
+BACKUP_SERVER_DIR = os.path.join(BACKUP_DIR, 'server')
+LOGS_DIR = os.path.join(MINECRAFT_DIR, 'logs')
+
+
+# =============================================================================
+# FUNCIONES DE VERIFICACIÓN Y PREPARACIÓN
+# =============================================================================
+
+def check_drive_mounted() -> bool:
+    """
+    Verifica que Google Drive está montado.
+    Retorna True si /content/drive/MyDrive existe.
+    """
+    try:
+        exists = os.path.exists(DRIVE_MOUNT)
+        if not exists:
+            print(f"[ERROR] Google Drive no está montado en {DRIVE_MOUNT}")
+            return False
+        print(f"[OK] Google Drive montado en {DRIVE_MOUNT}")
+        return True
+    except Exception as e:
+        print(f"[ERROR] check_drive_mounted: {e}")
+        return False
+
+
+def create_drive_structure() -> bool:
+    """
+    Verifica y crea la estructura de carpetas en Drive.
+    """
+    try:
+        dirs_to_create = [
+            MINECRAFT_DIR,
+            BACKUP_DIR,
+            BACKUP_WORLD_DIR,
+            BACKUP_SERVER_DIR,
+            LOGS_DIR
+        ]
+
+        for dir_path in dirs_to_create:
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+                print(f"[OK] Creado: {dir_path}")
+            else:
+                print(f"[OK] Ya existe: {dir_path}")
+
+        return True
+    except Exception as e:
+        print(f"[ERROR] create_drive_structure: {e}")
+        return False
+
+
+def check_cloudflared_installed() -> bool:
+    """
+    Verifica si cloudflared está instalado.
+    """
+    try:
+        result = subprocess.run(
+            ['which', 'cloudflared'],
+            capture_output=True,
+            text=True
+        )
+        return result.returncode == 0 and result.stdout.strip() != ''
+    except Exception as e:
+        print(f"[ERROR] check_cloudflared_installed: {e}")
+        return False
+
+
+def install_cloudflared() -> bool:
+    """
+    Instala cloudflared si no está instalado.
+    Retorna True si éxito.
+    """
+    try:
+        if check_cloudflared_installed():
+            print("[OK] cloudflared ya está instalado")
+            return True
+
+        print("[INFO] Instalando cloudflared...")
+
+        # Descargar cloudflared
+        print("[INFO] Descargando cloudflared...")
+        result = subprocess.run(
+            ['wget', '-q', 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb'],
+            capture_output=True,
+            text=True,
+            cwd='/tmp'
+        )
+
+        if result.returncode != 0:
+            print(f"[ERROR] Error descargando cloudflared: {result.stderr}")
+            return False
+
+        print("[OK] cloudflared descargado")
+
+        # Instalar el paquete .deb
+        print("[INFO] Instalando paquete .deb...")
+        result = subprocess.run(
+            ['dpkg', '-i', '/tmp/cloudflared-linux-amd64.deb'],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            print(f"[ERROR] Error instalando cloudflared: {result.stderr}")
+            return False
+
+        print("[OK] cloudflared instalado correctamente")
+        return True
+
+    except Exception as e:
+        print(f"[ERROR] install_cloudflared: {e}")
+        return False
+
+
+# =============================================================================
+# FUNCIONES DE FLASK
+# =============================================================================
+
+def run_flask_app():
+    """
+    Función que corre Flask en el hilo secundario.
+    Importa y ejecuta la app desde panel.app.
+    """
+    try:
+        from panel.app import socketio
+        socketio.run(
+            app=None,  # Se importa dentro para evitar circular imports
+            host='0.0.0.0',
+            port=5000,
+            debug=False,
+            allow_unsafe_werkzeug=True,
+            use_reloader=False  # Importante: desactivar reloader en hilo
+        )
+    except Exception as e:
+        print(f"[ERROR] Error en Flask thread: {e}")
+
+
+def start_flask_thread() -> bool:
+    """
+    Inicia Flask en un hilo daemon.
+    Espera y verifica que responde.
+    Retorna True si éxito.
+    """
+    global flask_thread
+
+    try:
+        print("[INFO] Iniciando Flask en hilo separado...")
+
+        # Importar app y socketio aquí para evitar circular imports
+        from panel.app import app, socketio
+
+        def flask_runner():
+            """Runner interno que usa la app importada."""
+            try:
+                socketio.run(
+                    app,
+                    host='0.0.0.0',
+                    port=5000,
+                    debug=False,
+                    allow_unsafe_werkzeug=True,
+                    use_reloader=False
+                )
+            except Exception as e:
+                print(f"[ERROR] Flask thread error: {e}")
+
+        # Crear y iniciar el hilo daemon
+        flask_thread = threading.Thread(target=flask_runner, daemon=True)
+        flask_thread.start()
+
+        # Esperar 2 segundos para que Flask levante
+        print("[INFO] Esperando a que Flask levante...")
+        time.sleep(2)
+
+        # Verificar que responde (timeout 10 segundos)
+        import urllib.request
+        import urllib.error
+
+        max_attempts = 10
+        for attempt in range(max_attempts):
+            try:
+                with urllib.request.urlopen('http://localhost:5000/api/ping', timeout=2) as response:
+                    if response.status == 200:
+                        print(f"[OK] Flask respondiendo en puerto 5000 (intento {attempt + 1})")
+                        return True
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+                pass
+            except Exception as e:
+                print(f"[WARNING] Intento {attempt + 1} fallido: {e}")
+
+            time.sleep(1)
+
+        print("[ERROR] Flask no respondió en 10 segundos")
+        return False
+
+    except Exception as e:
+        print(f"[ERROR] start_flask_thread: {e}")
+        return False
+
+
+# =============================================================================
+# FUNCIONES DE CLOUDFLARE TUNNEL
+# =============================================================================
+
+def get_cloudflare_url(process) -> Optional[str]:
+    """
+    Lee stderr del proceso cloudflared.
+    Extrae y retorna la URL trycloudflare.com.
+    Timeout de 30 segundos, si no encuentra retorna None.
+    """
+    try:
+        print("[INFO] Esperando URL de Cloudflare...")
+
+        start_time = time.time()
+        timeout = 30  # segundos
+
+        # Patrón para extraer la URL
+        url_pattern = re.compile(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com')
+
+        while time.time() - start_time < timeout:
+            if process.stderr:
+                line = process.stderr.readline()
+                if line:
+                    line = line.decode('utf-8', errors='ignore') if isinstance(line, bytes) else line
+                    print(f"[DEBUG] cloudflared: {line.strip()}")
+
+                    # Buscar la URL en la línea
+                    match = url_pattern.search(line)
+                    if match:
+                        url = match.group(0)
+                        print(f"[OK] URL de Cloudflare encontrada: {url}")
+                        return url
+
+            # Verificar si el proceso murió
+            if process.poll() is not None:
+                print("[ERROR] El proceso cloudflared terminó inesperadamente")
+                return None
+
+            time.sleep(0.5)
+
+        print("[ERROR] Timeout de 30 segundos esperando URL de Cloudflare")
+        return None
+
+    except Exception as e:
+        print(f"[ERROR] get_cloudflare_url: {e}")
+        return None
+
+
+def start_cloudflare_tunnel() -> Optional[str]:
+    """
+    Inicia el túnel Cloudflare para el panel.
+    Retorna la URL del túnel o None si falla.
+    """
+    global cloudflared_process
+
+    try:
+        print("[INFO] Iniciando túnel Cloudflare...")
+
+        # Comando para cloudflared
+        cmd = [
+            'cloudflared',
+            'tunnel',
+            '--url',
+            'http://localhost:5000'
+        ]
+
+        # Iniciar proceso capturando stderr para leer la URL
+        cloudflared_process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE
+        )
+
+        # Obtener la URL
+        url = get_cloudflare_url(cloudflared_process)
+
+        if url:
+            print(f"[OK] Túnel Cloudflare iniciado: {url}")
+            return url
+        else:
+            print("[ERROR] No se pudo obtener la URL del túnel")
+            return None
+
+    except Exception as e:
+        print(f"[ERROR] start_cloudflare_tunnel: {e}")
+        return None
+
+
+# =============================================================================
+# FUNCIÓN PRINCIPAL DE LANZAMIENTO
+# =============================================================================
+
+def launch():
+    """
+    Función principal que llama todo en orden.
+    Manejo de errores en cada paso con mensajes claros.
+    """
+    global panel_url
+
+    console.print(Panel.fit(
+        "🚀 Iniciando MineColab Panel...",
+        title="MineColab",
+        border_style="blue"
+    ))
+
+    # Paso 1: Verificar Google Drive
+    print("\n" + "=" * 60)
+    print("PASO 1: Verificando Google Drive")
+    print("=" * 60)
+
+    if not check_drive_mounted():
+        error_msg = (
+            "❌ Google Drive no está montado.\n\n"
+            "Debes montar Google Drive primero ejecutando en una celda:\n"
+            "  from google.colab import drive\n"
+            "  drive.mount('/content/drive')"
+        )
+        console.print(Panel(error_msg, title="ERROR", border_style="red"))
+        return False
+
+    # Paso 2: Crear estructura de carpetas
+    print("\n" + "=" * 60)
+    print("PASO 2: Creando estructura de carpetas")
+    print("=" * 60)
+
+    if not create_drive_structure():
+        error_msg = "❌ Error creando la estructura de carpetas en Drive."
+        console.print(Panel(error_msg, title="ERROR", border_style="red"))
+        return False
+
+    # Paso 3: Instalar cloudflared
+    print("\n" + "=" * 60)
+    print("PASO 3: Verificando cloudflared")
+    print("=" * 60)
+
+    if not install_cloudflared():
+        error_msg = "❌ Error instalando cloudflared. Verifica tu conexión a internet."
+        console.print(Panel(error_msg, title="ERROR", border_style="red"))
+        return False
+
+    # Paso 4: Iniciar Flask
+    print("\n" + "=" * 60)
+    print("PASO 4: Iniciando Flask")
+    print("=" * 60)
+
+    if not start_flask_thread():
+        error_msg = "❌ Error iniciando Flask. Revisa los logs para más detalles."
+        console.print(Panel(error_msg, title="ERROR", border_style="red"))
+        return False
+
+    # Paso 5: Iniciar túnel Cloudflare
+    print("\n" + "=" * 60)
+    print("PASO 5: Iniciando túnel Cloudflare")
+    print("=" * 60)
+
+    panel_url = start_cloudflare_tunnel()
+
+    if not panel_url:
+        error_msg = "❌ Error iniciando el túnel Cloudflare."
+        console.print(Panel(error_msg, title="ERROR", border_style="red"))
+        return False
+
+    # Paso 6: Mostrar resultado final
+    print("\n" + "=" * 60)
+    print("MINECOLAB PANEL LISTO")
+    print("=" * 60)
+
+    # Obtener contraseña desde drive
+    try:
+        from panel.drive import get_global_config
+        config = get_global_config()
+        password = config.get('panel_password', 'minecolab2024')
+    except:
+        password = 'minecolab2024'
+
+    # Panel final bonito con rich
+    final_message = f"""
+Panel Web:
+  {panel_url}
+
+Abre esa URL en tu navegador
+
+Contraseña: {password}
+
+El servidor de Minecraft se
+controla desde el panel
+    """
+
+    console.print(Panel(
+        final_message,
+        title="MineColab Panel Listo",
+        border_style="green"
+    ))
+
+    print("\n[INFO] El panel está corriendo. Mantén esta celda ejecutándose.")
+    print("[INFO] Para detener el panel, interrumpe la ejecución del notebook.")
+
+    return True
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+if __name__ == '__main__':
+    try:
+        success = launch()
+        if not success:
+            sys.exit(1)
+    except KeyboardInterrupt:
+        console.print(Panel(
+            "⚠️  Panel detenido por el usuario.",
+            title="MineColab",
+            border_style="yellow"
+        ))
+        sys.exit(0)
+    except Exception as e:
+        console.print(Panel(
+            f"❌ Error inesperado: {e}",
+            title="ERROR",
+            border_style="red"
+        ))
+        sys.exit(1)
