@@ -4,7 +4,7 @@ Maneja las rutas HTTP y WebSocket para el panel de control.
 """
 
 from datetime import datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
@@ -13,6 +13,7 @@ from panel.drive import (
     list_servers,
     set_active_server
 )
+from panel.routes.auth import auth_bp, verify_token
 
 # =============================================================================
 # CONFIGURACIÓN
@@ -26,6 +27,9 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # SocketIO con async_mode='threading'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# Registrar blueprint de autenticación
+app.register_blueprint(auth_bp)
 
 # =============================================================================
 # VARIABLES GLOBALES
@@ -43,11 +47,10 @@ session_start_time = datetime.now()  # Cuando arrancó Flask
 @app.route('/')
 def index():
     """
-    Ruta principal - retorna estado del panel.
-    Más adelante aquí irá el HTML completo.
+    Ruta principal - sirve el archivo HTML del panel.
     """
     try:
-        return jsonify({"status": "MineColab Panel funcionando"})
+        return send_from_directory('static', 'index.html')
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -64,9 +67,11 @@ def api_ping():
 
 
 @app.route('/api/status', methods=['GET'])
+@verify_token
 def api_status():
     """
     Retorna el estado general del panel.
+    Requiere token de autenticación.
     """
     try:
         now = datetime.now()
@@ -87,9 +92,11 @@ def api_status():
 
 
 @app.route('/api/servers', methods=['GET'])
+@verify_token
 def api_servers():
     """
     Retorna lista de servidores disponibles.
+    Requiere token de autenticación.
     """
     try:
         servers = list_servers()
@@ -104,10 +111,12 @@ def api_servers():
 
 
 @app.route('/api/servers/select', methods=['POST'])
+@verify_token
 def api_select_server():
     """
     Selecciona un servidor como activo.
     Body JSON: {"server_name": "nombre"}
+    Requiere token de autenticación.
     """
     try:
         data = request.get_json()
