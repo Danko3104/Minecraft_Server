@@ -8,6 +8,7 @@ import sys
 import time
 import subprocess
 import json
+import threading
 from datetime import datetime
 from typing import Optional, Dict, List
 
@@ -48,6 +49,7 @@ class ServerManager:
         self.intentional_stop = False
         self.rcon_password = "minecolab_panel"
         self.rcon_port = 25575
+        self.last_output_lines: List[str] = []  # Últimas líneas de salida del proceso
 
     def get_server_path(self, server_name: str) -> str:
         """
@@ -147,6 +149,229 @@ class ServerManager:
             print(f"[ERROR] get_java_command: {e}")
             return ["java", "-jar", "server.jar", "--nogui"]
 
+    def _start_output_reader(self):
+        """
+        Inicia el hilo que lee la salida del proceso.
+        """
+        def read_output():
+            """Lee la salida del proceso y la guarda en last_output_lines."""
+            try:
+                for line in self.process.stdout:
+                    line = line.strip()
+                    if line:
+                        self.last_output_lines.append(line)
+                        print(f"[MINECRAFT] {line}")
+                        # Mantener solo las últimas 200 líneas
+                        if len(self.last_output_lines) > 200:
+                            self.last_output_lines.pop(0)
+            except Exception as e:
+                print(f"[ERROR] read_output: {e}")
+
+        output_thread = threading.Thread(target=read_output, daemon=True)
+        output_thread.start()
+        return output_thread
+
+    def _check_java_installed(self) -> Dict:
+        """
+        Verifica que Java está instalado y retorna información.
+        """
+        try:
+            result = subprocess.run(
+                ['java', '-version'],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode != 0:
+                return {
+                    "installed": False,
+                    "version": None,
+                    "error": "Java no está instalado o no está en PATH"
+                }
+
+            # java -version escribe a stderr
+            version_output = result.stderr if result.stderr else result.stdout
+            return {
+                "installed": True,
+                "version": version_output.split('\n')[0] if version_output else "Desconocida",
+                "error": None
+            }
+        except FileNotFoundError:
+            return {
+                "installed": False,
+                "version": None,
+                "error": "Comando 'java' no encontrado"
+            }
+        except Exception as e:
+            return {
+                "installed": False,
+                "version": None,
+                "error": str(e)
+            }
+
+    def _find_server_jar(self, server_path: str) -> Dict:
+        """
+        Busca el archivo JAR del servidor en el directorio.
+        """
+        try:
+            if not os.path.exists(server_path):
+                return {
+                    "found": False,
+                    "jar_file": None,
+                    "files": []
+                }
+
+            files = os.listdir(server_path)
+
+            # Buscar archivos específicos
+            jar_files = {
+                'server.jar': 'server.jar' in files,
+                'fabric-server-launch.jar': 'fabric-server-launch.jar' in files,
+                'forge': any(f.startswith('forge') and f.endswith('.jar') for f in files),
+                'neoforge': any(f.startswith('neo') and f.endswith('.jar') for f in files),
+                'bedrock_server': 'bedrock_server' in files
+            }
+
+            # Determinar cuál usar
+            jar_file = None
+            if jar_files['server.jar']:
+                jar_file = 'server.jar'
+            elif jar_files['fabric-server-launch.jar']:
+                jar_file = 'fabric-server-launch.jar'
+            elif jar_files['forge'] or jar_files['neoforge']:
+                # Buscar el primer forge*.jar
+                for f in files:
+                    if f.startswith('forge') and f.endswith('.jar'):
+                        jar_file = f
+                        break
+                    if f.startswith('neo') and f.endswith('.jar'):
+                        jar_file = f
+                        break
+            elif jar_files['bedrock_server']:
+                jar_file = 'bedrock_server'
+
+            return {
+                "found": jar_file is not None,
+                "jar_file": jar_file,
+                "files": sorted(files),
+                "jar_types": jar_files
+            }
+        except Exception as e:
+            return {
+                "found": False,
+                "jar_file": None,
+                "files": [],
+                "error": str(e)
+            }
+
+    def _ensure_eula_accepted(self, server_path: str) -> Dict:
+        """
+        Verifica y crea eula.txt con eula=true si es necesario.
+        """
+        try:
+            eula_path = os.path.join(server_path, 'eula.txt')
+
+            if not os.path.exists(eula_path):
+                # Crear eula.txt con eula=true
+                with open(eula_path, 'w') as f:
+                    f.write("#By changing the setting below to TRUE you are indicating your agreement to our EULA (https://aka.ms/minecrafteula)\n")
+                    f.write("eula=true\n")
+                return {
+                    "exists": False,
+                    "accepted": True,
+                    "created": True,
+                    "message": "eula.txt creado automáticamente con eula=true"
+                }
+
+            # Leer existente
+            with open(eula_path, 'r') as f:
+                content = f.read()
+
+            # Verificar si eula=true
+            if 'eula=true' in content.lower():
+                return {
+                    "exists": True,
+                    "accepted": True,
+                    "created": False,
+                    "message": "EULA ya aceptada"
+                }
+            else:
+                # Actualizar a eula=true
+                with open(eula_path, 'w') as f:
+                    f.write("#By changing the setting below to TRUE you are indicating your agreement to our EULA (https://aka.ms/minecrafteula)\n")
+                    f.write("eula=true\n")
+                return {
+                    "exists": True,
+                    "accepted": True,
+                    "created": False,
+                    "updated": True,
+                    "message": "eula.txt actualizado a eula=true"
+                }
+
+        except Exception as e:
+            return {
+                "exists": False,
+                "accepted": False,
+                "created": False,
+                "error": str(e)
+            }
+
+    def diagnose(self, server_name: str) -> dict:
+        """
+        Retorna información completa de diagnóstico para un servidor.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            path_exists = os.path.exists(server_path)
+
+            # Obtener archivos en el directorio
+            files_in_directory = []
+            if path_exists and os.path.isdir(server_path):
+                files_in_directory = sorted(os.listdir(server_path))
+
+            # Verificar Java
+            java_info = self._check_java_installed()
+
+            # Leer colabconfig.txt
+            colabconfig = get_server_config(server_name)
+
+            # Verificar server.properties
+            server_properties_exists = os.path.exists(os.path.join(server_path, 'server.properties')) if path_exists else False
+
+            # Verificar eula.txt
+            eula_info = self._ensure_eula_accepted(server_path) if path_exists else {
+                "exists": False,
+                "accepted": False,
+                "error": "Directorio no existe"
+            }
+
+            # Buscar JAR
+            jar_info = self._find_server_jar(server_path)
+
+            return {
+                "server_name": server_name,
+                "server_path": server_path,
+                "path_exists": path_exists,
+                "files_in_directory": files_in_directory,
+                "java_installed": java_info["installed"],
+                "java_version": java_info.get("version", "N/A"),
+                "java_error": java_info.get("error"),
+                "colabconfig": colabconfig,
+                "server_properties_exists": server_properties_exists,
+                "eula_exists": eula_info.get("exists", False),
+                "eula_accepted": eula_info.get("accepted", False),
+                "eula_message": eula_info.get("message"),
+                "jar_found": jar_info["found"],
+                "jar_file": jar_info.get("jar_file"),
+                "jar_types": jar_info.get("jar_types", {}),
+                "all_files": files_in_directory
+            }
+
+        except Exception as e:
+            return {
+                "error": str(e),
+                "server_name": server_name
+            }
+
     def start(self, server_name: str) -> dict:
         """
         Inicia el servidor de Minecraft.
@@ -166,6 +391,36 @@ class ServerManager:
                     "error": f"Servidor '{server_name}' no encontrado"
                 }
 
+            server_path = self.get_server_path(server_name)
+
+            # DIAGNÓSTICO PREVIO: Verificar Java
+            java_info = self._check_java_installed()
+            if not java_info["installed"]:
+                return {
+                    "success": False,
+                    "error": f"Java no está instalado: {java_info.get('error', 'Error desconocido')}",
+                    "diagnosis": {"java": java_info}
+                }
+
+            print(f"[INFO] Java版本: {java_info.get('version', 'N/A')}")
+
+            # DIAGNÓSTICO PREVIO: Verificar JAR del servidor
+            jar_info = self._find_server_jar(server_path)
+            if not jar_info["found"]:
+                return {
+                    "success": False,
+                    "error": f"No se encontró el JAR del servidor en {server_path}",
+                    "server_path": server_path,
+                    "files_found": jar_info.get("files", []),
+                    "diagnosis": {"jar": jar_info}
+                }
+
+            print(f"[INFO] JAR encontrado: {jar_info.get('jar_file')}")
+
+            # DIAGNÓSTICO PREVIO: Asegurar EULA aceptada
+            eula_info = self._ensure_eula_accepted(server_path)
+            print(f"[INFO] EULA: {eula_info.get('message', 'N/A')}")
+
             # Preparar server.properties
             if not self.prepare_server_properties(server_name):
                 return {
@@ -175,11 +430,13 @@ class ServerManager:
 
             # Obtener comando
             command = self.get_java_command(server_name)
-            server_path = self.get_server_path(server_name)
 
             print(f"[INFO] Iniciando servidor '{server_name}'...")
             print(f"[INFO] Comando: {' '.join(command)}")
             print(f"[INFO] Directorio: {server_path}")
+
+            # Limpiar output anterior
+            self.last_output_lines = []
 
             # Cambiar al directorio del servidor
             os.chdir(server_path)
@@ -194,18 +451,30 @@ class ServerManager:
                 bufsize=1
             )
 
+            # Iniciar hilo para leer output
+            self._start_output_reader()
+
             # Guardar tiempos
             self.start_time = datetime.now()
             self.intentional_stop = False
 
-            # Esperar 3 segundos y verificar que sigue vivo
-            time.sleep(3)
+            # Esperar 5 segundos y verificar que sigue vivo
+            time.sleep(5)
 
             if self.process.poll() is not None:
-                # El proceso murió
+                # El proceso murió - retornar output capturado
+                error_output = self.last_output_lines[-50:] if self.last_output_lines else ["No hay output capturado"]
                 return {
                     "success": False,
-                    "error": f"El servidor falló al iniciar. Código: {self.process.returncode}"
+                    "error": f"El servidor falló al iniciar. Código: {self.process.returncode}",
+                    "output": error_output,
+                    "diagnosis": {
+                        "command": command,
+                        "server_path": server_path,
+                        "java": java_info,
+                        "jar": jar_info,
+                        "eula": eula_info
+                    }
                 }
 
             print(f"[INFO] Servidor '{server_name}' iniciado (PID: {self.process.pid})")
@@ -321,6 +590,12 @@ class ServerManager:
                 status["uptime_seconds"] = int(uptime.total_seconds())
 
         return status
+
+    def get_last_output(self) -> List[str]:
+        """
+        Retorna las últimas líneas de output del proceso.
+        """
+        return self.last_output_lines[-100:]
 
     def send_command(self, command: str) -> str:
         """

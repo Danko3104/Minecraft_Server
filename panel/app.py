@@ -231,6 +231,50 @@ def api_server_command():
         }), 500
 
 
+@app.route('/api/server/last-output', methods=['GET'])
+@verify_token
+def api_server_last_output():
+    """
+    Retorna las últimas líneas de salida del servidor.
+    """
+    try:
+        lines = server_manager.get_last_output()
+        return jsonify({
+            "lines": lines
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/server/diagnose', methods=['GET'])
+@verify_token
+def api_server_diagnose():
+    """
+    Retorna información completa de diagnóstico del servidor activo.
+    """
+    try:
+        active_server = get_active_server()
+
+        if not active_server:
+            return jsonify({
+                "success": False,
+                "error": "No hay servidor activo"
+            }), 400
+
+        diagnosis = server_manager.diagnose(active_server)
+        return jsonify(diagnosis)
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 # =============================================================================
 # WEBSOCKET / SOCKETIO EVENTS
 # =============================================================================

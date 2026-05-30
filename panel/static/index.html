@@ -593,6 +593,13 @@
         async function startServer() {
             const btnStart = document.getElementById('btn-start');
             const originalText = btnStart.textContent;
+            const errorDiv = document.getElementById('error-container');
+
+            // Limpiar error anterior
+            if (errorDiv) {
+                errorDiv.innerHTML = '';
+                errorDiv.style.display = 'none';
+            }
 
             // Deshabilitar botón y cambiar texto
             btnStart.disabled = true;
@@ -614,16 +621,67 @@
                     // Esperar 3 segundos y recargar estado
                     setTimeout(loadStatus, 3000);
                 } else {
-                    // Mostrar error
-                    showNotification(data.error || 'Error al iniciar', 'error');
+                    // Mostrar error detallado
+                    let errorMsg = data.error || 'Error al iniciar';
+
+                    // Si hay output del servidor, mostrarlo
+                    if (data.output && Array.isArray(data.output)) {
+                        errorMsg += '<div style="margin-top:10px;font-size:12px;text-align:left;">';
+                        errorMsg += '<strong>Output del servidor:</strong>';
+                        errorMsg += '<pre style="background:#000;padding:10px;margin-top:5px;max-height:200px;overflow-y:auto;color:#f00;">';
+                        errorMsg += data.output.join('\\n');
+                        errorMsg += '</pre></div>';
+                    }
+
+                    // Si hay diagnóstico, mostrarlo
+                    if (data.diagnosis) {
+                        errorMsg += '<div style="margin-top:10px;font-size:12px;text-align:left;">';
+                        if (data.diagnosis.java) {
+                            errorMsg += '<div>Java: ' + (data.diagnosis.java.installed ? '✓ Instalado' : '✗ No instalado') + '</div>';
+                        }
+                        if (data.diagnosis.jar) {
+                            errorMsg += '<div>JAR: ' + (data.diagnosis.jar.found ? '✓ Encontrado (' + data.diagnosis.jar.jar_file + ')' : '✗ No encontrado') + '</div>';
+                        }
+                        errorMsg += '</div>';
+                    }
+
+                    showDetailedError(errorMsg);
                     btnStart.disabled = false;
                     btnStart.textContent = originalText;
                 }
             } catch (error) {
-                showNotification('Error de conexión', 'error');
+                showDetailedError('Error de conexión: ' + error.message);
                 btnStart.disabled = false;
                 btnStart.textContent = originalText;
             }
+        }
+
+        // MOSTRAR ERROR DETALLADO
+        function showDetailedError(htmlMessage) {
+            let errorDiv = document.getElementById('error-container');
+
+            if (!errorDiv) {
+                // Crear el contenedor si no existe
+                errorDiv = document.createElement('div');
+                errorDiv.id = 'error-container';
+                errorDiv.style.cssText = 'background:#7f1d1d;border:1px solid #ef4444;border-radius:8px;padding:16px;margin:16px 0;color:#fecaca;';
+
+                // Insertar después de control-card
+                const controlCard = document.querySelector('.control-card');
+                if (controlCard && controlCard.parentNode) {
+                    controlCard.parentNode.insertBefore(errorDiv, controlCard.nextSibling);
+                } else {
+                    document.querySelector('.main-content').prepend(errorDiv);
+                }
+            }
+
+            errorDiv.innerHTML = '<strong style="color:#ef4444;">⚠️ Error:</strong> ' + htmlMessage;
+            errorDiv.style.display = 'block';
+
+            // Auto-ocultar después de 30 segundos
+            setTimeout(() => {
+                if (errorDiv) errorDiv.style.display = 'none';
+            }, 30000);
         }
 
         // DETENER SERVIDOR
