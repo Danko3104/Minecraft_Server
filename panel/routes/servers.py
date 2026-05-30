@@ -48,6 +48,33 @@ install_status: Dict[str, Dict] = {}
 
 
 # =============================================================================
+# FUNCIONES DE ORDENAMIENTO
+# =============================================================================
+
+def sort_versions(versions: list) -> list:
+    """
+    Ordena versiones de Minecraft de más nueva a más vieja.
+    Maneja versiones como: 1.20.4, 1.20, 1.9, 1.8.9, 24w14a
+    """
+    def version_key(v):
+        try:
+            # Ignorar snapshots (contienen letras) y ponerlos al final
+            if any(c.isalpha() for c in v):
+                return (0, 0, 0, v)
+            parts = str(v).split('.')
+            return (
+                int(parts[0]) if len(parts) > 0 else 0,
+                int(parts[1]) if len(parts) > 1 else 0,
+                int(parts[2]) if len(parts) > 2 else 0,
+                v
+            )
+        except (ValueError, AttributeError):
+            return (0, 0, 0, v)
+
+    return sorted(versions, key=version_key, reverse=True)
+
+
+# =============================================================================
 # FUNCIONES DE API PARA VERSIONES
 # =============================================================================
 
@@ -61,7 +88,7 @@ def get_paper_versions() -> List[str]:
         response.raise_for_status()
         data = response.json()
         versions = data.get('versions', [])
-        return sorted(versions, reverse=True)
+        return sort_versions(versions)
     except Exception as e:
         print(f"[ERROR] get_paper_versions: {e}")
         return []
@@ -77,7 +104,7 @@ def get_purpur_versions() -> List[str]:
         response.raise_for_status()
         data = response.json()
         versions = data.get('versions', [])
-        return sorted(versions, reverse=True)
+        return sort_versions(versions)
     except Exception as e:
         print(f"[ERROR] get_purpur_versions: {e}")
         return []
@@ -94,7 +121,7 @@ def get_fabric_versions() -> List[str]:
         data = response.json()
         # Filtrar solo estables y extraer campo version
         stable = [v['version'] for v in data if v.get('stable', False)]
-        return sorted(stable, reverse=True)
+        return sort_versions(stable)
     except Exception as e:
         print(f"[ERROR] get_fabric_versions: {e}")
         return []
@@ -111,7 +138,7 @@ def get_vanilla_versions() -> List[str]:
         data = response.json()
         versions = data.get('versions', [])
         release = [v['id'] for v in versions if v.get('type') == 'release']
-        return sorted(release, reverse=True)
+        return sort_versions(release)
     except Exception as e:
         print(f"[ERROR] get_vanilla_versions: {e}")
         return []
@@ -128,7 +155,7 @@ def get_snapshot_versions() -> List[str]:
         data = response.json()
         versions = data.get('versions', [])
         snapshots = [v['id'] for v in versions if v.get('type') == 'snapshot']
-        return sorted(snapshots, reverse=True)
+        return sort_versions(snapshots)
     except Exception as e:
         print(f"[ERROR] get_snapshot_versions: {e}")
         return []
@@ -151,7 +178,7 @@ def get_forge_versions() -> List[str]:
             match = re.match(r'(\d+\.\d+\.?\d*)-', key)
             if match:
                 mc_versions.add(match.group(1))
-        return sorted(list(mc_versions), reverse=True)
+        return sort_versions(list(mc_versions))
     except Exception as e:
         print(f"[ERROR] get_forge_versions: {e}")
         return []
@@ -174,7 +201,7 @@ def get_neoforge_versions() -> List[str]:
                 for v in versions_elem.findall('version'):
                     if v.text:
                         versions.append(v.text)
-        return sorted(versions, reverse=True)[:20]  # Limitar a 20 más recientes
+        return sort_versions(versions)[:20]  # Limitar a 20 más recientes
     except Exception as e:
         print(f"[ERROR] get_neoforge_versions: {e}")
         return []
@@ -191,7 +218,7 @@ def get_mohist_versions() -> List[str]:
         data = response.json()
         versions = data.get('versions', [])
         # Extraer campo version de cada objeto
-        return [v.get('version', '') for v in versions if v.get('version')]
+        return sort_versions([v.get('version', '') for v in versions if v.get('version')])
     except Exception as e:
         print(f"[ERROR] get_mohist_versions: {e}")
         return []

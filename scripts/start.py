@@ -117,35 +117,37 @@ def check_java_installed() -> bool:
 def install_java(java_version: str = "21") -> bool:
     """
     Instala Java si no está instalado.
+    Usa Java 21 como versión principal para Minecraft 1.20.5+
     Retorna True si éxito.
     """
     try:
-        # Verificar si ya está instalado
+        # Verificar si ya está instalado y es la versión correcta
         if check_java_installed():
             result = subprocess.run(['java', '-version'], capture_output=True, text=True)
             version_output = result.stderr if result.stderr else result.stdout
-            print(f"[OK] Java ya está instalado: {version_output.split(chr(10))[0]}")
-            return True
+            version_line = version_output.split('\n')[0]
+            print(f"[INFO] Java detectado: {version_line}")
 
-        print(f"[INFO] Instalando Java {java_version}...")
+            # Verificar si es Java 21
+            if '21' in version_line or 'openjdk version "21' in version_line:
+                print(f"[OK] Java 21 ya está instalado")
+                # Configurar variables de entorno
+                os.environ['JAVA_HOME'] = '/usr/lib/jvm/java-21-openjdk-amd64'
+                os.environ['PATH'] = os.environ.get('JAVA_HOME', '') + '/bin:' + os.environ.get('PATH', '')
+                return True
+            else:
+                print("[INFO] Java instalado no es versión 21, instalando Java 21...")
 
-        # Mapear versión a paquete
-        java_packages = {
-            "21": "openjdk-21-jre-headless",
-            "17": "openjdk-17-jre-headless",
-            "11": "openjdk-11-jre-headless",
-            "8": "openjdk-8-jre-headless"
-        }
+        print(f"[INFO] Instalando Java 21...")
 
-        package = java_packages.get(java_version, java_packages["21"])
-
-        # Actualizar repositorios e instalar
+        # Actualizar repositorios
         print(f"[INFO] Actualizando repositorios...")
-        subprocess.run(['apt-get', 'update', '-qq'], check=False)
+        subprocess.run(['apt-get', 'update', '-qq'], check=True)
 
-        print(f"[INFO] Instalando {package}...")
+        # Instalar Java 21 JDK (mejor compatibilidad que JRE)
+        print(f"[INFO] Instalando openjdk-21-jdk-headless...")
         result = subprocess.run(
-            ['apt-get', 'install', '-y', '-q', package],
+            ['apt-get', 'install', '-y', '-q', 'openjdk-21-jdk-headless'],
             capture_output=True,
             text=True
         )
@@ -154,16 +156,29 @@ def install_java(java_version: str = "21") -> bool:
             print(f"[ERROR] Error instalando Java: {result.stderr}")
             return False
 
+        # Configurar variables de entorno para Java 21
+        os.environ['JAVA_HOME'] = '/usr/lib/jvm/java-21-openjdk-amd64'
+        os.environ['PATH'] = os.environ['JAVA_HOME'] + '/bin:' + os.environ.get('PATH', '')
+
         # Verificar instalación
         if check_java_installed():
             result = subprocess.run(['java', '-version'], capture_output=True, text=True)
             version_output = result.stderr if result.stderr else result.stdout
-            print(f"[OK] Java instalado correctamente: {version_output.split(chr(10))[0]}")
+            version_line = version_output.split('\n')[0]
+            print(f"[OK] Java 21 instalado correctamente: {version_line}")
+
+            # Verificar versión completa
+            result = subprocess.run(['java', '-version'], capture_output=True, text=True)
+            print(f"[INFO] {result.stderr.strip()}")
+
             return True
         else:
             print("[ERROR] Java no se detecta después de la instalación")
             return False
 
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] install_java: CalledProcessError - {e}")
+        return False
     except Exception as e:
         print(f"[ERROR] install_java: {e}")
         return False

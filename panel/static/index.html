@@ -513,12 +513,12 @@
     </div>
 
     <!-- MODAL NUEVO SERVIDOR -->
-    <div class="modal-overlay" id="new-server-modal">
+    <div class="modal-overlay" id="new-server-modal" onclick="if(event.target === this) closeNewServerModal()">
         <div class="modal">
             <h2>🆕 Nuevo Servidor</h2>
             <form id="new-server-form" onsubmit="return false;">
                 <label for="server-name">Nombre del servidor</label>
-                <input type="text" id="server-name" placeholder="mi-servidor" required pattern="[a-zA-Z0-9_-]+">
+                <input type="text" id="server-name" placeholder="mi-servidor" required pattern="[a-zA-Z0-9_-]+" oninput="clearModalError()">
 
                 <label for="server-type">Tipo de servidor</label>
                 <select id="server-type" onchange="loadVersions()" required>
@@ -530,6 +530,8 @@
                     <option value="">Primero selecciona un tipo</option>
                 </select>
 
+                <div class="error-msg" id="modal-error" style="display:none;background:#7f1d1d;color:#fecaca;padding:12px;border-radius:8px;margin-bottom:16px;"></div>
+
                 <div class="install-progress" id="install-progress" style="display: none;">
                     <div class="spinner"></div>
                     <span id="install-progress-text">Instalando...</span>
@@ -537,7 +539,7 @@
 
                 <div class="modal-buttons">
                     <button type="button" class="btn btn-secondary" onclick="closeNewServerModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-green" onclick="createAndInstallServer()">Crear e Instalar</button>
+                    <button type="submit" class="btn btn-green" id="modal-submit-btn" onclick="createAndInstallServer()">Crear e Instalar</button>
                 </div>
             </form>
         </div>
@@ -916,16 +918,41 @@
         // FUNCIONES DEL MODAL NUEVO SERVIDOR
         // =============================================
 
+        // ESTADO DEL MODAL
+        let modalState = 'idle';  // idle | creating | installing | done | error
+
         // ABRIR MODAL
         function openNewServerModal() {
             document.getElementById('new-server-modal').classList.add('active');
             loadServerTypes();
+            modalState = 'idle';
         }
 
         // CERRAR MODAL
         function closeNewServerModal() {
             document.getElementById('new-server-modal').classList.remove('active');
             document.getElementById('install-progress').style.display = 'none';
+            document.getElementById('modal-error').style.display = 'none';
+            document.getElementById('modal-error').textContent = '';
+            document.getElementById('modal-submit-btn').disabled = false;
+            // Resetear formulario
+            document.getElementById('new-server-form').reset();
+            document.getElementById('server-version').disabled = true;
+            document.getElementById('server-version').innerHTML = '<option value="">Primero selecciona un tipo</option>';
+            modalState = 'idle';
+        }
+
+        // LIMPIAR ERROR DEL MODAL
+        function clearModalError() {
+            const errorDiv = document.getElementById('modal-error');
+            if (errorDiv.style.display === 'block') {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            }
+            if (modalState === 'error') {
+                modalState = 'idle';
+                document.getElementById('modal-submit-btn').disabled = false;
+            }
         }
 
         // CARGAR TIPOS DE SERVIDOR
@@ -945,6 +972,8 @@
                 });
             } catch (error) {
                 console.error('Error cargando tipos:', error);
+                document.getElementById('modal-error').textContent = 'Error al cargar tipos de servidor';
+                document.getElementById('modal-error').style.display = 'block';
             }
         }
 
@@ -995,26 +1024,31 @@
 
             // Validaciones
             if (!name) {
-                alert('Ingresa un nombre para el servidor');
+                showModalError('Ingresa un nombre para el servidor');
                 return;
             }
 
             if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-                alert('El nombre solo puede contener letras, números, guiones y guiones bajos');
+                showModalError('El nombre solo puede contener letras, números, guiones y guiones bajos');
                 return;
             }
 
             if (!type || !version) {
-                alert('Selecciona un tipo y versión');
+                showModalError('Selecciona un tipo y versión');
                 return;
             }
 
+            // Cambiar estado a creating
+            modalState = 'creating';
+
             // Ocultar botón y mostrar progreso
-            document.querySelector('#new-server-form button[type="submit"]').disabled = true;
+            document.getElementById('modal-submit-btn').disabled = true;
             const progressDiv = document.getElementById('install-progress');
             const progressText = document.getElementById('install-progress-text');
             progressDiv.style.display = 'flex';
+            progressDiv.style.backgroundColor = '#1e293b';
             progressText.textContent = 'Creando servidor...';
+            document.getElementById('modal-error').style.display = 'none';
 
             try {
                 // Paso 1: Crear servidor
@@ -1030,12 +1064,16 @@
                 const createData = await createResponse.json();
 
                 if (!createData.success) {
-                    progressText.textContent = 'Error: ' + createData.error;
-                    progressDiv.style.backgroundColor = '#7f1d1d';
+                    // Error de nombre duplicado u otro
+                    modalState = 'error';
+                    showModalError(createData.error || 'Error al crear servidor');
+                    progressDiv.style.display = 'none';
+                    document.getElementById('modal-submit-btn').disabled = false;
                     return;
                 }
 
                 progressText.textContent = 'Servidor creado. Instalando JAR...';
+                modalState = 'installing';
 
                 // Paso 2: Instalar JAR
                 const installResponse = await fetch(`/api/servers/${name}/install`, {
@@ -1048,8 +1086,10 @@
                 const installData = await installResponse.json();
 
                 if (!installData.success) {
-                    progressText.textContent = 'Error: ' + installData.error;
-                    progressDiv.style.backgroundColor = '#7f1d1d';
+                    modalState = 'error';
+                    showModalError(installData.error || 'Error al instalar');
+                    progressDiv.style.display = 'none';
+                    document.getElementById('modal-submit-btn').disabled = false;
                     return;
                 }
 
@@ -1067,34 +1107,40 @@
                         clearInterval(pollInterval);
 
                         if (status.done) {
+                            modalState = 'done';
                             progressText.textContent = '¡Instalación completada!';
                             progressDiv.style.backgroundColor = '#166534';
 
                             // Cerrar modal después de 2 segundos
                             setTimeout(() => {
                                 closeNewServerModal();
-                                // Limpiar formulario
-                                document.getElementById('server-name').value = '';
-                                document.getElementById('server-type').value = '';
-                                document.getElementById('server-version').innerHTML = '<option value="">Primero selecciona un tipo</option>';
-                                document.getElementById('server-version').disabled = true;
-                                document.querySelector('#new-server-form button[type="submit"]').disabled = false;
                                 // Recargar lista de servidores
                                 loadStatus();
                                 // Seleccionar el nuevo servidor
                                 document.getElementById('server-select').value = name;
                             }, 2000);
                         } else {
-                            progressText.textContent = 'Error: ' + status.error;
-                            progressDiv.style.backgroundColor = '#7f1d1d';
+                            modalState = 'error';
+                            showModalError(status.error || 'Error en instalación');
+                            progressDiv.style.display = 'none';
+                            document.getElementById('modal-submit-btn').disabled = false;
                         }
                     }
                 }, 3000);
 
             } catch (error) {
-                progressText.textContent = 'Error de conexión: ' + error.message;
-                progressDiv.style.backgroundColor = '#7f1d1d';
+                modalState = 'error';
+                showModalError('Error de conexión: ' + error.message);
+                progressDiv.style.display = 'none';
+                document.getElementById('modal-submit-btn').disabled = false;
             }
+        }
+
+        // MOSTRAR ERROR EN MODAL
+        function showModalError(message) {
+            const errorDiv = document.getElementById('modal-error');
+            errorDiv.textContent = '⚠️ ' + message;
+            errorDiv.style.display = 'block';
         }
     </script>
 </body>
