@@ -523,10 +523,73 @@ controla desde el panel
         border_style="green"
     ))
 
-    print("\n[INFO] El panel está corriendo. Mantén esta celda ejecutándose.")
-    print("[INFO] Para detener el panel, interrumpe la ejecución del notebook.")
+    print("\n" + "=" * 60)
+    print("✅ SISTEMA ACTIVO")
+    print("=" * 60)
+    print("   No cierres esta celda.")
+    print("   Gestiona tu servidor desde el panel web.")
+    print("   Para detener todo, interrumpe esta celda (■)")
+    print("=" * 60 + "\n")
 
-    return True
+    # MANTENER LA CELDA VIVA - Bucle infinito hasta interrupción
+    try:
+        while True:
+            time.sleep(30)
+
+            # Verificar que Flask sigue respondiendo
+            try:
+                import requests
+                r = requests.get('http://localhost:5000/api/ping', timeout=5)
+                if r.status_code != 200:
+                    print("⚠️  Flask no responde correctamente, verificando...")
+            except requests.RequestException:
+                print("⚠️  Flask no responde en este ciclo...")
+            except Exception:
+                pass
+
+    except KeyboardInterrupt:
+        print("\n🛑  Deteniendo MineColab...")
+        cleanup()
+
+
+def cleanup():
+    """
+    Detiene todos los procesos al interrumpir la celda.
+    Limpieza ordenada de Minecraft, cloudflared y otros recursos.
+    """
+    import requests
+
+    print("\n" + "-" * 60)
+    print("CLEANUP - Deteniendo servicios...")
+    print("-" * 60)
+
+    # 1. Intentar detener Minecraft limpiamente via API
+    try:
+        r = requests.post('http://localhost:5000/api/server/stop', timeout=10)
+        if r.status_code == 200:
+            print("✅ Servidor Minecraft detenido via API")
+        else:
+            print("⚠️  Minecraft no estaba corriendo o error al detener")
+    except requests.RequestException:
+        print("⚠️  No se pudo conectar a Flask para detener Minecraft")
+    except Exception:
+        pass
+
+    # 2. Matar proceso de cloudflared si existe
+    global cloudflared_process
+    if cloudflared_process is not None:
+        try:
+            cloudflared_process.terminate()
+            print("✅ Túnel Cloudflare cerrado")
+        except Exception as e:
+            print(f"⚠️  Error cerrando cloudflared: {e}")
+
+    # 3. Esperar un momento para que los procesos terminen
+    time.sleep(2)
+
+    print("\n" + "=" * 60)
+    print("👋  MineColab detenido correctamente")
+    print("=" * 60)
 
 
 # =============================================================================
@@ -534,21 +597,4 @@ controla desde el panel
 # =============================================================================
 
 if __name__ == '__main__':
-    try:
-        success = launch()
-        if not success:
-            sys.exit(1)
-    except KeyboardInterrupt:
-        console.print(Panel(
-            "⚠️  Panel detenido por el usuario.",
-            title="MineColab",
-            border_style="yellow"
-        ))
-        sys.exit(0)
-    except Exception as e:
-        console.print(Panel(
-            f"❌ Error inesperado: {e}",
-            title="ERROR",
-            border_style="red"
-        ))
-        sys.exit(1)
+    launch()
