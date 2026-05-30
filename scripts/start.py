@@ -99,6 +99,76 @@ def check_cloudflared_installed() -> bool:
         return False
 
 
+def check_java_installed() -> bool:
+    """
+    Verifica si Java está instalado.
+    """
+    try:
+        result = subprocess.run(
+            ['java', '-version'],
+            capture_output=True,
+            text=True
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def install_java(java_version: str = "21") -> bool:
+    """
+    Instala Java si no está instalado.
+    Retorna True si éxito.
+    """
+    try:
+        # Verificar si ya está instalado
+        if check_java_installed():
+            result = subprocess.run(['java', '-version'], capture_output=True, text=True)
+            version_output = result.stderr if result.stderr else result.stdout
+            print(f"[OK] Java ya está instalado: {version_output.split(chr(10))[0]}")
+            return True
+
+        print(f"[INFO] Instalando Java {java_version}...")
+
+        # Mapear versión a paquete
+        java_packages = {
+            "21": "openjdk-21-jre-headless",
+            "17": "openjdk-17-jre-headless",
+            "11": "openjdk-11-jre-headless",
+            "8": "openjdk-8-jre-headless"
+        }
+
+        package = java_packages.get(java_version, java_packages["21"])
+
+        # Actualizar repositorios e instalar
+        print(f"[INFO] Actualizando repositorios...")
+        subprocess.run(['apt-get', 'update', '-qq'], check=False)
+
+        print(f"[INFO] Instalando {package}...")
+        result = subprocess.run(
+            ['apt-get', 'install', '-y', '-q', package],
+            capture_output=True,
+            text=True
+        )
+
+        if result.returncode != 0:
+            print(f"[ERROR] Error instalando Java: {result.stderr}")
+            return False
+
+        # Verificar instalación
+        if check_java_installed():
+            result = subprocess.run(['java', '-version'], capture_output=True, text=True)
+            version_output = result.stderr if result.stderr else result.stdout
+            print(f"[OK] Java instalado correctamente: {version_output.split(chr(10))[0]}")
+            return True
+        else:
+            print("[ERROR] Java no se detecta después de la instalación")
+            return False
+
+    except Exception as e:
+        print(f"[ERROR] install_java: {e}")
+        return False
+
+
 def install_cloudflared() -> bool:
     """
     Instala cloudflared si no está instalado.
@@ -372,9 +442,21 @@ def launch():
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
-    # Paso 4: Iniciar Flask
+    # Paso 4: Instalar Java
     print("\n" + "=" * 60)
-    print("PASO 4: Iniciando Flask")
+    print("PASO 4: Verificando Java")
+    print("=" * 60)
+
+    print("Verificando Java...")
+    if not install_java("21"):
+        error_msg = "❌ No se pudo instalar Java. Verifica tu conexión a internet."
+        console.print(Panel(error_msg, title="ERROR", border_style="red"))
+        return False
+    print("Java listo.")
+
+    # Paso 5: Iniciar Flask
+    print("\n" + "=" * 60)
+    print("PASO 5: Iniciando Flask")
     print("=" * 60)
 
     if not start_flask_thread():
@@ -382,9 +464,9 @@ def launch():
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
-    # Paso 5: Iniciar túnel Cloudflare
+    # Paso 6: Iniciar túnel Cloudflare
     print("\n" + "=" * 60)
-    print("PASO 5: Iniciando túnel Cloudflare")
+    print("PASO 6: Iniciando túnel Cloudflare")
     print("=" * 60)
 
     panel_url = start_cloudflare_tunnel()
@@ -394,7 +476,7 @@ def launch():
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
-    # Paso 6: Mostrar resultado final
+    # Paso 7: Mostrar resultado final
     print("\n" + "=" * 60)
     print("MINECOLAB PANEL LISTO")
     print("=" * 60)

@@ -11,10 +11,12 @@ from flask_cors import CORS
 from panel.drive import (
     get_active_server,
     list_servers,
-    set_active_server
+    set_active_server,
+    save_server_config
 )
 from panel.routes.auth import auth_bp, verify_token
 from panel.server_manager import server_manager
+from panel.routes.servers import servers_bp
 
 # =============================================================================
 # CONFIGURACIÓN
@@ -29,8 +31,9 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 # SocketIO con async_mode='threading'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
-# Registrar blueprint de autenticación
+# Registrar blueprints
 app.register_blueprint(auth_bp)
+app.register_blueprint(servers_bp)
 
 # =============================================================================
 # VARIABLES GLOBALES
