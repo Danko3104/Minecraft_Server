@@ -14,6 +14,7 @@ from panel.drive import (
     set_active_server
 )
 from panel.routes.auth import auth_bp, verify_token
+from panel.server_manager import server_manager
 
 # =============================================================================
 # CONFIGURACIÓN
@@ -81,7 +82,7 @@ def api_status():
 
         return jsonify({
             "flask": True,
-            "minecraft_running": False,  # Por ahora siempre false
+            "minecraft_running": server_manager.is_running(),
             "active_server": get_active_server(),
             "servers": list_servers(),
             "session_uptime_seconds": int(session_uptime),
@@ -150,6 +151,84 @@ def api_select_server():
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/server/start', methods=['POST'])
+@verify_token
+def api_server_start():
+    """
+    Inicia el servidor de Minecraft.
+    Requiere token de autenticación.
+    """
+    try:
+        # Obtener servidor activo
+        active_server = get_active_server()
+
+        if not active_server:
+            return jsonify({
+                "success": False,
+                "error": "No hay servidor activo. Selecciona uno primero."
+            }), 400
+
+        # Iniciar servidor
+        result = server_manager.start(active_server)
+
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/server/stop', methods=['POST'])
+@verify_token
+def api_server_stop():
+    """
+    Detiene el servidor de Minecraft.
+    Requiere token de autenticación.
+    """
+    try:
+        result = server_manager.stop()
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/server/command', methods=['POST'])
+@verify_token
+def api_server_command():
+    """
+    Envía un comando al servidor.
+    Body JSON: {"command": "say hola"}
+    """
+    try:
+        data = request.get_json()
+
+        if not data or 'command' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Falta 'command' en el body"
+            }), 400
+
+        command = data['command']
+        response = server_manager.send_command(command)
+
+        return jsonify({
+            "success": True,
+            "response": response
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 # =============================================================================

@@ -418,6 +418,9 @@
         function showPanel() {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('panel-screen').style.display = 'block';
+            // Inicializar botones deshabilitados
+            document.getElementById('btn-start').disabled = true;
+            document.getElementById('btn-stop').disabled = true;
             loadStatus();
             statusInterval = setInterval(loadStatus, 5000);
         }
@@ -527,6 +530,20 @@
                 cardSession.textContent = formatSeconds(data.session_uptime_seconds);
                 cardRemaining.textContent = formatSeconds(data.colab_time_remaining);
 
+                // Actualizar botones según estado
+                const btnStart = document.getElementById('btn-start');
+                const btnStop = document.getElementById('btn-stop');
+
+                if (data.minecraft_running) {
+                    // Servidor corriendo: deshabilitar INICIAR
+                    btnStart.disabled = true;
+                    btnStop.disabled = false;
+                } else {
+                    // Servidor detenido: habilitar INICIAR, deshabilitar DETENER
+                    btnStart.disabled = false;
+                    btnStop.disabled = true;
+                }
+
             } catch (error) {
                 console.error('Error cargando estado:', error);
             }
@@ -573,13 +590,102 @@
         }
 
         // INICIAR SERVIDOR
-        function startServer() {
-            alert('Próximamente: Iniciar servidor de Minecraft');
+        async function startServer() {
+            const btnStart = document.getElementById('btn-start');
+            const originalText = btnStart.textContent;
+
+            // Deshabilitar botón y cambiar texto
+            btnStart.disabled = true;
+            btnStart.textContent = 'Iniciando...';
+
+            try {
+                const response = await fetch('/api/server/start', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    showNotification('Servidor iniciando...', 'success');
+                    // Esperar 3 segundos y recargar estado
+                    setTimeout(loadStatus, 3000);
+                } else {
+                    // Mostrar error
+                    showNotification(data.error || 'Error al iniciar', 'error');
+                    btnStart.disabled = false;
+                    btnStart.textContent = originalText;
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                btnStart.disabled = false;
+                btnStart.textContent = originalText;
+            }
         }
 
         // DETENER SERVIDOR
-        function stopServer() {
-            alert('Próximamente: Detener servidor de Minecraft');
+        async function stopServer() {
+            const btnStop = document.getElementById('btn-stop');
+            const originalText = btnStop.textContent;
+
+            // Deshabilitar botón y cambiar texto
+            btnStop.disabled = true;
+            btnStop.textContent = 'Deteniendo...';
+
+            try {
+                const response = await fetch('/api/server/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    showNotification('Servidor detenido', 'success');
+                    // Esperar 2 segundos y recargar estado
+                    setTimeout(loadStatus, 2000);
+                } else {
+                    // Mostrar error
+                    showNotification(data.error || 'Error al detener', 'error');
+                    btnStop.disabled = false;
+                    btnStop.textContent = originalText;
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+                btnStop.disabled = false;
+                btnStop.textContent = originalText;
+            }
+        }
+
+        // MOSTRAR NOTIFICACIÓN
+        function showNotification(message, type) {
+            // Crear notificación temporal
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 24px;
+                border-radius: 8px;
+                background: ${type === 'success' ? '#22c55e' : '#ef4444'};
+                color: white;
+                font-weight: bold;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            // Remover después de 3 segundos
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
         }
 
         // MOSTRAR SECCIÓN
