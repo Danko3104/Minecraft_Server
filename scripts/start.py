@@ -469,6 +469,32 @@ def launch():
         return False
     print("Java listo.")
 
+    # Paso 4.5: Configurar túnel Playit para Minecraft
+    print("\n" + "=" * 60)
+    print("PASO 4.5: Configurando túnel Playit para Minecraft")
+    print("=" * 60)
+
+    try:
+        from panel import tunnel as tunnel_module
+        from panel.drive import get_global_config
+
+        config = get_global_config()
+        secret_key = config.get('playit_proxy', {}).get('secretkey', '')
+
+        result = tunnel_module.start_playit(secret_key)
+
+        if result.get('configured'):
+            tunnel_module.set_minecraft_url("configured")
+            print("[OK] Playit iniciado con cuenta configurada")
+            print("[INFO] Ver IP en: https://playit.gg/account/tunnels")
+        else:
+            tunnel_module.set_minecraft_url("")
+            print("[WARNING] Playit sin cuenta configurada")
+            print("[INFO] Configura tu cuenta en: https://playit.gg")
+    except Exception as e:
+        print(f"[WARNING] Error configurando Playit: {e}")
+        tunnel_module.set_minecraft_url("")
+
     # Paso 5: Iniciar Flask
     print("\n" + "=" * 60)
     print("PASO 5: Iniciando Flask")

@@ -12,11 +12,14 @@ from panel.drive import (
     get_active_server,
     list_servers,
     set_active_server,
-    save_server_config
+    save_server_config,
+    get_global_config,
+    save_global_config
 )
 from panel.routes.auth import auth_bp, verify_token
 from panel.server_manager import server_manager
 from panel.routes.servers import servers_bp
+from panel import tunnel as tunnel_module
 
 # =============================================================================
 # CONFIGURACIÓN
@@ -89,7 +92,9 @@ def api_status():
             "active_server": get_active_server(),
             "servers": list_servers(),
             "session_uptime_seconds": int(session_uptime),
-            "colab_time_remaining": int(colab_time_remaining)
+            "colab_time_remaining": int(colab_time_remaining),
+            "minecraft_url": tunnel_module.get_minecraft_url(),
+            "playit_configured": tunnel_module.is_playit_configured()
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -271,6 +276,84 @@ def api_server_diagnose():
         diagnosis = server_manager.diagnose(active_server)
         return jsonify(diagnosis)
 
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+# =============================================================================
+# WEBSOCKET / SOCKETIO EVENTS
+# =============================================================================
+
+@app.route('/api/tunnels/playit/setup', methods=['POST'])
+@verify_token
+def api_tunnels_playit_setup():
+    """
+    Configura Playit con secret key.
+    Body JSON: {"secret_key": "..."}
+    Requiere token de autenticación.
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'secret_key' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Falta 'secret_key' en el body"
+            }), 400
+        
+        secret_key = data['secret_key']
+        
+        if not secret_key:
+            return jsonify({
+                "success": False,
+                "error": "secret_key no puede estar vacío"
+            }), 400
+        
+        # Configurar Playit
+        success = tunnel_module.setup_playit(secret_key)
+        if not success:
+            return jsonify({
+                "success": False,
+                "error": "Failed to setup Playit configuration"
+            }), 500
+        
+        # Actualizar configuración global
+        config = get_global_config()
+        if 'playit_proxy' not in config:
+            config['playit_proxy'] = {}
+        config['playit_proxy']['secretkey'] = secret_key
+        save_global_config(config)
+        
+        # Establecer URL como configurada
+        tunnel_module.set_minecraft_url("configured")
+        
+        return jsonify({
+            "success": True,
+            "message": "Playit configurado"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/tunnels/playit/status', methods=['GET'])
+@verify_token
+def api_tunnels_playit_status():
+    """
+    Retorna el estado de Playit.
+    Requiere token de autenticación.
+    """
+    try:
+        return jsonify({
+            "configured": tunnel_module.is_playit_configured(),
+            "minecraft_url": tunnel_module.get_minecraft_url()
+        })
     except Exception as e:
         return jsonify({
             "success": False,

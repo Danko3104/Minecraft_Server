@@ -444,13 +444,18 @@
             <main class="main-content">
                 <!-- HEADER -->
                 <header class="header">
-                    <div class="header-left">
-                        <h1>Dashboard</h1>
-                        <select class="server-select" id="server-select" onchange="selectServer(this.value)">
-                            <option value="">Cargando servidores...</option>
-                        </select>
-                        <button class="btn-new-server" onclick="openNewServerModal()">+ Nuevo Servidor</button>
-                    </div>
+                 <div class="header-left">
+                         <h1>Dashboard</h1>
+                         <select class="server-select" id="server-select" onchange="selectServer(this.value)">
+                             <option value="">Cargando servidores...</option>
+                         </select>
+                         <button class="btn-new-server" onclick="openNewServerModal()">+ Nuevo Servidor</button>
+                         <button class="btn-new-server" 
+                                 onclick="openPlayitModal()"
+                                 style="background:#1d4ed8;">
+                             🎮 Configurar Playit
+                         </button>
+                     </div>
                     <div class="status-indicator">
                         <div class="status-dot" id="status-dot"></div>
                         <span id="status-text">Desconectado</span>
@@ -468,25 +473,29 @@
                         </div>
                     </div>
 
-                    <!-- Stats Cards -->
-                    <div class="cards-grid">
-                        <div class="card">
-                            <h3>Estado</h3>
-                            <div class="value" id="card-status">---</div>
-                        </div>
-                        <div class="card">
-                            <h3>Servidor Activo</h3>
-                            <div class="value" id="card-active">---</div>
-                        </div>
-                        <div class="card">
-                            <h3>Tiempo de Sesión</h3>
-                            <div class="value" id="card-session">---:---</div>
-                        </div>
-                        <div class="card">
-                            <h3>Tiempo Restante</h3>
-                            <div class="value" id="card-remaining">---:---</div>
-                        </div>
-                    </div>
+                     <!-- Stats Cards -->
+                     <div class="cards-grid">
+                         <div class="card">
+                             <h3>Estado</h3>
+                             <div class="value" id="card-status">---</div>
+                         </div>
+                         <div class="card">
+                             <h3>Servidor Activo</h3>
+                             <div class="value" id="card-active">---</div>
+                         </div>
+                         <div class="card">
+                             <h3>Tiempo de Sesión</h3>
+                             <div class="value" id="card-session">---:---</div>
+                         </div>
+                         <div class="card">
+                             <h3>Tiempo Restante</h3>
+                             <div class="value" id="card-remaining">---:---</div>
+                         </div>
+                         <div class="card" id="card-ip">
+                             <h3>IP DEL SERVIDOR</h3>
+                             <div id="card-ip-content">Cargando...</div>
+                         </div>
+                     </div>
                 </section>
 
                  <!-- Other sections (placeholder) -->
@@ -679,26 +688,59 @@
                 const cardActive = document.getElementById('card-active');
                 cardActive.textContent = data.active_server || 'Ninguno';
 
-                // Actualizar tiempos
-                const cardSession = document.getElementById('card-session');
-                const cardRemaining = document.getElementById('card-remaining');
+                 // Actualizar tiempos
+                 const cardSession = document.getElementById('card-session');
+                 const cardRemaining = document.getElementById('card-remaining');
 
-                cardSession.textContent = formatSeconds(data.session_uptime_seconds);
-                cardRemaining.textContent = formatSeconds(data.colab_time_remaining);
+                 cardSession.textContent = formatSeconds(data.session_uptime_seconds);
+                 cardRemaining.textContent = formatSeconds(data.colab_time_remaining);
 
-                // Actualizar botones según estado
-                const btnStart = document.getElementById('btn-start');
-                const btnStop = document.getElementById('btn-stop');
+                 // Actualizar tarjeta de IP del servidor
+                 const cardIpContent = document.getElementById('card-ip-content');
+                 
+                 if (data.playit_configured && data.minecraft_url === "configured") {
+                   cardIpContent.innerHTML = `
+                     <div style="color:#22c55e;font-size:14px;margin-bottom:8px;">
+                       ✅ Playit activo
+                     </div>
+                     <a href="https://playit.gg/account/tunnels" 
+                        target="_blank"
+                        style="display:inline-block;padding:8px 16px;
+                               background:#1d4ed8;color:white;
+                               border-radius:6px;text-decoration:none;
+                               font-size:13px;">
+                       🔗 Ver IP en Playit.gg
+                     </a>`
+                 } else {
+                   cardIpContent.innerHTML = `
+                     <div style="color:#f59e0b;font-size:14px;margin-bottom:8px;">
+                       ⚠️ Sin túnel configurado
+                     </div>
+                     <a href="https://playit.gg" 
+                        target="_blank"
+                        style="display:inline-block;padding:8px 16px;
+                               background:#475569;color:white;
+                               border-radius:6px;text-decoration:none;
+                               font-size:13px;">
+                       🔗 Configurar en Playit.gg
+                     </a>`
+                 }
 
-                if (data.minecraft_running) {
-                    // Servidor corriendo: deshabilitar INICIAR
-                    btnStart.disabled = true;
-                    btnStop.disabled = false;
-                } else {
-                    // Servidor detenido: habilitar INICIAR, deshabilitar DETENER
-                    btnStart.disabled = false;
-                    btnStop.disabled = true;
-                }
+                 // Actualizar botones según estado
+                 const btnStart = document.getElementById('btn-start');
+                 const btnStop = document.getElementById('btn-stop');
+
+                 if (data.minecraft_running) {
+                     btnStart.textContent = "⚡ EJECUTÁNDOSE"
+                     btnStart.style.background = "#1d4ed8"
+                     btnStart.disabled = true
+                     btnStop.disabled = false
+                 } else {
+                     btnStart.textContent = "▶ INICIAR"
+                     btnStart.style.background = "#22c55e"
+                     btnStart.disabled = false
+                     btnStop.disabled = true
+                 }
 
             } catch (error) {
                 console.error('Error cargando estado:', error);
@@ -1247,6 +1289,55 @@
         }
         // Reemplazar la función original
         window.showSection = showSection;
+
+        // =============================================
+        // FUNCIONES DEL MODAL PLAYIT
+        // =============================================
+        function openPlayitModal() {
+            document.getElementById('playit-modal').classList.add('active')
+        }
+        
+        function closePlayitModal() {
+            document.getElementById('playit-modal').classList.remove('active')
+            document.getElementById('playit-secret-key').value = ''
+            document.getElementById('playit-error').style.display = 'none'
+        }
+        
+        async function savePlayitKey() {
+            const secretKey = document.getElementById('playit-secret-key').value.trim()
+            const errorDiv = document.getElementById('playit-error')
+            
+            if (!secretKey) {
+                errorDiv.textContent = 'Ingresa tu secret key'
+                errorDiv.style.display = 'block'
+                return
+            }
+            
+            try {
+                const response = await fetch('/api/tunnels/playit/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ secret_key: secretKey })
+                })
+                
+                const data = await response.json()
+                
+                if (data.success) {
+                    closePlayitModal()
+                    showNotification('✅ Playit configurado correctamente', 'success')
+                    loadStatus()
+                } else {
+                    errorDiv.textContent = data.error || 'Error al configurar'
+                    errorDiv.style.display = 'block'
+                }
+            } catch(e) {
+                errorDiv.textContent = 'Error de conexión'
+                errorDiv.style.display = 'block'
+            }
+        }
     </script>
 </body>
 </html>
