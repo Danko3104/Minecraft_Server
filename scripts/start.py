@@ -128,8 +128,8 @@ def install_java(java_version: str = "21") -> bool:
             version_line = version_output.split('\n')[0]
             print(f"[INFO] Java detectado: {version_line}")
 
-            # Verificar si es Java 21
-            if '21' in version_line or 'openjdk version "21' in version_line:
+            # Verificar si es Java 21 exactamente
+            if 'version "21' in version_line:
                 print(f"[OK] Java 21 ya está instalado")
                 # Configurar variables de entorno
                 os.environ['JAVA_HOME'] = '/usr/lib/jvm/java-21-openjdk-amd64'

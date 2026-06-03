@@ -579,7 +579,8 @@ class ServerManager:
         status = {
             "running": self.is_running(),
             "uptime_seconds": 0,
-            "pid": None
+            "pid": None,
+            "players": []
         }
 
         if self.process:
@@ -588,6 +589,23 @@ class ServerManager:
             if self.start_time and self.is_running():
                 uptime = datetime.now() - self.start_time
                 status["uptime_seconds"] = int(uptime.total_seconds())
+
+            # Intentar obtener jugadores vía RCON si el servidor está corriendo
+            if self.is_running() and MCRCON_AVAILABLE:
+                try:
+                    with RCon("localhost", self.rcon_port, self.rcon_password) as rcon:
+                        response = rcon.command("list")
+                        # Procesar respuesta de RCON para extraer jugadores
+                        # Ejemplo de respuesta: "There are 0/20 players online: "
+                        if "players online:" in response:
+                            players_part = response.split("players online:")[1].strip()
+                            if players_part and players_part != "":
+                                # Limpiar y separar jugadores por comas
+                                players_list = [p.strip() for p in players_part.split(",") if p.strip()]
+                                status["players"] = players_list
+                except Exception:
+                    # Si RCON falla, mantenemos players como lista vacía pero running sigue siendo True
+                    pass
 
         return status
 
