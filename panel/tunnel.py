@@ -5,59 +5,43 @@ import json
 import time
 import select
 
-_playit_process = None
 _minecraft_url = ""
 _playit_configured = False
 
+DOCKER_IMAGE = 'ghcr.io/playit-cloud/playit-agent:latest'
+CONFIG_DIR = '/root/.config/playit'
+
 
 def _install_playit():
-    try:
-        check = subprocess.run(['which', 'playit'], capture_output=True)
-        if check.returncode == 0:
-            return
-    except:
-        pass
-
-    cmd = (
-        'curl -SsL https://playit-cloud.github.io/ppa/key.gpg | '
-        'gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/playit.gpg > /dev/null && '
-        'echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] '
-        'https://playit-cloud.github.io/ppa/data ./" | '
-        'sudo tee /etc/apt/sources.list.d/playit-cloud.list > /dev/null && '
-        'sudo apt -qq update && sudo apt install -y playit'
-    )
-    result = subprocess.run(
-        cmd,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    stdout = result.stdout.decode('latin-1')
-    stderr = result.stderr.decode('latin-1')
+    result = subprocess.run(['docker', '--version'], capture_output=True)
     if result.returncode != 0:
-        raise Exception(f"Failed to install playit: {stderr}")
+        raise Exception("Docker no est\u00e1 disponible en este entorno")
 
 
 def _start_playit_and_get_claim_code() -> dict:
-    global _playit_process
     try:
         _install_playit()
 
-        _playit_process = subprocess.Popen(
-            ['playit', 'run'],
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+
+        proc = subprocess.Popen(
+            ['docker', 'run', '--rm', '--net=host',
+             '-v', f'{CONFIG_DIR}:{CONFIG_DIR}',
+             '--name', 'playit-agent',
+             DOCKER_IMAGE],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
 
         output = ""
         start = time.time()
-        timeout = 30
+        timeout = 60
         poll = select.poll()
-        poll.register(_playit_process.stdout, select.POLLIN)
+        poll.register(proc.stdout, select.POLLIN)
 
         while time.time() - start < timeout:
             if poll.poll(500):
-                raw = _playit_process.stdout.readline()
+                raw = proc.stdout.readline()
                 if not raw:
                     break
                 line = raw.decode('utf-8', errors='ignore')
@@ -68,11 +52,9 @@ def _start_playit_and_get_claim_code() -> dict:
                     match = re.search(r'playit\.gg/claim/([\w-]+)', output, re.IGNORECASE)
                 if match:
                     return {"success": True, "claim_code": match.group(1)}
-            elif _playit_process.poll() is not None:
+            elif proc.poll() is not None:
                 break
 
-        _playit_process.terminate()
-        _playit_process = None
         return {"success": False, "error": "No se encontr\u00f3 claim code en la salida", "output": output}
     except Exception as e:
         print(f"[ERROR] _start_playit_and_get_claim_code: {e}")
@@ -80,13 +62,7 @@ def _start_playit_and_get_claim_code() -> dict:
 
 
 def _get_playit_secret_path() -> str:
-    try:
-        result = subprocess.run(['playit', 'secret-path'], capture_output=True, timeout=10)
-        if result.returncode == 0:
-            return result.stdout.decode('utf-8', errors='ignore').strip()
-    except:
-        pass
-    return "/root/.config/playit/playit.toml"
+    return os.path.join(CONFIG_DIR, 'playit.toml')
 
 
 def _wait_for_secret_key_after_claim() -> dict:
@@ -111,20 +87,21 @@ def _wait_for_secret_key_after_claim() -> dict:
 
 
 def _start_playit_with_secret_key(secret_key: str) -> bool:
-    global _playit_process, _playit_configured
+    global _playit_configured
     try:
-        config_path = _get_playit_secret_path()
-        config_dir = os.path.dirname(config_path)
-        os.makedirs(config_dir, exist_ok=True)
+        stop_playit()
 
-        with open(config_path, 'w') as f:
-            f.write(f'secret_key = "{secret_key}"\n')
-
-        _playit_process = subprocess.Popen(
-            ['playit', 'run'],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+        result = subprocess.run(
+            ['docker', 'run', '-d', '--rm', '--net=host',
+             '-e', f'SECRET_KEY={secret_key}',
+             '--name', 'playit-agent',
+             DOCKER_IMAGE],
+            capture_output=True
         )
+        if result.returncode != 0:
+            stderr = result.stderr.decode('utf-8', errors='ignore')
+            print(f"[ERROR] _start_playit_with_secret_key: {stderr}")
+            return False
 
         _playit_configured = True
         return True
@@ -136,7 +113,7 @@ def _start_playit_with_secret_key(secret_key: str) -> bool:
 def get_playit_tunnel_address() -> str:
     try:
         result = subprocess.run(
-            ['playit', 'tunnels', 'list'],
+            ['docker', 'exec', 'playit-agent', 'playit', 'tunnels', 'list'],
             capture_output=True, timeout=10
         )
         if result.returncode != 0:
@@ -155,8 +132,11 @@ def get_playit_tunnel_address() -> str:
 
 def _is_playit_running() -> bool:
     try:
-        result = subprocess.run(['pgrep', 'playit'], capture_output=True)
-        return result.returncode == 0 and result.stdout.decode('utf-8', errors='ignore').strip() != ""
+        result = subprocess.run(
+            ['docker', 'ps', '--filter', 'name=playit-agent', '--format', '{{.Names}}'],
+            capture_output=True
+        )
+        return b'playit-agent' in result.stdout
     except:
         return False
 
@@ -210,11 +190,4 @@ def is_playit_configured() -> bool:
 
 
 def stop_playit():
-    global _playit_process
-    if _playit_process is not None:
-        _playit_process.terminate()
-        try:
-            _playit_process.wait(timeout=5)
-        except:
-            _playit_process.kill()
-        _playit_process = None
+    subprocess.run(['docker', 'stop', 'playit-agent'], capture_output=True)
