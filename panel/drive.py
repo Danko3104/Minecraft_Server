@@ -25,7 +25,7 @@ DEFAULT_GLOBAL_CONFIG = {
     "server_in_use": "",
     "ngrok_proxy": {"authtoken": "", "region": ""},
     "zrok_proxy": {"authtoken": ""},
-    "playit_proxy": {"secretkey": ""},
+    "playit_proxy": {"secretkey": "", "address": ""},
     "tailscale_proxy": {"authtoken": ""},
     "backup_schedule": {
         "enabled": False,
@@ -105,6 +105,9 @@ def get_global_config() -> dict:
 
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
+
+        if 'playit_proxy' in config and isinstance(config['playit_proxy'], dict):
+            config['playit_proxy'].setdefault('address', '')
 
         return config
     except json.JSONDecodeError as e:

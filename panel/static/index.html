@@ -453,7 +453,7 @@
                          <button class="btn-new-server" 
                                  onclick="openPlayitModal()"
                                  style="background:#1d4ed8;">
-                             🎮 Configurar Playit
+                             🎮 Túneles
                          </button>
                      </div>
                     <div class="status-indicator">
@@ -556,6 +556,75 @@
                     <button type="submit" class="btn btn-green" id="modal-submit-btn" onclick="createAndInstallServer()">Crear e Instalar</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL PLAYIT -->
+    <div class="modal-overlay" id="playit-modal" onclick="if(event.target === this) closePlayitModal()">
+        <div class="modal">
+            <h2>🎮 Playit Tunnel</h2>
+
+            <div id="playit-state-a">
+                <p style="color:#94a3b8;margin-bottom:20px;">
+                    Conecta tu servidor Minecraft a Internet usando Playit.gg.
+                </p>
+                <button class="btn btn-green" onclick="startPlayitClaim()" id="playit-start-btn">
+                    🔗 Conectar Playit
+                </button>
+                <div id="playit-start-spinner" style="display:none;margin-top:16px;">
+                    <div class="spinner"></div>
+                    <span>Iniciando agente...</span>
+                </div>
+            </div>
+
+            <div id="playit-state-claim" style="display:none;">
+                <p style="color:#94a3b8;margin-bottom:8px;">
+                    Ve a <a href="https://playit.gg/claim" target="_blank" style="color:#60a5fa;">https://playit.gg/claim</a>
+                    e ingresa este código:
+                </p>
+                <div style="background:#0f172a;padding:20px;border-radius:8px;text-align:center;
+                            font-size:28px;font-weight:bold;color:#22c55e;margin:16px 0;
+                            letter-spacing:4px;font-family:monospace;" id="playit-claim-code">
+                    ---
+                </div>
+                <p style="color:#94a3b8;font-size:13px;margin-bottom:16px;">
+                    Después de ingresar el código en Playit.gg, haz clic en "Ya lo hice".
+                </p>
+                <button class="btn btn-green" onclick="confirmPlayitClaim()" id="playit-claim-btn">
+                    ✅ Ya lo hice
+                </button>
+                <div id="playit-claim-spinner" style="display:none;margin-top:16px;">
+                    <div class="spinner"></div>
+                    <span>Esperando confirmación del claim...</span>
+                </div>
+            </div>
+
+            <div id="playit-state-b" style="display:none;">
+                <p style="color:#94a3b8;margin-bottom:8px;">Túnel activo en:</p>
+                <div style="background:#0f172a;padding:16px;border-radius:8px;text-align:center;
+                            font-size:18px;font-weight:bold;color:#22c55e;margin:16px 0;
+                            word-break:break-all;font-family:monospace;" id="playit-address">
+                    ---
+                </div>
+                <div class="modal-buttons">
+                    <button class="btn btn-green" onclick="reconnectPlayit()" id="playit-reconnect-btn">
+                        🔄 Reconectar
+                    </button>
+                    <button class="btn btn-red" onclick="resetPlayit()">
+                        🗑 Resetear agente
+                    </button>
+                </div>
+                <div id="playit-reconnect-spinner" style="display:none;margin-top:16px;">
+                    <div class="spinner"></div>
+                    <span>Reconectando...</span>
+                </div>
+            </div>
+
+            <div id="playit-state-error" style="display:none;background:#7f1d1d;color:#fecaca;padding:12px;border-radius:8px;margin-top:16px;"></div>
+
+            <div class="modal-buttons" style="margin-top:24px;">
+                <button class="btn btn-secondary" onclick="closePlayitModal()">Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -695,36 +764,55 @@
                  cardSession.textContent = formatSeconds(data.session_uptime_seconds);
                  cardRemaining.textContent = formatSeconds(data.colab_time_remaining);
 
-                 // Actualizar tarjeta de IP del servidor
-                 const cardIpContent = document.getElementById('card-ip-content');
-                 
-                 if (data.playit_configured && data.minecraft_url === "configured") {
-                   cardIpContent.innerHTML = `
-                     <div style="color:#22c55e;font-size:14px;margin-bottom:8px;">
-                       ✅ Playit activo
-                     </div>
-                     <a href="https://playit.gg/account/tunnels" 
-                        target="_blank"
-                        style="display:inline-block;padding:8px 16px;
-                               background:#1d4ed8;color:white;
-                               border-radius:6px;text-decoration:none;
-                               font-size:13px;">
-                       🔗 Ver IP en Playit.gg
-                     </a>`
-                 } else {
-                   cardIpContent.innerHTML = `
-                     <div style="color:#f59e0b;font-size:14px;margin-bottom:8px;">
-                       ⚠️ Sin túnel configurado
-                     </div>
-                     <a href="https://playit.gg" 
-                        target="_blank"
-                        style="display:inline-block;padding:8px 16px;
-                               background:#475569;color:white;
-                               border-radius:6px;text-decoration:none;
-                               font-size:13px;">
-                       🔗 Configurar en Playit.gg
-                     </a>`
-                 }
+                  // Actualizar tarjeta de IP del servidor
+                  const cardIpContent = document.getElementById('card-ip-content');
+                  
+                  try {
+                    const playitResp = await fetch('/api/tunnels/playit/status', {
+                      headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    const playitData = await playitResp.json();
+                    
+                    if (playitData.configured && playitData.address) {
+                      cardIpContent.innerHTML = `
+                        <div style="color:#22c55e;font-size:14px;margin-bottom:8px;">
+                          ✅ Playit: ${playitData.address}
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                          <a href="https://playit.gg/account/tunnels" 
+                             target="_blank"
+                             style="display:inline-block;padding:8px 16px;
+                                    background:#1d4ed8;color:white;
+                                    border-radius:6px;text-decoration:none;
+                                    font-size:13px;">
+                            🔗 Playit.gg
+                          </a>
+                          ${playitData.running ? '<span style="padding:8px 12px;background:#166534;color:#86efac;border-radius:6px;font-size:13px;">● En línea</span>' : '<span style="padding:8px 12px;background:#7f1d1d;color:#fca5a5;border-radius:6px;font-size:13px;">● Detenido</span>'}
+                        </div>`
+                    } else if (playitData.configured && !playitData.running) {
+                      cardIpContent.innerHTML = `
+                        <div style="color:#f59e0b;font-size:14px;margin-bottom:8px;">
+                          ⚠️ Playit configurado pero no corriendo
+                        </div>
+                        <button onclick="openPlayitModal()"
+                                style="padding:8px 16px;background:#1d4ed8;color:white;
+                                       border:none;border-radius:6px;cursor:pointer;font-size:13px;">
+                          🔄 Iniciar túnel
+                        </button>`
+                    } else {
+                      cardIpContent.innerHTML = `
+                        <div style="color:#f59e0b;font-size:14px;margin-bottom:8px;">
+                          ⚠️ Sin túnel configurado
+                        </div>
+                        <button onclick="openPlayitModal()"
+                                style="padding:8px 16px;background:#475569;color:white;
+                                       border:none;border-radius:6px;cursor:pointer;font-size:13px;">
+                          🔗 Configurar túnel
+                        </button>`
+                    }
+                  } catch(e) {
+                    cardIpContent.innerHTML = `<div style="color:#ef4444;font-size:14px;">Error al consultar túnel</div>`
+                  }
 
                  // Actualizar botones según estado
                  const btnStart = document.getElementById('btn-start');
@@ -1295,48 +1383,164 @@
         // =============================================
         function openPlayitModal() {
             document.getElementById('playit-modal').classList.add('active')
+            document.getElementById('playit-state-error').style.display = 'none'
+            loadPlayitModalState()
         }
-        
+
         function closePlayitModal() {
             document.getElementById('playit-modal').classList.remove('active')
-            document.getElementById('playit-secret-key').value = ''
-            document.getElementById('playit-error').style.display = 'none'
+            resetPlayitModal()
         }
-        
-        async function savePlayitKey() {
-            const secretKey = document.getElementById('playit-secret-key').value.trim()
-            const errorDiv = document.getElementById('playit-error')
-            
-            if (!secretKey) {
-                errorDiv.textContent = 'Ingresa tu secret key'
-                errorDiv.style.display = 'block'
-                return
-            }
-            
+
+        function resetPlayitModal() {
+            document.getElementById('playit-state-a').style.display = 'none'
+            document.getElementById('playit-state-claim').style.display = 'none'
+            document.getElementById('playit-state-b').style.display = 'none'
+            document.getElementById('playit-state-error').style.display = 'none'
+            document.getElementById('playit-start-btn').style.display = ''
+            document.getElementById('playit-start-spinner').style.display = 'none'
+            document.getElementById('playit-claim-btn').style.display = ''
+            document.getElementById('playit-claim-spinner').style.display = 'none'
+            document.getElementById('playit-reconnect-btn').style.display = ''
+            document.getElementById('playit-reconnect-spinner').style.display = 'none'
+        }
+
+        async function loadPlayitModalState() {
+            resetPlayitModal()
             try {
-                const response = await fetch('/api/tunnels/playit/setup', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({ secret_key: secretKey })
+                const response = await fetch('/api/tunnels/playit/status', {
+                    headers: { 'Authorization': 'Bearer ' + token }
                 })
-                
                 const data = await response.json()
-                
+
+                if (data.configured && data.address) {
+                    document.getElementById('playit-address').textContent = data.address
+                    document.getElementById('playit-state-b').style.display = 'block'
+                } else if (data.configured && !data.address) {
+                    document.getElementById('playit-address').textContent = 'Conectado (sin dirección)'
+                    document.getElementById('playit-state-b').style.display = 'block'
+                } else {
+                    document.getElementById('playit-state-a').style.display = 'block'
+                }
+            } catch (e) {
+                document.getElementById('playit-state-a').style.display = 'block'
+            }
+        }
+
+        async function startPlayitClaim() {
+            document.getElementById('playit-start-btn').style.display = 'none'
+            document.getElementById('playit-start-spinner').style.display = 'block'
+            document.getElementById('playit-state-error').style.display = 'none'
+
+            try {
+                const response = await fetch('/api/tunnels/playit/start-claim', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                const data = await response.json()
+
+                if (data.success && data.claim_code) {
+                    document.getElementById('playit-start-spinner').style.display = 'none'
+                    document.getElementById('playit-state-a').style.display = 'none'
+                    document.getElementById('playit-claim-code').textContent = data.claim_code
+                    document.getElementById('playit-state-claim').style.display = 'block'
+                } else {
+                    document.getElementById('playit-start-btn').style.display = ''
+                    document.getElementById('playit-start-spinner').style.display = 'none'
+                    showPlayitError(data.error || 'Error al iniciar claim')
+                }
+            } catch (e) {
+                document.getElementById('playit-start-btn').style.display = ''
+                document.getElementById('playit-start-spinner').style.display = 'none'
+                showPlayitError('Error de conexión')
+            }
+        }
+
+        async function confirmPlayitClaim() {
+            document.getElementById('playit-claim-btn').style.display = 'none'
+            document.getElementById('playit-claim-spinner').style.display = 'block'
+            document.getElementById('playit-state-error').style.display = 'none'
+
+            try {
+                const response = await fetch('/api/tunnels/playit/confirm-claim', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                const data = await response.json()
+
                 if (data.success) {
-                    closePlayitModal()
-                    showNotification('✅ Playit configurado correctamente', 'success')
+                    document.getElementById('playit-state-claim').style.display = 'none'
+                    document.getElementById('playit-claim-spinner').style.display = 'none'
+                    document.getElementById('playit-address').textContent = data.address || 'Conectado'
+                    document.getElementById('playit-state-b').style.display = 'block'
                     loadStatus()
                 } else {
-                    errorDiv.textContent = data.error || 'Error al configurar'
-                    errorDiv.style.display = 'block'
+                    document.getElementById('playit-claim-btn').style.display = ''
+                    document.getElementById('playit-claim-spinner').style.display = 'none'
+                    showPlayitError(data.error || 'Error al confirmar claim')
                 }
-            } catch(e) {
-                errorDiv.textContent = 'Error de conexión'
-                errorDiv.style.display = 'block'
+            } catch (e) {
+                document.getElementById('playit-claim-btn').style.display = ''
+                document.getElementById('playit-claim-spinner').style.display = 'none'
+                showPlayitError('Error de conexión')
             }
+        }
+
+        async function reconnectPlayit() {
+            document.getElementById('playit-reconnect-btn').style.display = 'none'
+            document.getElementById('playit-reconnect-spinner').style.display = 'block'
+            document.getElementById('playit-state-error').style.display = 'none'
+
+            try {
+                const response = await fetch('/api/tunnels/playit/start-claim', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                const data = await response.json()
+
+                document.getElementById('playit-reconnect-spinner').style.display = 'none'
+
+                if (data.success && data.claim_code) {
+                    document.getElementById('playit-state-b').style.display = 'none'
+                    document.getElementById('playit-claim-code').textContent = data.claim_code
+                    document.getElementById('playit-state-claim').style.display = 'block'
+                } else {
+                    document.getElementById('playit-reconnect-btn').style.display = ''
+                    showPlayitError(data.error || 'Error al reconectar')
+                }
+            } catch (e) {
+                document.getElementById('playit-reconnect-btn').style.display = ''
+                document.getElementById('playit-reconnect-spinner').style.display = 'none'
+                showPlayitError('Error de conexión')
+            }
+        }
+
+        async function resetPlayit() {
+            if (!confirm('¿Resetear el agente Playit? Se borrará la configuración actual.')) return
+
+            try {
+                const response = await fetch('/api/tunnels/playit/reset', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                const data = await response.json()
+
+                if (data.success) {
+                    closePlayitModal()
+                    showNotification('Agente Playit reseteado', 'success')
+                    loadStatus()
+                } else {
+                    showPlayitError(data.error || 'Error al resetear')
+                }
+            } catch (e) {
+                showPlayitError('Error de conexión')
+            }
+        }
+
+        function showPlayitError(msg) {
+            const errorDiv = document.getElementById('playit-state-error')
+            errorDiv.textContent = '⚠️ ' + msg
+            errorDiv.style.display = 'block'
         }
     </script>
 </body>
