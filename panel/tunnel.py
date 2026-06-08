@@ -44,7 +44,7 @@ def _start_playit_and_get_claim_code() -> dict:
         _install_playit()
 
         _playit_process = subprocess.Popen(
-            ['playit'],
+            ['playit', '--no-service'],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
@@ -120,10 +120,13 @@ def _start_playit_with_secret_key(secret_key: str) -> bool:
         with open(config_path, 'w') as f:
             f.write(f'secret_key = "{secret_key}"\n')
 
+        env = os.environ.copy()
+        env['PLAYIT_NO_SERVICE'] = '1'
         _playit_process = subprocess.Popen(
-            ['playit', '-s', 'start'],
+            ['playit', '--no-service'],
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
+            env=env
         )
 
         _playit_configured = True
