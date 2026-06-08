@@ -11,12 +11,31 @@ _playit_configured = False
 
 
 def _install_playit():
-    cmd = 'command -v playit || (curl -SsL https://playit-cloud.github.io/ppa/key.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/playit.gpg > /dev/null && echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] https://playit-cloud.github.io/ppa/data ./" | sudo tee /etc/apt/sources.list.d/playit-cloud.list > /dev/null && sudo apt -qq update && sudo apt install -y playit)'
-    result = subprocess.run(cmd, shell=True, capture_output=True)
+    try:
+        check = subprocess.run(['which', 'playit'], capture_output=True)
+        if check.returncode == 0:
+            return
+    except:
+        pass
+
+    cmd = (
+        'curl -SsL https://playit-cloud.github.io/ppa/key.gpg | '
+        'gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/playit.gpg > /dev/null && '
+        'echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] '
+        'https://playit-cloud.github.io/ppa/data ./" | '
+        'sudo tee /etc/apt/sources.list.d/playit-cloud.list > /dev/null && '
+        'sudo apt -qq update && sudo apt install -y playit'
+    )
+    result = subprocess.run(
+        cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    stdout = result.stdout.decode('latin-1')
+    stderr = result.stderr.decode('latin-1')
     if result.returncode != 0:
-        stderr = result.stderr.decode('utf-8', errors='ignore')
-        print(f"[ERROR] _install_playit stderr:\n{stderr}")
-        raise Exception(f"Failed to install playit:\n{stderr}")
+        raise Exception(f"Failed to install playit: {stderr}")
 
 
 def _start_playit_and_get_claim_code() -> dict:
