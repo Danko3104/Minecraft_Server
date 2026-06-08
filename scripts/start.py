@@ -9,6 +9,7 @@ import time
 import threading
 import subprocess
 import re
+import webbrowser
 from typing import Optional
 
 # Agregar el path del proyecto para poder importar panel
@@ -548,6 +549,8 @@ controla desde el panel
         title="MineColab Panel Listo",
         border_style="green"
     ))
+
+    webbrowser.open(panel_url)
 
     print("\n" + "=" * 60)
     print("✅ SISTEMA ACTIVO")
