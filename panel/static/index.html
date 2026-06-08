@@ -1447,7 +1447,11 @@
                 } else {
                     document.getElementById('playit-start-btn').style.display = ''
                     document.getElementById('playit-start-spinner').style.display = 'none'
-                    showPlayitError(data.error || 'Error al iniciar claim')
+                    let errorMsg = data.error || 'Error al iniciar claim'
+                    if (data.output) {
+                        errorMsg += '<pre style="background:#0f172a;color:#fca5a5;padding:10px;margin-top:8px;border-radius:6px;font-size:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;">' + escapeHtml(data.output) + '</pre>'
+                    }
+                    showPlayitError(errorMsg)
                 }
             } catch (e) {
                 document.getElementById('playit-start-btn').style.display = ''
@@ -1539,8 +1543,14 @@
 
         function showPlayitError(msg) {
             const errorDiv = document.getElementById('playit-state-error')
-            errorDiv.textContent = '⚠️ ' + msg
+            errorDiv.innerHTML = '⚠️ ' + msg
             errorDiv.style.display = 'block'
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div')
+            div.textContent = str
+            return div.innerHTML
         }
     </script>
 </body>

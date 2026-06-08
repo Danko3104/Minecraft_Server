@@ -19,12 +19,14 @@ def api_playit_start_claim():
             })
         return jsonify({
             "success": False,
-            "error": result.get("error", "No se pudo iniciar el claim")
+            "error": result.get("error", "No se pudo iniciar el claim"),
+            "output": result.get("output", "")
         }), 500
     except Exception as e:
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": str(e),
+            "output": ""
         }), 500
 
 

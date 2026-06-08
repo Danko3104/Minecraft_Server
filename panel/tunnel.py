@@ -185,7 +185,7 @@ def start_minecraft_tunnel(tunnel_service: str = 'playit', secret_key: str = '')
 
     result = _start_playit_and_get_claim_code()
     if not result.get("success"):
-        return {"status": "error", "error": result.get("error", "Failed to get claim code")}
+        return {"status": "error", "error": result.get("error", "Failed to get claim code"), "output": result.get("output", "")}
 
     return {"status": "needs_claim", "claim_code": result["claim_code"]}
 
