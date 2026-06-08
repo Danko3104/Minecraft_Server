@@ -12,10 +12,11 @@ _playit_configured = False
 
 def _install_playit():
     cmd = 'command -v playit || (curl -SsL https://playit-cloud.github.io/ppa/key.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/playit.gpg > /dev/null && echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] https://playit-cloud.github.io/ppa/data ./" | sudo tee /etc/apt/sources.list.d/playit-cloud.list > /dev/null && sudo apt -qq update && sudo apt install -y playit)'
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, shell=True, capture_output=True)
     if result.returncode != 0:
-        print(f"[ERROR] _install_playit stderr:\n{result.stderr}")
-        raise Exception(f"Failed to install playit:\n{result.stderr}")
+        stderr = result.stderr.decode('utf-8', errors='ignore')
+        print(f"[ERROR] _install_playit stderr:\n{stderr}")
+        raise Exception(f"Failed to install playit:\n{stderr}")
 
 
 def _start_playit_and_get_claim_code() -> dict:
@@ -27,8 +28,6 @@ def _start_playit_and_get_claim_code() -> dict:
             ['playit'],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
         )
 
         output = ""
@@ -39,9 +38,10 @@ def _start_playit_and_get_claim_code() -> dict:
 
         while time.time() - start < timeout:
             if poll.poll(500):
-                line = _playit_process.stdout.readline()
-                if not line:
+                raw = _playit_process.stdout.readline()
+                if not raw:
                     break
+                line = raw.decode('utf-8', errors='ignore')
                 output += line
                 print(f"[PLAYIT] {line.strip()}")
                 match = re.search(r'claim code[:\s]+([\w-]+)', output, re.IGNORECASE)
@@ -62,9 +62,9 @@ def _start_playit_and_get_claim_code() -> dict:
 
 def _get_playit_secret_path() -> str:
     try:
-        result = subprocess.run(['playit', 'secret-path'], capture_output=True, text=True, timeout=10)
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+        result = subprocess.run(['playit', 'secret-path'], capture_output=True, timeout=10)
+        if result.returncode == 0:
+            return result.stdout.decode('utf-8', errors='ignore').strip()
     except:
         pass
     return "/root/.config/playit/playit.toml"
@@ -118,12 +118,12 @@ def get_playit_tunnel_address() -> str:
     try:
         result = subprocess.run(
             ['playit', 'tunnels', 'list'],
-            capture_output=True, text=True, timeout=10
+            capture_output=True, timeout=10
         )
         if result.returncode != 0:
             return ""
 
-        data = json.loads(result.stdout)
+        data = json.loads(result.stdout.decode('utf-8', errors='ignore'))
         tunnels = data.get('tunnels', []) if isinstance(data, dict) else data
         if tunnels:
             address = tunnels[0].get('public_address', tunnels[0].get('address', ''))
@@ -136,8 +136,8 @@ def get_playit_tunnel_address() -> str:
 
 def _is_playit_running() -> bool:
     try:
-        result = subprocess.run(['pgrep', 'playit'], capture_output=True, text=True)
-        return result.returncode == 0 and result.stdout.strip() != ""
+        result = subprocess.run(['pgrep', 'playit'], capture_output=True)
+        return result.returncode == 0 and result.stdout.decode('utf-8', errors='ignore').strip() != ""
     except:
         return False
 
