@@ -10,37 +10,18 @@ _minecraft_url = ""
 _playit_configured = False
 
 
-def _install_playit() -> bool:
-    try:
-        result = subprocess.run(['which', 'playit'], capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout.strip():
-            return True
-
-        cmd1 = "curl -SsL https://playit-cloud.github.io/ppa/key.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/playit.gpg"
-        if subprocess.run(cmd1, shell=True, capture_output=True, text=True).returncode != 0:
-            return False
-
-        cmd2 = 'echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] https://playit-cloud.github.io/ppa/data ./" | sudo tee /etc/apt/sources.list.d/playit-cloud.list'
-        if subprocess.run(cmd2, shell=True, capture_output=True, text=True).returncode != 0:
-            return False
-
-        if subprocess.run(['sudo', 'apt', '-qq', 'update'], capture_output=True, text=True).returncode != 0:
-            return False
-
-        if subprocess.run(['sudo', 'apt', 'install', '-y', 'playit'], capture_output=True, text=True).returncode != 0:
-            return False
-
-        return True
-    except Exception as e:
-        print(f"[ERROR] _install_playit: {e}")
-        return False
+def _install_playit():
+    cmd = 'command -v playit || (curl -SsL https://playit-cloud.github.io/ppa/key.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/playit.gpg > /dev/null && echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] https://playit-cloud.github.io/ppa/data ./" | sudo tee /etc/apt/sources.list.d/playit-cloud.list > /dev/null && sudo apt -qq update && sudo apt install -y playit)'
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"[ERROR] _install_playit stderr:\n{result.stderr}")
+        raise Exception(f"Failed to install playit:\n{result.stderr}")
 
 
 def _start_playit_and_get_claim_code() -> dict:
     global _playit_process
     try:
-        if not _install_playit():
-            return {"success": False, "error": "Failed to install playit"}
+        _install_playit()
 
         _playit_process = subprocess.Popen(
             ['playit'],
@@ -174,8 +155,7 @@ def start_minecraft_tunnel(tunnel_service: str = 'playit', secret_key: str = '')
             return {"status": "running", "address": address}
         return {"status": "running", "address": ""}
 
-    if not _install_playit():
-        return {"status": "error", "error": "Failed to install playit"}
+    _install_playit()
 
     if secret_key:
         if _start_playit_with_secret_key(secret_key):
