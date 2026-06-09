@@ -40,7 +40,7 @@ def start_frp() -> bool:
         subprocess.run(['pkill', '-f', 'frpc'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         t.sleep(1)
 
-        config = 'serverAddr = "64.181.171.17"\nserverPort = 7000\n\n[[proxies]]\nname = "minecraft"\ntype = "tcp"\nlocalIP = "127.0.0.1"\nlocalPort = 25565\nremotePort = 25565\n'
+        config = 'serverAddr = "64.181.171.17"\nserverPort = 443\n\n[[proxies]]\nname = "minecraft"\ntype = "tcp"\nlocalIP = "127.0.0.1"\nlocalPort = 25565\nremotePort = 25565\n'
         with open("/tmp/frpc.toml", "w") as f:
             f.write(config)
 
