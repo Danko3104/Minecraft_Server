@@ -78,6 +78,46 @@ def api_player_say():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@players_bp.route('/whitelist', methods=['GET'])
+def api_whitelist():
+    try:
+        resp = _get_command('whitelist list')
+        whitelist = []
+        if resp:
+            import re
+            m = re.search(r'There are (\d+) whitelisted players?:\s*(.*)', resp)
+            if m:
+                names = m.group(2).strip()
+                if names and names != 'There are no whitelisted players':
+                    whitelist = [n.strip() for n in names.split(',') if n.strip()]
+        return jsonify({"whitelist": whitelist, "raw": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/whitelist/add', methods=['POST'])
+def api_whitelist_add():
+    try:
+        data = request.get_json()
+        player = data.get('player', '')
+        if not player:
+            return jsonify({"success": False, "error": "Nombre de jugador requerido"}), 400
+        resp = _get_command(f'whitelist add {player}')
+        return jsonify({"success": True, "message": f"{player} agregado a la whitelist", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/whitelist/remove', methods=['POST'])
+def api_whitelist_remove():
+    try:
+        data = request.get_json()
+        player = data.get('player', '')
+        if not player:
+            return jsonify({"success": False, "error": "Nombre de jugador requerido"}), 400
+        resp = _get_command(f'whitelist remove {player}')
+        return jsonify({"success": True, "message": f"{player} quitado de la whitelist", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @players_bp.route('/banned', methods=['GET'])
 def api_players_banned():
     try:

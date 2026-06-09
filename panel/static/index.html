@@ -456,6 +456,24 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="control-card">
+                        <h3>📜 Whitelist</h3>
+                        <div style="margin-bottom:16px;display:flex;gap:8px;">
+                            <input type="text" id="whitelist-input" placeholder="Nombre del jugador..." style="flex:1;padding:10px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:white;">
+                            <button class="btn btn-green" onclick="whitelistAdd()">➕ Agregar</button>
+                        </div>
+                        <table id="whitelist-table" style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #334155;">
+                                    <th style="text-align:left;padding:8px;color:#94a3b8;">Jugador</th>
+                                    <th style="text-align:center;padding:8px;color:#94a3b8;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="whitelist-tbody">
+                                <tr><td colspan="2" style="text-align:center;padding:20px;color:#64748b;">Cargando whitelist...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
                 <section id="settings" class="section">
                     <div class="card">
@@ -925,8 +943,9 @@
             if (sectionId === 'players') {
                 loadPlayers();
                 loadBanned();
+                loadWhitelist();
                 if (playersInterval) clearInterval(playersInterval);
-                playersInterval = setInterval(() => { loadPlayers(); loadBanned(); }, 5000);
+                playersInterval = setInterval(() => { loadPlayers(); loadBanned(); loadWhitelist(); }, 5000);
             } else {
                 if (playersInterval) { clearInterval(playersInterval); playersInterval = null; }
             }
@@ -1015,6 +1034,62 @@
             }
         }
 
+        async function loadWhitelist() {
+            try {
+                const res = await fetch('/api/players/whitelist');
+                const data = await res.json();
+                const tbody = document.getElementById('whitelist-tbody');
+                if (data.whitelist && data.whitelist.length > 0) {
+                    tbody.innerHTML = data.whitelist.map(p => `
+                        <tr style="border-bottom:1px solid #1e293b;">
+                            <td style="padding:12px 8px;">✅ ${p}</td>
+                            <td style="padding:12px 8px;text-align:center;">
+                                <button class="btn" style="padding:6px 12px;font-size:12px;background:#ef4444;" onclick="whitelistRemove('${p}')">Quitar</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:20px;color:#64748b;">Sin jugadores en whitelist</td></tr>';
+                }
+            } catch (e) {
+                document.getElementById('whitelist-tbody').innerHTML = '<tr><td colspan="2" style="text-align:center;padding:20px;color:#ef4444;">Error cargando whitelist</td></tr>';
+            }
+        }
+
+        async function whitelistAdd() {
+            const input = document.getElementById('whitelist-input');
+            const player = input.value.trim();
+            if (!player) { showNotification('Escribe un nombre de jugador', 'error'); return; }
+            try {
+                const res = await fetch('/api/players/whitelist/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player })
+                });
+                const data = await res.json();
+                showNotification(data.message || data.error || 'OK', data.success ? 'success' : 'error');
+                if (data.success) { input.value = ''; loadWhitelist(); }
+            } catch (e) {
+                showNotification('Error de conexión', 'error');
+            }
+        }
+
+        async function whitelistRemove(player) {
+            if (!confirm(`¿Quitar a ${player} de la whitelist?`)) return;
+            try {
+                const res = await fetch('/api/players/whitelist/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player })
+                });
+                const data = await res.json();
+                showNotification(data.message || data.error || 'OK', data.success ? 'success' : 'error');
+                if (data.success) loadWhitelist();
+            } catch (e) {
+                showNotification('Error de conexión', 'error');
+            }
+        }
+
         function copyAddress() {
             const address = 'minecolab.play.minekube.net';
             navigator.clipboard.writeText(address).then(() => {
@@ -1027,8 +1102,11 @@
         window.showSection = showSection;
         window.loadPlayers = loadPlayers;
         window.loadBanned = loadBanned;
+        window.loadWhitelist = loadWhitelist;
         window.playerAction = playerAction;
         window.broadcastMessage = broadcastMessage;
+        window.whitelistAdd = whitelistAdd;
+        window.whitelistRemove = whitelistRemove;
     </script>
 </body>
 </html>
