@@ -59,47 +59,52 @@ class ServerManager:
         return os.path.join(base, server_name)
 
     def prepare_server_properties(self, server_name: str) -> bool:
-        """
-        Lee server.properties y agrega/sobreescribe propiedades RCON.
-        """
         try:
             server_path = self.get_server_path(server_name)
             props_path = os.path.join(server_path, 'server.properties')
 
-            # Si no existe, crear uno básico
-            if not os.path.exists(props_path):
-                properties = Properties()
-                properties['enable-rcon'] = 'true'
-                properties['rcon.port'] = str(self.rcon_port)
-                properties['rcon.password'] = self.rcon_password
-                properties['server-port'] = '25565'
-                properties['max-players'] = '20'
-                properties['level-name'] = 'world'
-                properties['enforce-secure-profile'] = 'false'
-                properties['online-mode'] = 'false'
-                properties['white-list'] = 'true'
+            REQUIRED = {
+                'enable-rcon': 'true',
+                'rcon.port': str(self.rcon_port),
+                'rcon.password': self.rcon_password,
+                'server-port': '25565',
+                'max-players': '20',
+                'level-name': 'world',
+                'enforce-secure-profile': 'false',
+                'online-mode': 'false',
+                'white-list': 'true',
+            }
 
-                with open(props_path, 'wb') as f:
-                    properties.store(f)
+            if not os.path.exists(props_path):
+                with open(props_path, 'w') as f:
+                    for k, v in REQUIRED.items():
+                        f.write(f'{k}={v}\n')
                 print(f"[INFO] server.properties creado para '{server_name}'")
                 return True
 
-            # Leer existente
-            properties = Properties()
-            with open(props_path, 'rb') as f:
-                properties.load(f)
+            with open(props_path, 'r') as f:
+                lines = f.readlines()
 
-            # Modificar propiedades RCON
-            properties['enable-rcon'] = 'true'
-            properties['rcon.port'] = str(self.rcon_port)
-            properties['rcon.password'] = self.rcon_password
-            properties['enforce-secure-profile'] = 'false'
-            properties['online-mode'] = 'false'
-            properties['white-list'] = 'true'
+            seen = set()
+            new_lines = []
+            for line in lines:
+                stripped = line.strip()
+                if '=' in stripped and not stripped.startswith('#'):
+                    key = stripped.split('=', 1)[0].strip()
+                    seen.add(key)
+                    if key in REQUIRED:
+                        new_lines.append(f'{key}={REQUIRED[key]}\n')
+                    else:
+                        new_lines.append(line)
+                else:
+                    new_lines.append(line)
 
-            # Guardar
-            with open(props_path, 'wb') as f:
-                properties.store(f)
+            for k, v in REQUIRED.items():
+                if k not in seen:
+                    new_lines.append(f'{k}={v}\n')
+
+            with open(props_path, 'w') as f:
+                f.writelines(new_lines)
 
             print(f"[INFO] server.properties actualizado para '{server_name}'")
             return True

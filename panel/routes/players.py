@@ -1,3 +1,5 @@
+import os
+import json
 from flask import Blueprint, jsonify, request
 
 players_bp = Blueprint('players', __name__, url_prefix='/api/players')
@@ -5,6 +7,13 @@ players_bp = Blueprint('players', __name__, url_prefix='/api/players')
 def _get_command(command: str) -> str:
     from panel.server_manager import server_manager
     return server_manager.send_command(command)
+
+def _get_active_server_path() -> str:
+    from panel.drive import get_active_server, DRIVE_PATH
+    name = get_active_server()
+    if not name:
+        return None
+    return os.path.join(DRIVE_PATH, name)
 
 @players_bp.route('', methods=['GET'])
 def api_players():
@@ -81,16 +90,15 @@ def api_player_say():
 @players_bp.route('/whitelist', methods=['GET'])
 def api_whitelist():
     try:
-        resp = _get_command('whitelist list')
+        server_path = _get_active_server_path()
         whitelist = []
-        if resp:
-            import re
-            m = re.search(r'There are (\d+) whitelisted players?:\s*(.*)', resp)
-            if m:
-                names = m.group(2).strip()
-                if names and names != 'There are no whitelisted players':
-                    whitelist = [n.strip() for n in names.split(',') if n.strip()]
-        return jsonify({"whitelist": whitelist, "raw": resp})
+        if server_path:
+            wl_path = os.path.join(server_path, 'whitelist.json')
+            if os.path.exists(wl_path):
+                with open(wl_path, 'r') as f:
+                    data = json.load(f)
+                whitelist = [entry.get('name', '?') for entry in data if isinstance(entry, dict)]
+        return jsonify({"whitelist": whitelist})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -101,8 +109,11 @@ def api_whitelist_add():
         player = data.get('player', '')
         if not player:
             return jsonify({"success": False, "error": "Nombre de jugador requerido"}), 400
+        from panel.server_manager import server_manager
+        if not server_manager.is_running():
+            return jsonify({"success": False, "error": "El servidor debe estar encendido para modificar la whitelist"}), 400
         resp = _get_command(f'whitelist add {player}')
-        return jsonify({"success": True, "message": f"{player} agregado a la whitelist", "response": resp})
+        return jsonify({"success": True, "message": f"{player} agregado a la whitelist"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -113,8 +124,11 @@ def api_whitelist_remove():
         player = data.get('player', '')
         if not player:
             return jsonify({"success": False, "error": "Nombre de jugador requerido"}), 400
+        from panel.server_manager import server_manager
+        if not server_manager.is_running():
+            return jsonify({"success": False, "error": "El servidor debe estar encendido para modificar la whitelist"}), 400
         resp = _get_command(f'whitelist remove {player}')
-        return jsonify({"success": True, "message": f"{player} quitado de la whitelist", "response": resp})
+        return jsonify({"success": True, "message": f"{player} quitado de la whitelist"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
