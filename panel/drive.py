@@ -27,6 +27,7 @@ DEFAULT_GLOBAL_CONFIG = {
     "zrok_proxy": {"authtoken": ""},
     "playit_proxy": {"secretkey": "", "address": ""},
     "tailscale_proxy": {"authtoken": ""},
+    "localtonet_proxy": {"authtoken": "", "address": ""},
     "backup_schedule": {
         "enabled": False,
         "interval_hours": 6,
