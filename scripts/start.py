@@ -576,6 +576,49 @@ controla desde el panel
     print("   Para detener todo, interrumpe esta celda (■)")
     print("=" * 60 + "\n")
 
+    # Diagnóstico de red
+    print("\n" + "#" * 60)
+    print("# DIAGNÓSTICO DE RED (localhost:25565)")
+    print("#" * 60)
+    try:
+        import socket
+        for host in ['127.0.0.1', 'localhost']:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(3)
+            try:
+                result = s.connect_ex((host, 25565))
+                if result == 0:
+                    print(f"# ✅ {host}:25565 → ACCESIBLE")
+                else:
+                    print(f"# ❌ {host}:25565 → RECHAZADO (errno={result})")
+            except Exception as e:
+                print(f"# ❌ {host}:25565 → ERROR: {e}")
+            s.close()
+    except Exception as e:
+        print(f"# ERROR en test socket: {e}")
+    try:
+        import subprocess as sp
+        r = sp.run(['cat', '/proc/net/tcp'], capture_output=True, text=True, timeout=5)
+        port_hex = format(25565, '04x')
+        found = False
+        for line in r.stdout.split('\n')[1:]:
+            if line.strip():
+                parts = line.split()
+                if len(parts) >= 2:
+                    local = parts[1]
+                    if port_hex in local:
+                        print(f"# ✅ /proc/net/tcp: {local.strip()}")
+                        found = True
+        if not found:
+            print(f"# ❌ Puerto {port_hex} NO encontrado en /proc/net/tcp")
+            print("# Mostrando primeros listeners:")
+            for line in r.stdout.split('\n')[1:6]:
+                if line.strip():
+                    print(f"#   {line.strip()}")
+    except Exception as e:
+        print(f"# ERROR leyendo /proc/net/tcp: {e}")
+    print("#" * 60 + "\n")
+
     # MANTENER LA CELDA VIVA - Bucle infinito hasta interrupción
     try:
         while True:
