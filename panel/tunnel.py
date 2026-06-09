@@ -1,179 +1,140 @@
 import subprocess
 import os
 import re
-import json
 import time
 import select
 
+_localtonet_process = None
 _minecraft_url = ""
 _playit_configured = False
 
-DOCKER_IMAGE = 'ghcr.io/playit-cloud/playit-agent:latest'
-CONFIG_DIR = '/root/.config/playit'
 
+def _install_localtonet():
+    if os.path.exists('/usr/local/bin/localtonet'):
+        return
 
-def _install_playit():
-    result = subprocess.run(['docker', '--version'], capture_output=True)
+    result = subprocess.run(
+        ['wget', '-q',
+         'https://localtonet.com/download/localtonet-linux-x64.tar.gz',
+         '-O', '/tmp/localtonet.tar.gz'],
+        capture_output=True
+    )
     if result.returncode != 0:
-        raise Exception("Docker no est\u00e1 disponible en este entorno")
+        stderr = result.stderr.decode('utf-8', errors='ignore')
+        raise Exception(f"Failed to download localtonet: {stderr}")
+
+    result = subprocess.run(
+        ['tar', '-xzf', '/tmp/localtonet.tar.gz', '-C', '/usr/local/bin/'],
+        capture_output=True
+    )
+    if result.returncode != 0:
+        stderr = result.stderr.decode('utf-8', errors='ignore')
+        raise Exception(f"Failed to extract localtonet: {stderr}")
+
+    os.chmod('/usr/local/bin/localtonet', 0o755)
 
 
-def _start_playit_and_get_claim_code() -> dict:
+def _start_localtonet(authtoken: str) -> dict:
+    global _localtonet_process
     try:
-        _install_playit()
+        if _is_localtonet_running():
+            return {'success': True, 'already_running': True}
 
-        os.makedirs(CONFIG_DIR, exist_ok=True)
+        _install_localtonet()
 
-        proc = subprocess.Popen(
-            ['docker', 'run', '--rm', '--net=host',
-             '-v', f'{CONFIG_DIR}:{CONFIG_DIR}',
-             '--name', 'playit-agent',
-             DOCKER_IMAGE],
+        _localtonet_process = subprocess.Popen(
+            ['localtonet', 'tcpudp', '-t', authtoken, '-p', '25565'],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
 
         output = ""
         start = time.time()
-        timeout = 60
+        timeout = 30
         poll = select.poll()
-        poll.register(proc.stdout, select.POLLIN)
+        poll.register(_localtonet_process.stdout, select.POLLIN)
 
         while time.time() - start < timeout:
             if poll.poll(500):
-                raw = proc.stdout.readline()
+                raw = _localtonet_process.stdout.readline()
                 if not raw:
                     break
                 line = raw.decode('utf-8', errors='ignore')
                 output += line
-                print(f"[PLAYIT] {line.strip()}")
-                match = re.search(r'claim code[:\s]+([\w-]+)', output, re.IGNORECASE)
-                if not match:
-                    match = re.search(r'playit\.gg/claim/([\w-]+)', output, re.IGNORECASE)
+                print(f"[LOCALTONET] {line.strip()}")
+
+                match = re.search(
+                    r'([a-zA-Z0-9-]+\.localtonet\.com:\d+)',
+                    output
+                )
                 if match:
-                    return {"success": True, "claim_code": match.group(1)}
-            elif proc.poll() is not None:
+                    return {'success': True, 'address': match.group(1)}
+
+                match = re.search(r'Hostname[:\s]+([^\s]+)', output)
+                if match:
+                    return {'success': True, 'address': match.group(1)}
+
+            elif _localtonet_process.poll() is not None:
                 break
 
-        return {"success": False, "error": "No se encontr\u00f3 claim code en la salida", "output": output}
+        _localtonet_process = None
+        return {'success': False, 'error': output}
     except Exception as e:
-        print(f"[ERROR] _start_playit_and_get_claim_code: {e}")
-        return {"success": False, "error": str(e)}
+        print(f"[ERROR] _start_localtonet: {e}")
+        return {'success': False, 'error': str(e)}
 
 
-def _get_playit_secret_path() -> str:
-    return os.path.join(CONFIG_DIR, 'playit.toml')
+def stop_localtonet():
+    global _localtonet_process
+    if _localtonet_process is not None:
+        _localtonet_process.terminate()
+        try:
+            _localtonet_process.wait(timeout=5)
+        except:
+            _localtonet_process.kill()
+        _localtonet_process = None
+    subprocess.run(['pkill', 'localtonet'], capture_output=True)
 
 
-def _wait_for_secret_key_after_claim() -> dict:
+def _is_localtonet_running() -> bool:
     try:
-        config_path = _get_playit_secret_path()
-        timeout = 300
-        start = time.time()
-
-        while time.time() - start < timeout:
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    content = f.read()
-                match = re.search(r'secret_key\s*=\s*"([^"]+)"', content)
-                if match:
-                    return {"success": True, "secret_key": match.group(1)}
-            time.sleep(3)
-
-        return {"success": False, "error": "Timeout esperando secret_key (5 minutos)"}
-    except Exception as e:
-        print(f"[ERROR] _wait_for_secret_key_after_claim: {e}")
-        return {"success": False, "error": str(e)}
-
-
-def _start_playit_with_secret_key(secret_key: str) -> bool:
-    global _playit_configured
-    try:
-        stop_playit()
-
-        result = subprocess.run(
-            ['docker', 'run', '-d', '--rm', '--net=host',
-             '-e', f'SECRET_KEY={secret_key}',
-             '--name', 'playit-agent',
-             DOCKER_IMAGE],
-            capture_output=True
-        )
-        if result.returncode != 0:
-            stderr = result.stderr.decode('utf-8', errors='ignore')
-            print(f"[ERROR] _start_playit_with_secret_key: {stderr}")
-            return False
-
-        _playit_configured = True
-        return True
-    except Exception as e:
-        print(f"[ERROR] _start_playit_with_secret_key: {e}")
-        return False
-
-
-def get_playit_tunnel_address() -> str:
-    try:
-        result = subprocess.run(
-            ['docker', 'exec', 'playit-agent', 'playit', 'tunnels', 'list'],
-            capture_output=True, timeout=10
-        )
-        if result.returncode != 0:
-            return ""
-
-        data = json.loads(result.stdout.decode('utf-8', errors='ignore'))
-        tunnels = data.get('tunnels', []) if isinstance(data, dict) else data
-        if tunnels:
-            address = tunnels[0].get('public_address', tunnels[0].get('address', ''))
-            return address
-        return ""
-    except Exception as e:
-        print(f"[ERROR] get_playit_tunnel_address: {e}")
-        return ""
-
-
-def _is_playit_running() -> bool:
-    try:
-        result = subprocess.run(
-            ['docker', 'ps', '--filter', 'name=playit-agent', '--format', '{{.Names}}'],
-            capture_output=True
-        )
-        return b'playit-agent' in result.stdout
+        result = subprocess.run(['pgrep', 'localtonet'], capture_output=True)
+        return result.returncode == 0
     except:
         return False
 
 
-def start_minecraft_tunnel(tunnel_service: str = 'playit', secret_key: str = '') -> dict:
-    if tunnel_service != 'playit':
-        return {"status": "error", "error": f"Unknown tunnel service: {tunnel_service}"}
+def start_minecraft_tunnel(tunnel_service: str = '', server_config: dict = None, server_type: str = '') -> dict:
+    if tunnel_service != 'localtonet':
+        return {"status": "error", "error": f"Tunnel service not supported: {tunnel_service}"}
 
-    global _playit_configured
+    server_config = server_config or {}
+    authtoken = server_config.get('localtonet_proxy', {}).get('authtoken', '')
 
-    if _is_playit_running():
-        _playit_configured = True
-        address = get_playit_tunnel_address()
-        if address:
-            return {"status": "running", "address": address}
-        return {"status": "running", "address": ""}
+    if not authtoken:
+        return {'status': 'needs_token'}
 
-    _install_playit()
+    try:
+        _install_localtonet()
+    except Exception as e:
+        return {'status': 'error', 'error': str(e)}
 
-    if secret_key:
-        if _start_playit_with_secret_key(secret_key):
-            time.sleep(3)
-            address = get_playit_tunnel_address()
-            return {"status": "running", "address": address}
-        return {"status": "error", "error": "Failed to start playit with secret key"}
+    resultado = _start_localtonet(authtoken)
+    if resultado.get('success'):
+        return {'status': 'running', 'address': resultado.get('address', '')}
+    return {'status': 'error', 'error': resultado.get('error', 'Failed to start localtonet')}
 
-    result = _start_playit_and_get_claim_code()
-    if not result.get("success"):
-        return {"status": "error", "error": result.get("error", "Failed to get claim code"), "output": result.get("output", "")}
 
-    return {"status": "needs_claim", "claim_code": result["claim_code"]}
+def get_playit_tunnel_address() -> str:
+    return _minecraft_url
+
+
+def _wait_for_secret_key_after_claim() -> dict:
+    return {"success": False, "error": "Not implemented for localtonet"}
 
 
 def setup_playit(secret_key: str = "") -> bool:
-    if not secret_key:
-        return False
-    return _start_playit_with_secret_key(secret_key)
+    return False
 
 
 def get_minecraft_url() -> str:
@@ -190,4 +151,12 @@ def is_playit_configured() -> bool:
 
 
 def stop_playit():
-    subprocess.run(['docker', 'stop', 'playit-agent'], capture_output=True)
+    stop_localtonet()
+
+
+def _install_playit():
+    pass
+
+
+def _get_playit_secret_path() -> str:
+    return ""
