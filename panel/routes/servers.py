@@ -679,7 +679,7 @@ def create_server():
         config = {
             "server_type": server_type,
             "server_version": version,
-            "tunnel_service": "ngrok",
+            "tunnel_service": "minekube",
             "java": {
                 "CustomEnabled": "False",
                 "version": "",

@@ -75,6 +75,7 @@ class ServerManager:
                 properties['server-port'] = '25565'
                 properties['max-players'] = '20'
                 properties['level-name'] = 'world'
+                properties['enforce-secure-profile'] = 'false'
 
                 with open(props_path, 'wb') as f:
                     properties.store(f)
@@ -90,6 +91,7 @@ class ServerManager:
             properties['enable-rcon'] = 'true'
             properties['rcon.port'] = str(self.rcon_port)
             properties['rcon.password'] = self.rcon_password
+            properties['enforce-secure-profile'] = 'false'
 
             # Guardar
             with open(props_path, 'wb') as f:
@@ -315,6 +317,36 @@ class ServerManager:
                 "error": str(e)
             }
 
+    def _setup_minekube(self, server_path: str) -> bool:
+        try:
+            plugins_dir = os.path.join(server_path, 'plugins')
+            os.makedirs(plugins_dir, exist_ok=True)
+
+            jar_path = os.path.join(plugins_dir, 'connect-spigot.jar')
+            if not os.path.exists(jar_path):
+                print(f"[INFO] Descargando Minekube Connect plugin...")
+                import urllib.request
+                url = 'https://github.com/minekube/connect/releases/latest/download/connect-spigot.jar'
+                urllib.request.urlretrieve(url, jar_path)
+                print(f"[OK] Minekube Connect plugin descargado")
+            else:
+                print(f"[OK] Minekube Connect plugin ya existe")
+
+            connect_config_dir = os.path.join(plugins_dir, 'connect')
+            os.makedirs(connect_config_dir, exist_ok=True)
+            config_path = os.path.join(connect_config_dir, 'config.yml')
+            if not os.path.exists(config_path):
+                with open(config_path, 'w') as f:
+                    f.write('endpoint: "minecolab"\n')
+                print(f"[OK] config.yml creado con endpoint: minecolab")
+            else:
+                print(f"[OK] config.yml ya existe")
+
+            return True
+        except Exception as e:
+            print(f"[WARNING] Minekube setup falló: {e}")
+            return False
+
     def diagnose(self, server_name: str) -> dict:
         """
         Retorna información completa de diagnóstico para un servidor.
@@ -427,6 +459,9 @@ class ServerManager:
                     "success": False,
                     "error": "Error al preparar server.properties"
                 }
+
+            # Minekube Connect plugin
+            self._setup_minekube(server_path)
 
             # Obtener comando
             command = self.get_java_command(server_name)

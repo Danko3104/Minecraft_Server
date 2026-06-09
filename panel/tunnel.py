@@ -1,12 +1,5 @@
 """
-Tunnel management (disabled).
+Túnel manejado por Minekube Connect (plugin dentro del servidor).
+No se necesita lógica externa — el plugin se conecta automáticamente.
+Dominio: minecolab.play.minekube.net
 """
-
-_minecraft_url = None
-
-def set_minecraft_url(url: str):
-    global _minecraft_url
-    _minecraft_url = url
-
-def get_current_minecraft_url() -> str:
-    return _minecraft_url
