@@ -54,33 +54,31 @@ def start_localtonet(authtoken: str) -> bool:
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1)
 
-        print(f"[DEBUG] Matando procesos localtonet previos...")
-        subprocess.run(['pkill', '-f', 'localtonet'],
-                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(1)
-
-        print(f"[DEBUG] Lanzando localtonet con authtoken: {authtoken[:6]}...")
-        proc = subprocess.Popen(
+        comandos = [
             ['/usr/local/bin/localtonet', 'authtoken', authtoken],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
+            ['/usr/local/bin/localtonet', '--authtoken', authtoken],
+            ['/usr/local/bin/localtonet', '-authtoken', authtoken],
+        ]
 
-        time.sleep(4)
+        for cmd in comandos:
+            print(f"[DEBUG] Probando comando: {cmd}")
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            time.sleep(3)
+            poll = proc.poll()
+            print(f"[DEBUG] Estado: {poll}")
+            if poll is None:
+                print(f"[OK] Localtonet corriendo con: {cmd}")
+                return True
+            else:
+                out = proc.stdout.read().decode()[:300]
+                err = proc.stderr.read().decode()[:300]
+                print(f"[DEBUG] out: {out} | err: {err}")
 
-        poll = proc.poll()
-        print(f"[DEBUG] Estado del proceso (None=corriendo): {poll}")
-
-        if poll is not None:
-            stdout = proc.stdout.read().decode()[:500]
-            stderr = proc.stderr.read().decode()[:500]
-            print(f"[DEBUG] stdout: {stdout}")
-            print(f"[DEBUG] stderr: {stderr}")
-            return False
-
-        result = subprocess.run(['pgrep', '-f', 'localtonet'], stdout=subprocess.PIPE)
-        print(f"[DEBUG] pgrep returncode: {result.returncode}")
-        return result.returncode == 0
+        return False
 
     except Exception as e:
         print(f"[ERROR] start_localtonet: {e}")
