@@ -353,7 +353,8 @@ class ServerManager:
             config_path = os.path.join(connect_config_dir, 'config.yml')
             with open(config_path, 'w') as f:
                 f.write('endpoint: "minecolab13-free"\n')
-            print(f"[OK] config.yml actualizado con endpoint: minecolab13-free")
+                f.write('allow-offline-mode-players: true\n')
+            print(f"[OK] config.yml actualizado con endpoint: minecolab13-free y allow-offline-mode-players: true")
 
             return True
         except Exception as e:
