@@ -1,6 +1,7 @@
 import subprocess
 import os
 import time
+import threading
 
 
 def start_serveo() -> bool:
@@ -21,13 +22,19 @@ def start_serveo() -> bool:
             stderr=subprocess.PIPE
         )
 
-        time.sleep(5)
+        def leer_output_serveo(proc):
+            for line in iter(proc.stderr.readline, b''):
+                print(f"[SERVEO] {line.decode().strip()}")
+
+        time.sleep(2)
+        t = threading.Thread(target=leer_output_serveo, args=(proc,), daemon=True)
+        t.start()
+
+        time.sleep(3)
         poll = proc.poll()
         print(f"[DEBUG] serveo estado: {poll}")
 
         if poll is not None:
-            print(f"[DEBUG] stdout: {proc.stdout.read().decode()[:300]}")
-            print(f"[DEBUG] stderr: {proc.stderr.read().decode()[:300]}")
             return False
 
         return True
