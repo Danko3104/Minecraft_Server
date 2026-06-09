@@ -63,7 +63,7 @@ def start_ssh_tunnel() -> bool:
             '-o', 'ServerAliveCountMax=3',
             '-o', 'ExitOnForwardFailure=yes',
             '-N',
-            '-R', '0.0.0.0:25565:localhost:25565',
+            '-R', '127.0.0.1:25565:localhost:25565',
             'ubuntu@64.181.171.17',
             '-i', key_path
         ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
