@@ -18,10 +18,13 @@ def set_minecraft_url(url: str):
 def get_current_minecraft_url() -> str:
     return _minecraft_url
 
+_serveo_proc = None
+
 SERVEO_SUBDOMAIN = "minecraftcito"
 
 def start_serveo() -> str:
     """Retorna la dirección serveo.net o None si falla"""
+    global _serveo_proc
     try:
         subprocess.run(['pkill', '-f', 'serveo.net'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         t.sleep(1)
@@ -29,25 +32,39 @@ def start_serveo() -> str:
         print(f"[INFO] Conectando a serveo.net con subdominio {SERVEO_SUBDOMAIN}...")
         proc = subprocess.Popen(
             ['ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'ServerAliveInterval=30',
-             '-o', 'ServerAliveCountMax=3',
+             '-o', 'ServerAliveCountMax=3', '-N', '-T',
              '-R', f'{SERVEO_SUBDOMAIN}:25565:localhost:25565', 'serveo.net'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+        _serveo_proc = proc
+
+        def drain(stream, prefix):
+            for line in iter(stream.readline, b''):
+                text = line.decode().strip()
+                if text:
+                    print(f"{prefix} {text}")
+        threading.Thread(target=drain, args=(proc.stdout, "[SERVEO]"), daemon=True).start()
+        threading.Thread(target=drain, args=(proc.stderr, "[SERVEO]"), daemon=True).start()
 
         end = t.time() + 20
         address = None
         while t.time() < end:
-            ready = select.select([proc.stdout, proc.stderr], [], [], 1)[0]
-            for stream in ready:
-                line = stream.readline().decode().strip()
-                if line:
-                    print(f"[SERVEO] {line}")
-                    if 'forwarding' in line.lower() and 'serveo.net' in line:
-                        import re
-                        m = re.search(r'[\w.-]+\.serveo\.net:\d+', line)
-                        if m:
-                            address = m.group(0)
-                        break
+            if proc.poll() is not None:
+                break
+            try:
+                import select
+                ready = select.select([proc.stdout, proc.stderr], [], [], 1)[0]
+                for stream in ready:
+                    line = stream.readline().decode().strip()
+                    if line:
+                        if 'forwarding' in line.lower() and 'serveo.net' in line:
+                            import re
+                            m = re.search(r'[\w.-]+\.serveo\.net:\d+', line)
+                            if m:
+                                address = m.group(0)
+                            break
+            except (ValueError, OSError):
+                continue
             if address:
                 break
 
@@ -56,8 +73,7 @@ def start_serveo() -> str:
             print(f"[OK] Túnel Serveo activo: {address}")
             return address
 
-        stderr_out = proc.stderr.read().decode() if proc.stderr else "sin salida"
-        print(f"[ERROR] Serveo falló: {stderr_out[:200]}")
+        print(f"[ERROR] Serveo terminó con código {proc.poll()}")
         return None
     except Exception as e:
         print(f"[ERROR] start_serveo: {e}")
