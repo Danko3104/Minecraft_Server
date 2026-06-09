@@ -404,14 +404,8 @@
                             <div class="value" id="card-remaining">---:---</div>
                         </div>
                         <div class="card">
-                            <h3>IP DEL SERVIDOR</h3>
-                            <div id="tunnel-address-container">
-                                <div style="display:flex;align-items:center;gap:8px;">
-                                    <div class="value" style="font-size:18px;word-break:break-all;" id="tunnel-address">Cargando...</div>
-                                    <button id="copy-tunnel-btn" onclick="copyTunnelAddress()" style="padding:6px 12px;font-size:12px;background:#475569;color:white;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">Copiar</button>
-                                </div>
-                                <div style="margin-top:6px;font-size:11px;color:#64748b;" id="tunnel-label">Conéctate con esta dirección en Minecraft</div>
-                            </div>
+                            <h3>PUERTO DEL SERVIDOR</h3>
+                            <div class="value" style="font-size:18px;">25565</div>
                         </div>
                     </div>
                 </section>
@@ -561,19 +555,7 @@
                 document.getElementById('card-session').textContent = formatSeconds(data.session_uptime_seconds);
                 document.getElementById('card-remaining').textContent = formatSeconds(data.colab_time_remaining);
 
-                fetch('/api/tunnel/address').then(r => r.json()).then(tunnelData => {
-                    const addrEl = document.getElementById('tunnel-address');
-                    const labelEl = document.getElementById('tunnel-label');
-                    if (tunnelData.address) {
-                        addrEl.textContent = tunnelData.address;
-                        labelEl.textContent = '🌐 Serveo tunnel';
-                    } else {
-                        addrEl.textContent = 'Esperando túnel...';
-                        labelEl.textContent = 'Conéctate cuando el túnel esté activo';
-                    }
-                }).catch(() => {
-                    document.getElementById('tunnel-address').textContent = 'Error cargando';
-                });
+
 
                 const btnStart = document.getElementById('btn-start');
                 const btnStop = document.getElementById('btn-stop');
@@ -1029,21 +1011,6 @@
                 if (data.success) input.value = '';
             } catch (e) {
                 showNotification('Error de conexión', 'error');
-            }
-        }
-
-        async function copyTunnelAddress() {
-            const addr = document.getElementById('tunnel-address').textContent;
-            if (!addr || addr === 'Cargando...' || addr === 'Esperando túnel...' || addr === 'Error cargando') return;
-            try {
-                await navigator.clipboard.writeText(addr);
-                const btn = document.getElementById('copy-tunnel-btn');
-                const original = btn.textContent;
-                btn.textContent = '¡Copiado!';
-                btn.style.background = '#22c55e';
-                setTimeout(() => { btn.textContent = original; btn.style.background = '#475569'; }, 2000);
-            } catch (e) {
-                showNotification('Error al copiar', 'error');
             }
         }
 

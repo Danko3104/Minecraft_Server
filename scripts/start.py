@@ -14,8 +14,6 @@ from typing import Optional
 
 # Agregar el path del proyecto para poder importar panel
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from panel import tunnel
 from rich.console import Console
 from rich.panel import Panel
 
@@ -471,43 +469,6 @@ def launch():
         return False
     print("Java listo.")
 
-    # Paso 4.5: Iniciar túnel para Minecraft
-    print("\n" + "=" * 60)
-    print("PASO 4.5: Iniciando túnel para Minecraft")
-    print("=" * 60)
-
-    tunnel.check_local_port(25565)
-    pyjamas_address = tunnel.start_pyjamas()
-    tunnel_address = None
-    if pyjamas_address:
-        tunnel_address = pyjamas_address
-        tunnel.set_minecraft_url(pyjamas_address)
-        with open('/tmp/tunnel_address.txt', 'w') as f:
-            f.write(pyjamas_address)
-        console.print(Panel(
-            f"🌐 Dirección del servidor: {pyjamas_address}\n\n"
-            "Conéctate desde Minecraft usando esa dirección.",
-            title="PYJAM.AS TUNNEL",
-            border_style="green"
-        ))
-    else:
-        print("[WARN] pyjam.as falló, intentando VPS Oracle como respaldo...")
-        vps_connected = tunnel.start_ssh_tunnel()
-        if vps_connected:
-            with open('/tmp/tunnel_address.txt', 'w') as f:
-                f.write('')
-            tunnel_address = "64.181.171.17:25565"
-            console.print(Panel(
-                "🌐 Dirección del servidor: 64.181.171.17:25565\n\n"
-                "Nota: Solo funciona si el Security List de Oracle permite el puerto.",
-                title="VPS ORACLE TUNNEL",
-                border_style="yellow"
-            ))
-        else:
-            error_msg = "❌ Error: no se pudo conectar pyjam.as ni VPS Oracle. Sin acceso al servidor."
-            console.print(Panel(error_msg, title="ERROR", border_style="red"))
-            return False
-
     # Paso 5: Iniciar Flask
     print("\n" + "=" * 60)
     print("PASO 5: Iniciando Flask")
@@ -575,49 +536,6 @@ controla desde el panel
     print("   Gestiona tu servidor desde el panel web.")
     print("   Para detener todo, interrumpe esta celda (■)")
     print("=" * 60 + "\n")
-
-    # Diagnóstico de red
-    print("\n" + "#" * 60)
-    print("# DIAGNÓSTICO DE RED (localhost:25565)")
-    print("#" * 60)
-    try:
-        import socket
-        for host in ['127.0.0.1', 'localhost']:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(3)
-            try:
-                result = s.connect_ex((host, 25565))
-                if result == 0:
-                    print(f"# ✅ {host}:25565 → ACCESIBLE")
-                else:
-                    print(f"# ❌ {host}:25565 → RECHAZADO (errno={result})")
-            except Exception as e:
-                print(f"# ❌ {host}:25565 → ERROR: {e}")
-            s.close()
-    except Exception as e:
-        print(f"# ERROR en test socket: {e}")
-    try:
-        import subprocess as sp
-        r = sp.run(['cat', '/proc/net/tcp'], capture_output=True, text=True, timeout=5)
-        port_hex = format(25565, '04x')
-        found = False
-        for line in r.stdout.split('\n')[1:]:
-            if line.strip():
-                parts = line.split()
-                if len(parts) >= 2:
-                    local = parts[1]
-                    if port_hex in local:
-                        print(f"# ✅ /proc/net/tcp: {local.strip()}")
-                        found = True
-        if not found:
-            print(f"# ❌ Puerto {port_hex} NO encontrado en /proc/net/tcp")
-            print("# Mostrando primeros listeners:")
-            for line in r.stdout.split('\n')[1:6]:
-                if line.strip():
-                    print(f"#   {line.strip()}")
-    except Exception as e:
-        print(f"# ERROR leyendo /proc/net/tcp: {e}")
-    print("#" * 60 + "\n")
 
     # MANTENER LA CELDA VIVA - Bucle infinito hasta interrupción
     try:

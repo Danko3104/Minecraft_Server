@@ -18,10 +18,7 @@ from panel.drive import (
 )
 from panel.server_manager import server_manager
 from panel.routes.servers import servers_bp
-from panel.routes.tunnels import tunnels_bp
 from panel.routes.players import players_bp
-from panel.routes.tunnel_routes import tunnel_routes_bp
-from panel import tunnel as tunnel_module
 
 # =============================================================================
 # CONFIGURACIÓN
@@ -38,9 +35,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Registrar blueprints
 app.register_blueprint(servers_bp)
-app.register_blueprint(tunnels_bp)
 app.register_blueprint(players_bp)
-app.register_blueprint(tunnel_routes_bp)
 
 # =============================================================================
 # VARIABLES GLOBALES
@@ -94,8 +89,7 @@ def api_status():
             "active_server": get_active_server(),
             "servers": list_servers(),
             "session_uptime_seconds": int(session_uptime),
-            "colab_time_remaining": int(colab_time_remaining),
-            "minecraft_url": tunnel_module.get_current_minecraft_url()
+            "colab_time_remaining": int(colab_time_remaining)
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
