@@ -475,14 +475,10 @@ def launch():
     print("PASO 4.5: Iniciando túnel Localtonet")
     print("="*60)
     try:
-        from panel import drive, tunnel
-        server_data = drive.load_server_list()
-        authtoken = None
-        for s in server_data.values():
-            proxy = s.get("localtonet_proxy", {})
-            if proxy.get("authtoken"):
-                authtoken = proxy["authtoken"]
-                break
+        from panel import tunnel
+        from panel.drive import get_global_config
+        config = get_global_config()
+        authtoken = config.get('localtonet_proxy', {}).get('authtoken', '')
 
         if authtoken:
             success = tunnel.start_localtonet(authtoken)
