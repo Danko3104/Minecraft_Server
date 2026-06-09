@@ -76,6 +76,7 @@ class ServerManager:
                 properties['max-players'] = '20'
                 properties['level-name'] = 'world'
                 properties['enforce-secure-profile'] = 'false'
+                properties['online-mode'] = 'false'
 
                 with open(props_path, 'wb') as f:
                     properties.store(f)
@@ -92,6 +93,7 @@ class ServerManager:
             properties['rcon.port'] = str(self.rcon_port)
             properties['rcon.password'] = self.rcon_password
             properties['enforce-secure-profile'] = 'false'
+            properties['online-mode'] = 'false'
 
             # Guardar
             with open(props_path, 'wb') as f:
