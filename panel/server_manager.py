@@ -77,6 +77,7 @@ class ServerManager:
                 properties['level-name'] = 'world'
                 properties['enforce-secure-profile'] = 'false'
                 properties['online-mode'] = 'false'
+                properties['white-list'] = 'true'
 
                 with open(props_path, 'wb') as f:
                     properties.store(f)
@@ -94,6 +95,7 @@ class ServerManager:
             properties['rcon.password'] = self.rcon_password
             properties['enforce-secure-profile'] = 'false'
             properties['online-mode'] = 'false'
+            properties['white-list'] = 'true'
 
             # Guardar
             with open(props_path, 'wb') as f:
