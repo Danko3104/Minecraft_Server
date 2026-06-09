@@ -18,80 +18,8 @@
             min-height: 100vh;
         }
 
-        /* LOGIN SCREEN */
-        #login-screen {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        }
-
-        .login-box {
-            background: #1e293b;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            text-align: center;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .login-box h1 {
-            margin-bottom: 10px;
-            color: #22c55e;
-        }
-
-        .login-box p {
-            color: #94a3b8;
-            margin-bottom: 30px;
-        }
-
-        .login-box input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #334155;
-            border-radius: 8px;
-            background: #0f172a;
-            color: white;
-            font-size: 16px;
-            margin-bottom: 16px;
-        }
-
-        .login-box input:focus {
-            outline: none;
-            border-color: #22c55e;
-        }
-
-        .login-box button {
-            width: 100%;
-            padding: 12px;
-            background: #22c55e;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .login-box button:hover {
-            background: #16a34a;
-        }
-
-        .error-msg {
-            background: #ef4444;
-            color: white;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            display: none;
-        }
-
-        /* PANEL SCREEN */
         #panel-screen {
-            display: none;
+            display: flex;
         }
 
         .container {
@@ -415,17 +343,6 @@
     </style>
 </head>
 <body>
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen">
-        <div class="login-box">
-            <h1>🎮 MineColab Panel</h1>
-            <p>Ingresa tu contraseña para continuar</p>
-            <div class="error-msg" id="login-error">Contraseña incorrecta</div>
-            <input type="password" id="password-input" placeholder="Contraseña" onkeypress="if(event.key === 'Enter') login()">
-            <button onclick="login()">Entrar</button>
-        </div>
-    </div>
-
     <!-- PANEL SCREEN -->
     <div id="panel-screen">
         <div class="container">
@@ -555,107 +472,21 @@
     </div>
 
     <script>
-        // VARIABLES GLOBALES
-        let token = localStorage.getItem('minecolab_token');
         let statusInterval = null;
 
-        // INICIALIZACIÓN
         document.addEventListener('DOMContentLoaded', () => {
-            autoLoginAndShowPanel();
-        });
-
-        async function autoLoginAndShowPanel() {
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-                const data = await response.json();
-                if (data.success) {
-                    token = data.token;
-                    localStorage.setItem('minecolab_token', token);
-                }
-            } catch (e) {
-                console.error('Auto-login failed:', e);
-            }
-            showPanel();
-        }
-
-        // MOSTRAR LOGIN
-        function showLogin() {
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('panel-screen').style.display = 'none';
-        }
-
-        // MOSTRAR PANEL
-        function showPanel() {
-            document.getElementById('login-screen').style.display = 'none';
             document.getElementById('panel-screen').style.display = 'block';
-            // Inicializar botones deshabilitados
             document.getElementById('btn-start').disabled = true;
             document.getElementById('btn-stop').disabled = true;
             loadStatus();
             statusInterval = setInterval(loadStatus, 5000);
-        }
+        });
 
-        // LOGIN
-        async function login() {
-            const password = document.getElementById('password-input').value;
-            const errorDiv = document.getElementById('login-error');
-
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ password: password })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    token = data.token;
-                    localStorage.setItem('minecolab_token', token);
-                    errorDiv.style.display = 'none';
-                    showPanel();
-                } else {
-                    errorDiv.textContent = data.error || 'Contraseña incorrecta';
-                    errorDiv.style.display = 'block';
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Error de conexión';
-                errorDiv.style.display = 'block';
-            }
-        }
-
-        // LOGOUT
-        function logout() {
-            localStorage.removeItem('minecolab_token');
-            token = null;
-            showLogin();
-        }
-
-        // CARGAR ESTADO
         async function loadStatus() {
-            if (!token) return;
-
             try {
-                const response = await fetch('/api/status', {
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
-                if (response.status === 401) {
-                    logout();
-                    return;
-                }
-
+                const response = await fetch('/api/status');
                 const data = await response.json();
 
-                // Actualizar estado
                 const statusDot = document.getElementById('status-dot');
                 const statusText = document.getElementById('status-text');
                 const cardStatus = document.getElementById('card-status');
@@ -672,7 +503,6 @@
                     cardStatus.className = 'value red';
                 }
 
-                // Actualizar servidores
                 const serverSelect = document.getElementById('server-select');
                 serverSelect.innerHTML = '';
 
@@ -693,78 +523,49 @@
                     serverSelect.appendChild(option);
                 }
 
-                // Actualizar servidor activo
-                const cardActive = document.getElementById('card-active');
-                cardActive.textContent = data.active_server || 'Ninguno';
+                document.getElementById('card-active').textContent = data.active_server || 'Ninguno';
+                document.getElementById('card-session').textContent = formatSeconds(data.session_uptime_seconds);
+                document.getElementById('card-remaining').textContent = formatSeconds(data.colab_time_remaining);
 
-                 // Actualizar tiempos
-                 const cardSession = document.getElementById('card-session');
-                 const cardRemaining = document.getElementById('card-remaining');
+                const btnStart = document.getElementById('btn-start');
+                const btnStop = document.getElementById('btn-stop');
 
-                 cardSession.textContent = formatSeconds(data.session_uptime_seconds);
-                 cardRemaining.textContent = formatSeconds(data.colab_time_remaining);
-
-                  // Actualizar tarjeta de IP del servidor
-                  const cardIpContent = document.getElementById('card-ip-content');
-                  cardIpContent.innerHTML = `
-                    <div style="color:#22c55e;font-size:14px;margin-bottom:8px;">
-                      ✅ Serveo: minecraftcito.serveo.net:25565
-                    </div>
-                    <div style="display:flex;gap:8px;">
-                      <span style="padding:8px 12px;background:#166534;color:#86efac;border-radius:6px;font-size:13px;">● En línea</span>
-                    </div>`
-
-                 // Actualizar botones según estado
-                 const btnStart = document.getElementById('btn-start');
-                 const btnStop = document.getElementById('btn-stop');
-
-                 if (data.minecraft_running) {
-                     btnStart.textContent = "⚡ EJECUTÁNDOSE"
-                     btnStart.style.background = "#1d4ed8"
-                     btnStart.disabled = true
-                     btnStop.disabled = false
-                 } else {
-                     btnStart.textContent = "▶ INICIAR"
-                     btnStart.style.background = "#22c55e"
-                     btnStart.disabled = false
-                     btnStop.disabled = true
-                 }
-
+                if (data.minecraft_running) {
+                    btnStart.textContent = "⚡ EJECUTÁNDOSE";
+                    btnStart.style.background = "#1d4ed8";
+                    btnStart.disabled = true;
+                    btnStop.disabled = false;
+                } else {
+                    btnStart.textContent = "▶ INICIAR";
+                    btnStart.style.background = "#22c55e";
+                    btnStart.disabled = false;
+                    btnStop.disabled = true;
+                }
             } catch (error) {
                 console.error('Error cargando estado:', error);
             }
         }
 
-        // FORMATEAR SEGUNDOS A HH:MM:SS
         function formatSeconds(seconds) {
             if (!seconds && seconds !== 0) return '---:---';
-
             const hrs = Math.floor(seconds / 3600);
             const mins = Math.floor((seconds % 3600) / 60);
             const secs = Math.floor(seconds % 60);
-
             if (hrs > 0) {
                 return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
             }
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
-        // SELECCIONAR SERVIDOR
         async function selectServer(name) {
-            if (!name || !token) return;
-
+            if (!name) return;
             try {
                 const response = await fetch('/api/servers/select', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ server_name: name })
                 });
-
                 const data = await response.json();
-
                 if (data.success) {
                     loadStatus();
                 } else {
@@ -775,62 +576,35 @@
             }
         }
 
-        // INICIAR SERVIDOR
         async function startServer() {
             const btnStart = document.getElementById('btn-start');
             const originalText = btnStart.textContent;
             const errorDiv = document.getElementById('error-container');
-
-            // Limpiar error anterior
             if (errorDiv) {
                 errorDiv.innerHTML = '';
                 errorDiv.style.display = 'none';
             }
-
-            // Deshabilitar botón y cambiar texto
             btnStart.disabled = true;
             btnStart.textContent = 'Iniciando...';
 
             try {
-                const response = await fetch('/api/server/start', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
+                const response = await fetch('/api/server/start', { method: 'POST' });
                 const data = await response.json();
 
                 if (data.success) {
-                    // Mostrar mensaje de éxito
                     showNotification('Servidor iniciando...', 'success');
-                    // Esperar 3 segundos y recargar estado
                     setTimeout(loadStatus, 3000);
                 } else {
-                    // Mostrar error detallado
                     let errorMsg = data.error || 'Error al iniciar';
-
-                    // Si hay output del servidor, mostrarlo
                     if (data.output && Array.isArray(data.output)) {
-                        errorMsg += '<div style="margin-top:10px;font-size:12px;text-align:left;">';
-                        errorMsg += '<strong>Output del servidor:</strong>';
-                        errorMsg += '<pre style="background:#000;padding:10px;margin-top:5px;max-height:200px;overflow-y:auto;color:#f00;">';
-                        errorMsg += data.output.join('\\n');
-                        errorMsg += '</pre></div>';
+                        errorMsg += '<div style="margin-top:10px;font-size:12px;text-align:left;"><strong>Output del servidor:</strong><pre style="background:#000;padding:10px;margin-top:5px;max-height:200px;overflow-y:auto;color:#f00;">' + data.output.join('\\n') + '</pre></div>';
                     }
-
-                    // Si hay diagnóstico, mostrarlo
                     if (data.diagnosis) {
                         errorMsg += '<div style="margin-top:10px;font-size:12px;text-align:left;">';
-                        if (data.diagnosis.java) {
-                            errorMsg += '<div>Java: ' + (data.diagnosis.java.installed ? '✓ Instalado' : '✗ No instalado') + '</div>';
-                        }
-                        if (data.diagnosis.jar) {
-                            errorMsg += '<div>JAR: ' + (data.diagnosis.jar.found ? '✓ Encontrado (' + data.diagnosis.jar.jar_file + ')' : '✗ No encontrado') + '</div>';
-                        }
+                        if (data.diagnosis.java) errorMsg += '<div>Java: ' + (data.diagnosis.java.installed ? '✓ Instalado' : '✗ No instalado') + '</div>';
+                        if (data.diagnosis.jar) errorMsg += '<div>JAR: ' + (data.diagnosis.jar.found ? '✓ Encontrado (' + data.diagnosis.jar.jar_file + ')' : '✗ No encontrado') + '</div>';
                         errorMsg += '</div>';
                     }
-
                     showDetailedError(errorMsg);
                     btnStart.disabled = false;
                     btnStart.textContent = originalText;
@@ -842,17 +616,12 @@
             }
         }
 
-        // MOSTRAR ERROR DETALLADO
         function showDetailedError(htmlMessage) {
             let errorDiv = document.getElementById('error-container');
-
             if (!errorDiv) {
-                // Crear el contenedor si no existe
                 errorDiv = document.createElement('div');
                 errorDiv.id = 'error-container';
                 errorDiv.style.cssText = 'background:#7f1d1d;border:1px solid #ef4444;border-radius:8px;padding:16px;margin:16px 0;color:#fecaca;';
-
-                // Insertar después de control-card
                 const controlCard = document.querySelector('.control-card');
                 if (controlCard && controlCard.parentNode) {
                     controlCard.parentNode.insertBefore(errorDiv, controlCard.nextSibling);
@@ -860,42 +629,24 @@
                     document.querySelector('.main-content').prepend(errorDiv);
                 }
             }
-
             errorDiv.innerHTML = '<strong style="color:#ef4444;">⚠️ Error:</strong> ' + htmlMessage;
             errorDiv.style.display = 'block';
-
-            // Auto-ocultar después de 30 segundos
-            setTimeout(() => {
-                if (errorDiv) errorDiv.style.display = 'none';
-            }, 30000);
+            setTimeout(() => { if (errorDiv) errorDiv.style.display = 'none'; }, 30000);
         }
 
-        // DETENER SERVIDOR
         async function stopServer() {
             const btnStop = document.getElementById('btn-stop');
             const originalText = btnStop.textContent;
-
-            // Deshabilitar botón y cambiar texto
             btnStop.disabled = true;
             btnStop.textContent = 'Deteniendo...';
 
             try {
-                const response = await fetch('/api/server/stop', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
+                const response = await fetch('/api/server/stop', { method: 'POST' });
                 const data = await response.json();
-
                 if (data.success) {
-                    // Mostrar mensaje de éxito
                     showNotification('Servidor detenido', 'success');
-                    // Esperar 2 segundos y recargar estado
                     setTimeout(loadStatus, 2000);
                 } else {
-                    // Mostrar error
                     showNotification(data.error || 'Error al detener', 'error');
                     btnStop.disabled = false;
                     btnStop.textContent = originalText;
@@ -907,77 +658,48 @@
             }
         }
 
-        // MOSTRAR NOTIFICACIÓN
         function showNotification(message, type) {
-            // Crear notificación temporal
             const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 16px 24px;
-                border-radius: 8px;
-                background: ${type === 'success' ? '#22c55e' : '#ef4444'};
-                color: white;
-                font-weight: bold;
-                z-index: 10000;
-                animation: slideIn 0.3s ease;
-            `;
+            notification.style.cssText = 'position:fixed;top:20px;right:20px;padding:16px 24px;border-radius:8px;background:' + (type === 'success' ? '#22c55e' : '#ef4444') + ';color:white;font-weight:bold;z-index:10000;';
             notification.textContent = message;
             document.body.appendChild(notification);
-
-            // Remover después de 3 segundos
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+            setTimeout(() => notification.remove(), 3000);
         }
 
-        // MOSTRAR SECCIÓN
         function showSection(sectionId, event) {
             event.preventDefault();
-
-            // Remover active de todos
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            document.querySelectorAll('.section').forEach(sec => {
-                sec.classList.remove('active');
-            });
-
-            // Agregar active al seleccionado
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById(sectionId).classList.add('active');
+            if (sectionId === 'console') {
+                startConsolePolling();
+            } else {
+                if (consoleInterval) { clearInterval(consoleInterval); consoleInterval = null; }
+            }
         }
 
-        // =============================================
-        // FUNCIONES DEL MODAL NUEVO SERVIDOR
-        // =============================================
+        let modalState = 'idle';
+        let consoleInterval = null;
 
-        // ESTADO DEL MODAL
-        let modalState = 'idle';  // idle | creating | installing | done | error
-
-        // ABRIR MODAL
         function openNewServerModal() {
             document.getElementById('new-server-modal').classList.add('active');
             loadServerTypes();
             modalState = 'idle';
         }
 
-        // CERRAR MODAL
         function closeNewServerModal() {
             document.getElementById('new-server-modal').classList.remove('active');
             document.getElementById('install-progress').style.display = 'none';
             document.getElementById('modal-error').style.display = 'none';
             document.getElementById('modal-error').textContent = '';
             document.getElementById('modal-submit-btn').disabled = false;
-            // Resetear formulario
             document.getElementById('new-server-form').reset();
             document.getElementById('server-version').disabled = true;
             document.getElementById('server-version').innerHTML = '<option value="">Primero selecciona un tipo</option>';
             modalState = 'idle';
         }
 
-        // LIMPIAR ERROR DEL MODAL
         function clearModalError() {
             const errorDiv = document.getElementById('modal-error');
             if (errorDiv.style.display === 'block') {
@@ -990,15 +712,12 @@
             }
         }
 
-        // CARGAR TIPOS DE SERVIDOR
         async function loadServerTypes() {
             try {
                 const response = await fetch('/api/software/types');
                 const data = await response.json();
-
                 const select = document.getElementById('server-type');
                 select.innerHTML = '<option value="">Selecciona un tipo...</option>';
-
                 data.types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type;
@@ -1012,26 +731,20 @@
             }
         }
 
-        // CARGAR VERSIONES
         async function loadVersions() {
             const type = document.getElementById('server-type').value;
             const versionSelect = document.getElementById('server-version');
-
             if (!type) {
                 versionSelect.innerHTML = '<option value="">Primero selecciona un tipo</option>';
                 versionSelect.disabled = true;
                 return;
             }
-
             versionSelect.disabled = true;
             versionSelect.innerHTML = '<option value="">Cargando...</option>';
-
             try {
-                const response = await fetch(`/api/software/versions?type=${encodeURIComponent(type)}`);
+                const response = await fetch('/api/software/versions?type=' + encodeURIComponent(type));
                 const data = await response.json();
-
                 versionSelect.innerHTML = '<option value="">Selecciona una versión...</option>';
-
                 if (data.versions && data.versions.length > 0) {
                     data.versions.forEach(version => {
                         const option = document.createElement('option');
@@ -1042,7 +755,6 @@
                 } else {
                     versionSelect.innerHTML = '<option value="">Sin versiones disponibles</option>';
                 }
-
                 versionSelect.disabled = false;
             } catch (error) {
                 console.error('Error cargando versiones:', error);
@@ -1051,32 +763,16 @@
             }
         }
 
-        // CREAR E INSTALAR SERVIDOR
         async function createAndInstallServer() {
             const name = document.getElementById('server-name').value.trim();
             const type = document.getElementById('server-type').value;
             const version = document.getElementById('server-version').value;
 
-            // Validaciones
-            if (!name) {
-                showModalError('Ingresa un nombre para el servidor');
-                return;
-            }
+            if (!name) { showModalError('Ingresa un nombre para el servidor'); return; }
+            if (!/^[a-zA-Z0-9_-]+$/.test(name)) { showModalError('El nombre solo puede contener letras, números, guiones y guiones bajos'); return; }
+            if (!type || !version) { showModalError('Selecciona un tipo y versión'); return; }
 
-            if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-                showModalError('El nombre solo puede contener letras, números, guiones y guiones bajos');
-                return;
-            }
-
-            if (!type || !version) {
-                showModalError('Selecciona un tipo y versión');
-                return;
-            }
-
-            // Cambiar estado a creating
             modalState = 'creating';
-
-            // Ocultar botón y mostrar progreso
             document.getElementById('modal-submit-btn').disabled = true;
             const progressDiv = document.getElementById('install-progress');
             const progressText = document.getElementById('install-progress-text');
@@ -1086,20 +782,13 @@
             document.getElementById('modal-error').style.display = 'none';
 
             try {
-                // Paso 1: Crear servidor
                 const createResponse = await fetch('/api/servers', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, type, version })
                 });
-
                 const createData = await createResponse.json();
-
                 if (!createData.success) {
-                    // Error de nombre duplicado u otro
                     modalState = 'error';
                     showModalError(createData.error || 'Error al crear servidor');
                     progressDiv.style.display = 'none';
@@ -1110,16 +799,8 @@
                 progressText.textContent = 'Servidor creado. Instalando JAR...';
                 modalState = 'installing';
 
-                // Paso 2: Instalar JAR
-                const installResponse = await fetch(`/api/servers/${name}/install`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
-                });
-
+                const installResponse = await fetch('/api/servers/' + name + '/install', { method: 'POST' });
                 const installData = await installResponse.json();
-
                 if (!installData.success) {
                     modalState = 'error';
                     showModalError(installData.error || 'Error al instalar');
@@ -1128,30 +809,20 @@
                     return;
                 }
 
-                // Paso 3: Polling del estado de instalación
                 progressText.textContent = 'Descargando archivos...';
                 const pollInterval = setInterval(async () => {
-                    const statusResponse = await fetch(`/api/servers/${name}/install-status`);
+                    const statusResponse = await fetch('/api/servers/' + name + '/install-status');
                     const status = await statusResponse.json();
-
-                    if (status.progress) {
-                        progressText.textContent = status.progress;
-                    }
-
+                    if (status.progress) progressText.textContent = status.progress;
                     if (status.done || status.error) {
                         clearInterval(pollInterval);
-
                         if (status.done) {
                             modalState = 'done';
                             progressText.textContent = '¡Instalación completada!';
                             progressDiv.style.backgroundColor = '#166534';
-
-                            // Cerrar modal después de 2 segundos
                             setTimeout(() => {
                                 closeNewServerModal();
-                                // Recargar lista de servidores
                                 loadStatus();
-                                // Seleccionar el nuevo servidor
                                 document.getElementById('server-select').value = name;
                             }, 2000);
                         } else {
@@ -1162,7 +833,6 @@
                         }
                     }
                 }, 3000);
-
             } catch (error) {
                 modalState = 'error';
                 showModalError('Error de conexión: ' + error.message);
@@ -1171,118 +841,56 @@
             }
         }
 
-        // MOSTRAR ERROR EN MODAL
         function showModalError(message) {
             const errorDiv = document.getElementById('modal-error');
             errorDiv.textContent = '⚠️ ' + message;
             errorDiv.style.display = 'block';
         }
 
-        // =============================================
-        // FUNCIONES DE CONSOLA EN VIVO
-        // =============================================
-        let consoleInterval = null;
-
         function startConsolePolling() {
-            // Iniciar polling cada 2 segundos
             consoleInterval = setInterval(loadConsoleOutput, 2000);
-            // Cargar inmediatamente
             loadConsoleOutput();
         }
 
         function loadConsoleOutput() {
-            if (!token) return;
-
-            fetch('/api/server/last-output', {
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.output) {
-                    const consoleDiv = document.getElementById('console-output');
-                    consoleDiv.textContent = data.output.join('\n');
-                    // Auto-scroll al final
-                    consoleDiv.scrollTop = consoleDiv.scrollHeight;
-                }
-            })
-            .catch(error => {
-                console.error('Error cargando consola:', error);
-            });
+            fetch('/api/server/last-output')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.lines) {
+                        const consoleDiv = document.getElementById('console-output');
+                        if (consoleDiv) {
+                            consoleDiv.textContent = data.lines.join('\n');
+                            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                        }
+                    }
+                })
+                .catch(error => console.error('Error cargando consola:', error));
         }
 
         function sendConsoleCommand() {
-            if (!token) return;
-
             const input = document.getElementById('console-input');
             const command = input.value.trim();
-            
             if (!command) return;
-
             fetch('/api/server/command', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ command: command })
             })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    console.error('Error enviando comando:', data.error);
-                }
-                // Limpiar input
-                input.value = '';
-                // Recargar output
-                loadConsoleOutput();
-            })
-            .catch(error => {
-                console.error('Error de conexión:', error);
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) console.error('Error:', data.error);
+                    input.value = '';
+                    loadConsoleOutput();
+                })
+                .catch(error => console.error('Error de conexión:', error));
         }
 
         function clearConsole() {
             const consoleDiv = document.getElementById('console-output');
-            consoleDiv.textContent = '';
+            if (consoleDiv) consoleDiv.textContent = '';
         }
 
-        // Modificar showSection para iniciar/detener polling de consola
-        const originalShowSection = showSection;
-        function showSection(sectionId, event) {
-            event.preventDefault();
-
-            // Remover active de todos
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            document.querySelectorAll('.section').forEach(sec => {
-                sec.classList.remove('active');
-            });
-
-            // Agregar active al seleccionado
-            event.target.classList.add('active');
-            document.getElementById(sectionId).classList.add('active');
-
-            // Iniciar/detener polling de consola
-            if (sectionId === 'console') {
-                startConsolePolling();
-            } else {
-                if (consoleInterval) {
-                    clearInterval(consoleInterval);
-                    consoleInterval = null;
-                }
-            }
-        }
-        // Reemplazar la función original
         window.showSection = showSection;
-
-        function escapeHtml(str) {
-            const div = document.createElement('div')
-            div.textContent = str
-            return div.innerHTML
-        }
     </script>
 </body>
 </html>

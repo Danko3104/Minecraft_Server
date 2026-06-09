@@ -16,7 +16,6 @@ from panel.drive import (
     get_global_config,
     save_global_config
 )
-from panel.routes.auth import auth_bp, verify_token
 from panel.server_manager import server_manager
 from panel.routes.servers import servers_bp
 from panel.routes.tunnels import tunnels_bp
@@ -36,7 +35,6 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Registrar blueprints
-app.register_blueprint(auth_bp)
 app.register_blueprint(servers_bp)
 app.register_blueprint(tunnels_bp)
 
@@ -76,11 +74,9 @@ def api_ping():
 
 
 @app.route('/api/status', methods=['GET'])
-@verify_token
 def api_status():
     """
     Retorna el estado general del panel.
-    Requiere token de autenticación.
     """
     try:
         now = datetime.now()
@@ -95,19 +91,16 @@ def api_status():
             "servers": list_servers(),
             "session_uptime_seconds": int(session_uptime),
             "colab_time_remaining": int(colab_time_remaining),
-            "minecraft_url": tunnel_module.get_minecraft_url(),
-            "playit_configured": tunnel_module.is_playit_configured()
+            "minecraft_url": tunnel_module.get_current_minecraft_url()
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route('/api/servers', methods=['GET'])
-@verify_token
 def api_servers():
     """
     Retorna lista de servidores disponibles.
-    Requiere token de autenticación.
     """
     try:
         servers = list_servers()
@@ -122,12 +115,10 @@ def api_servers():
 
 
 @app.route('/api/servers/select', methods=['POST'])
-@verify_token
 def api_select_server():
     """
     Selecciona un servidor como activo.
     Body JSON: {"server_name": "nombre"}
-    Requiere token de autenticación.
     """
     try:
         data = request.get_json()
@@ -164,11 +155,9 @@ def api_select_server():
 
 
 @app.route('/api/server/start', methods=['POST'])
-@verify_token
 def api_server_start():
     """
     Inicia el servidor de Minecraft.
-    Requiere token de autenticación.
     """
     try:
         # Obtener servidor activo
@@ -193,11 +182,9 @@ def api_server_start():
 
 
 @app.route('/api/server/stop', methods=['POST'])
-@verify_token
 def api_server_stop():
     """
     Detiene el servidor de Minecraft.
-    Requiere token de autenticación.
     """
     try:
         result = server_manager.stop()
@@ -211,7 +198,6 @@ def api_server_stop():
 
 
 @app.route('/api/server/command', methods=['POST'])
-@verify_token
 def api_server_command():
     """
     Envía un comando al servidor.
@@ -242,7 +228,6 @@ def api_server_command():
 
 
 @app.route('/api/server/last-output', methods=['GET'])
-@verify_token
 def api_server_last_output():
     """
     Retorna las últimas líneas de salida del servidor.
@@ -261,7 +246,6 @@ def api_server_last_output():
 
 
 @app.route('/api/server/diagnose', methods=['GET'])
-@verify_token
 def api_server_diagnose():
     """
     Retorna información completa de diagnóstico del servidor activo.
