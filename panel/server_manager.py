@@ -342,7 +342,7 @@ class ServerManager:
             if not os.path.exists(jar_path):
                 print(f"[INFO] Descargando Minekube Connect plugin...")
                 import urllib.request
-                url = 'https://github.com/minekube/connect/releases/latest/download/connect-spigot.jar'
+                url = 'https://github.com/minekube/connect-java/releases/download/latest/connect-spigot.jar'
                 urllib.request.urlretrieve(url, jar_path)
                 print(f"[OK] Minekube Connect plugin descargado")
             else:
