@@ -522,22 +522,12 @@ def launch():
     print("MINECOLAB PANEL LISTO")
     print("=" * 60)
 
-    # Obtener contraseña desde drive
-    try:
-        from panel.drive import get_global_config
-        config = get_global_config()
-        password = config.get('panel_password', 'minecolab2024')
-    except:
-        password = 'minecolab2024'
-
     # Panel final bonito con rich
     final_message = f"""
 Panel Web:
   {panel_url}
 
 Abre esa URL en tu navegador
-
-Contraseña: {password}
 
 El servidor de Minecraft se
 controla desde el panel

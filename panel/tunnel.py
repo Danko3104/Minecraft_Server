@@ -8,21 +8,27 @@ _playit_configured = False
 
 
 def _install_localtonet():
+    print("[DEBUG] Verificando si localtonet ya está instalado...")
     if os.path.exists('/usr/local/bin/localtonet'):
+        print("[DEBUG] localtonet ya existe, saltando instalación")
         return
 
-    # Opción 1: script de instalación oficial
+    print("[DEBUG] Intentando instalar via script oficial...")
     result = subprocess.run(
         'curl -fsSL https://localtonet.com/install.sh | sh',
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE
     )
+    print(f"[DEBUG] Script oficial returncode: {result.returncode}")
+    print(f"[DEBUG] stdout: {result.stdout.decode()[:300]}")
+    print(f"[DEBUG] stderr: {result.stderr.decode()[:300]}")
 
     if result.returncode == 0 and os.path.exists('/usr/local/bin/localtonet'):
+        print("[DEBUG] Instalación via script exitosa")
         return
 
-    # Opción 2: descarga manual (el archivo es .zip, no .tar.gz)
+    print("[DEBUG] Intentando descarga manual .zip...")
     import urllib.request
     import zipfile
 
@@ -30,14 +36,14 @@ def _install_localtonet():
     dest = "/tmp/localtonet.zip"
 
     urllib.request.urlretrieve(url, dest)
-
-    if not os.path.exists(dest) or os.path.getsize(dest) == 0:
-        raise Exception("Downloaded file is missing or empty")
+    print(f"[DEBUG] Archivo descargado, tamaño: {os.path.getsize(dest)} bytes")
 
     with zipfile.ZipFile(dest, 'r') as z:
+        print(f"[DEBUG] Contenido del zip: {z.namelist()}")
         z.extractall('/usr/local/bin/')
 
     os.chmod('/usr/local/bin/localtonet', 0o755)
+    print(f"[DEBUG] localtonet instalado: {os.path.exists('/usr/local/bin/localtonet')}")
 
 
 def start_localtonet(authtoken: str) -> bool:
