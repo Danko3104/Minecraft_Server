@@ -351,12 +351,9 @@ class ServerManager:
             connect_config_dir = os.path.join(plugins_dir, 'connect')
             os.makedirs(connect_config_dir, exist_ok=True)
             config_path = os.path.join(connect_config_dir, 'config.yml')
-            if not os.path.exists(config_path):
-                with open(config_path, 'w') as f:
-                    f.write('endpoint: "minecolab"\n')
-                print(f"[OK] config.yml creado con endpoint: minecolab")
-            else:
-                print(f"[OK] config.yml ya existe")
+            with open(config_path, 'w') as f:
+                f.write('endpoint: "minecolab13-free"\n')
+            print(f"[OK] config.yml actualizado con endpoint: minecolab13-free")
 
             return True
         except Exception as e:
