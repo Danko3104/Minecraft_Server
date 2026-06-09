@@ -18,35 +18,51 @@ def set_minecraft_url(url: str):
 def get_current_minecraft_url() -> str:
     return _minecraft_url
 
-_serveo_proc = None
-
-SERVEO_SUBDOMAIN = "minecraftcito"
-
-def start_serveo() -> str:
-    """Retorna la dirección serveo.net o None si falla"""
-    global _serveo_proc
+def check_local_port(port=25565) -> bool:
+    """Verifica que el puerto local esté accesible antes de tunelizar."""
     try:
-        subprocess.run(['pkill', '-f', 'serveo.net'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3)
+        result = s.connect_ex(('127.0.0.1', port))
+        s.close()
+        if result == 0:
+            print(f"[OK] Puerto local {port} ACCESIBLE vía 127.0.0.1")
+            return True
+        print(f"[WARN] Puerto local {port} NO accesible vía 127.0.0.1 (errno={result})")
+        return False
+    except Exception as e:
+        print(f"[WARN] check_local_port: {e}")
+        return False
+
+_tunnel_proc = None
+
+def start_pyjamas() -> str:
+    """Retorna la dirección pyjam.as o None si falla"""
+    global _tunnel_proc
+    try:
+        subprocess.run(['pkill', '-f', 'pyjam.as'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'ssh.*pyjam'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         t.sleep(1)
 
-        print(f"[INFO] Conectando a serveo.net con subdominio {SERVEO_SUBDOMAIN}...")
+        print("[INFO] Conectando a pyjam.as...")
         proc = subprocess.Popen(
             ['ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'ServerAliveInterval=30',
              '-o', 'ServerAliveCountMax=3', '-N', '-T',
-             '-R', f'{SERVEO_SUBDOMAIN}:25565:localhost:25565', 'serveo.net'],
+             '-R', '1:localhost:25565', 'plan@pyjam.as'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        _serveo_proc = proc
+        _tunnel_proc = proc
 
         def drain(stream, prefix):
             for line in iter(stream.readline, b''):
                 text = line.decode().strip()
                 if text:
                     print(f"{prefix} {text}")
-        threading.Thread(target=drain, args=(proc.stdout, "[SERVEO]"), daemon=True).start()
-        threading.Thread(target=drain, args=(proc.stderr, "[SERVEO]"), daemon=True).start()
+        threading.Thread(target=drain, args=(proc.stdout, "[PYJAMAS]"), daemon=True).start()
+        threading.Thread(target=drain, args=(proc.stderr, "[PYJAMAS]"), daemon=True).start()
 
-        end = t.time() + 20
+        end = t.time() + 15
         address = None
         while t.time() < end:
             if proc.poll() is not None:
@@ -57,9 +73,9 @@ def start_serveo() -> str:
                 for stream in ready:
                     line = stream.readline().decode().strip()
                     if line:
-                        if 'forwarding' in line.lower() and 'serveo.net' in line:
+                        if 'pyjam.as' in line and ':' in line:
                             import re
-                            m = re.search(r'[\w.-]+\.serveo\.net:\d+', line)
+                            m = re.search(r'[\w.-]+\.pyjam\.as:\d+', line)
                             if m:
                                 address = m.group(0)
                             break
@@ -69,14 +85,14 @@ def start_serveo() -> str:
                 break
 
         if proc.poll() is None:
-            address = address or f"{SERVEO_SUBDOMAIN}.serveo.net:25565"
-            print(f"[OK] Túnel Serveo activo: {address}")
+            address = address or "activo (verificar output arriba)"
+            print(f"[OK] Túnel pyjam.as activo: {address}")
             return address
 
-        print(f"[ERROR] Serveo terminó con código {proc.poll()}")
+        print(f"[ERROR] pyjam.as terminó con código {proc.poll()}")
         return None
     except Exception as e:
-        print(f"[ERROR] start_serveo: {e}")
+        print(f"[ERROR] start_pyjamas: {e}")
         return None
 
 ORACLE_KEY = """-----BEGIN RSA PRIVATE KEY-----

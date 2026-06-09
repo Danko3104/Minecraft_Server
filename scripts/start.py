@@ -476,21 +476,22 @@ def launch():
     print("PASO 4.5: Iniciando túnel para Minecraft")
     print("=" * 60)
 
-    serveo_address = tunnel.start_serveo()
+    tunnel.check_local_port(25565)
+    pyjamas_address = tunnel.start_pyjamas()
     tunnel_address = None
-    if serveo_address:
-        tunnel_address = serveo_address
-        tunnel.set_minecraft_url(serveo_address)
+    if pyjamas_address:
+        tunnel_address = pyjamas_address
+        tunnel.set_minecraft_url(pyjamas_address)
         with open('/tmp/tunnel_address.txt', 'w') as f:
-            f.write(serveo_address)
+            f.write(pyjamas_address)
         console.print(Panel(
-            f"🌐 Dirección del servidor: {serveo_address}\n\n"
+            f"🌐 Dirección del servidor: {pyjamas_address}\n\n"
             "Conéctate desde Minecraft usando esa dirección.",
-            title="SERVEO TUNNEL",
+            title="PYJAM.AS TUNNEL",
             border_style="green"
         ))
     else:
-        print("[WARN] Serveo falló, intentando VPS Oracle como respaldo...")
+        print("[WARN] pyjam.as falló, intentando VPS Oracle como respaldo...")
         vps_connected = tunnel.start_ssh_tunnel()
         if vps_connected:
             with open('/tmp/tunnel_address.txt', 'w') as f:
@@ -503,7 +504,7 @@ def launch():
                 border_style="yellow"
             ))
         else:
-            error_msg = "❌ Error: no se pudo conectar Serveo ni VPS Oracle. Sin acceso al servidor."
+            error_msg = "❌ Error: no se pudo conectar pyjam.as ni VPS Oracle. Sin acceso al servidor."
             console.print(Panel(error_msg, title="ERROR", border_style="red"))
             return False
 
