@@ -450,11 +450,6 @@
                              <option value="">Cargando servidores...</option>
                          </select>
                          <button class="btn-new-server" onclick="openNewServerModal()">+ Nuevo Servidor</button>
-                         <button class="btn-new-server" 
-                                 onclick="openLocaltonetModal()"
-                                 style="background:#1d4ed8;">
-                             🎮 Túneles
-                         </button>
                      </div>
                     <div class="status-indicator">
                         <div class="status-dot" id="status-dot"></div>
@@ -556,57 +551,6 @@
                     <button type="submit" class="btn btn-green" id="modal-submit-btn" onclick="createAndInstallServer()">Crear e Instalar</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- MODAL LOCALTONET -->
-    <div class="modal-overlay" id="localtonet-modal" onclick="if(event.target === this) closeLocaltonetModal()">
-        <div class="modal">
-            <h2>🎮 Localtonet Tunnel</h2>
-
-            <div id="localtonet-state-a" style="display:none;">
-                <p style="color:#94a3b8;margin-bottom:20px;">
-                    Conecta tu servidor Minecraft a Internet usando Localtonet.
-                </p>
-                <label for="localtonet-token-input">AuthToken de localtonet.com</label>
-                <input type="text" id="localtonet-token-input" placeholder="Pega tu AuthToken de localtonet.com" autocomplete="off">
-                <label for="localtonet-address-input">Dirección del túnel (ej: xxx.localto.net:25565)</label>
-                <input type="text" id="localtonet-address-input" placeholder="hz3kjpvwdg.localto.net:25565" autocomplete="off">
-                <button class="btn btn-green" onclick="saveAndConnectLocaltonet()" id="localtonet-connect-btn">
-                    💾 Guardar y Conectar
-                </button>
-                <div id="localtonet-spinner" style="display:none;margin-top:16px;">
-                    <div class="spinner"></div>
-                    <span>Conectando...</span>
-                </div>
-            </div>
-
-            <div id="localtonet-state-b" style="display:none;">
-                <p style="color:#94a3b8;margin-bottom:8px;">Túnel activo en:</p>
-                <div style="background:#0f172a;padding:16px;border-radius:8px;text-align:center;
-                            font-size:18px;font-weight:bold;color:#22c55e;margin:16px 0;
-                            word-break:break-all;font-family:monospace;" id="localtonet-address">
-                    ---
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn btn-green" onclick="reconnectLocaltonet()" id="localtonet-reconnect-btn">
-                        🔄 Reconectar
-                    </button>
-                    <button class="btn btn-red" onclick="changeLocaltonetToken()">
-                        🗑 Cambiar token
-                    </button>
-                </div>
-                <div id="localtonet-reconnect-spinner" style="display:none;margin-top:16px;">
-                    <div class="spinner"></div>
-                    <span>Reconectando...</span>
-                </div>
-            </div>
-
-            <div id="localtonet-state-error" style="display:none;background:#7f1d1d;color:#fecaca;padding:12px;border-radius:8px;margin-top:16px;"></div>
-
-            <div class="modal-buttons" style="margin-top:24px;">
-                <button class="btn btn-secondary" onclick="closeLocaltonetModal()">Cerrar</button>
-            </div>
         </div>
     </div>
 
@@ -762,45 +706,13 @@
 
                   // Actualizar tarjeta de IP del servidor
                   const cardIpContent = document.getElementById('card-ip-content');
-                  
-                  try {
-                    const tunnelResp = await fetch('/api/tunnels/localtonet/status', {
-                      headers: { 'Authorization': 'Bearer ' + token }
-                    });
-                    const tunnelData = await tunnelResp.json();
-                    
-                    if (tunnelData.configured && tunnelData.address && tunnelData.running) {
-                      cardIpContent.innerHTML = `
-                        <div style="color:#22c55e;font-size:14px;margin-bottom:8px;">
-                          ✅ Localtonet: ${tunnelData.address}
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                          ${tunnelData.running ? '<span style="padding:8px 12px;background:#166534;color:#86efac;border-radius:6px;font-size:13px;">● En línea</span>' : '<span style="padding:8px 12px;background:#7f1d1d;color:#fca5a5;border-radius:6px;font-size:13px;">● Detenido</span>'}
-                        </div>`
-                    } else if (tunnelData.configured && !tunnelData.running) {
-                      cardIpContent.innerHTML = `
-                        <div style="color:#f59e0b;font-size:14px;margin-bottom:8px;">
-                          ⚠️ Localtonet configurado pero no corriendo
-                        </div>
-                        <button onclick="openLocaltonetModal()"
-                                style="padding:8px 16px;background:#1d4ed8;color:white;
-                                       border:none;border-radius:6px;cursor:pointer;font-size:13px;">
-                          🔄 Iniciar túnel
-                        </button>`
-                    } else {
-                      cardIpContent.innerHTML = `
-                        <div style="color:#f59e0b;font-size:14px;margin-bottom:8px;">
-                          ⚠️ Sin túnel configurado
-                        </div>
-                        <button onclick="openLocaltonetModal()"
-                                style="padding:8px 16px;background:#475569;color:white;
-                                       border:none;border-radius:6px;cursor:pointer;font-size:13px;">
-                          🔗 Configurar túnel
-                        </button>`
-                    }
-                  } catch(e) {
-                    cardIpContent.innerHTML = `<div style="color:#ef4444;font-size:14px;">Error al consultar túnel</div>`
-                  }
+                  cardIpContent.innerHTML = `
+                    <div style="color:#22c55e;font-size:14px;margin-bottom:8px;">
+                      ✅ Serveo: minecraftcito.serveo.net:25565
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                      <span style="padding:8px 12px;background:#166534;color:#86efac;border-radius:6px;font-size:13px;">● En línea</span>
+                    </div>`
 
                  // Actualizar botones según estado
                  const btnStart = document.getElementById('btn-start');
@@ -1365,160 +1277,6 @@
         }
         // Reemplazar la función original
         window.showSection = showSection;
-
-        // =============================================
-        // FUNCIONES DEL MODAL LOCALTONET
-        // =============================================
-        function openLocaltonetModal() {
-            document.getElementById('localtonet-modal').classList.add('active')
-            document.getElementById('localtonet-state-error').style.display = 'none'
-            loadLocaltonetModalState()
-        }
-
-        function closeLocaltonetModal() {
-            document.getElementById('localtonet-modal').classList.remove('active')
-            resetLocaltonetModal()
-        }
-
-        function resetLocaltonetModal() {
-            document.getElementById('localtonet-state-a').style.display = 'none'
-            document.getElementById('localtonet-state-b').style.display = 'none'
-            document.getElementById('localtonet-state-error').style.display = 'none'
-            document.getElementById('localtonet-connect-btn').style.display = ''
-            document.getElementById('localtonet-spinner').style.display = 'none'
-            document.getElementById('localtonet-reconnect-btn').style.display = ''
-            document.getElementById('localtonet-reconnect-spinner').style.display = 'none'
-        }
-
-        async function loadLocaltonetModalState() {
-            resetLocaltonetModal()
-            try {
-                const response = await fetch('/api/tunnels/localtonet/status', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                })
-                const data = await response.json()
-
-                if (data.configured && data.address) {
-                    document.getElementById('localtonet-address').textContent = data.address
-                    document.getElementById('localtonet-state-b').style.display = 'block'
-                } else if (data.configured) {
-                    document.getElementById('localtonet-address').textContent = 'Configurado (sin dirección)'
-                    document.getElementById('localtonet-state-b').style.display = 'block'
-                } else {
-                    document.getElementById('localtonet-state-a').style.display = 'block'
-                }
-            } catch (e) {
-                document.getElementById('localtonet-state-a').style.display = 'block'
-            }
-        }
-
-        async function saveAndConnectLocaltonet() {
-            const tokenInput = document.getElementById('localtonet-token-input')
-            const addressInput = document.getElementById('localtonet-address-input')
-            const authtoken = tokenInput.value.trim()
-            const address = addressInput.value.trim()
-            if (!authtoken) {
-                showLocaltonetError('Por favor ingresa un AuthToken')
-                return
-            }
-            if (!address) {
-                showLocaltonetError('Por favor ingresa la dirección del túnel')
-                return
-            }
-
-            document.getElementById('localtonet-connect-btn').style.display = 'none'
-            document.getElementById('localtonet-spinner').style.display = 'block'
-            document.getElementById('localtonet-state-error').style.display = 'none'
-
-            try {
-                const saveResp = await fetch('/api/tunnels/localtonet/save-token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
-                    },
-                    body: JSON.stringify({ authtoken: authtoken, address: address })
-                })
-                const saveData = await saveResp.json()
-
-                if (!saveData.success) {
-                    document.getElementById('localtonet-connect-btn').style.display = ''
-                    document.getElementById('localtonet-spinner').style.display = 'none'
-                    showLocaltonetError(saveData.error || 'Error al guardar token')
-                    return
-                }
-
-                const connectResp = await fetch('/api/tunnels/localtonet/connect', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                })
-                const connectData = await connectResp.json()
-
-                document.getElementById('localtonet-spinner').style.display = 'none'
-
-                if (connectData.success && connectData.address) {
-                    document.getElementById('localtonet-state-a').style.display = 'none'
-                    document.getElementById('localtonet-address').textContent = connectData.address
-                    document.getElementById('localtonet-state-b').style.display = 'block'
-                    loadStatus()
-                } else {
-                    document.getElementById('localtonet-connect-btn').style.display = ''
-                    let errorMsg = connectData.error || 'Error al conectar'
-                    if (connectData.output) {
-                        errorMsg += '<pre style="background:#0f172a;color:#fca5a5;padding:10px;margin-top:8px;border-radius:6px;font-size:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;">' + escapeHtml(connectData.output) + '</pre>'
-                    }
-                    showLocaltonetError(errorMsg)
-                }
-            } catch (e) {
-                document.getElementById('localtonet-connect-btn').style.display = ''
-                document.getElementById('localtonet-spinner').style.display = 'none'
-                showLocaltonetError('Error de conexión')
-            }
-        }
-
-        async function reconnectLocaltonet() {
-            document.getElementById('localtonet-reconnect-btn').style.display = 'none'
-            document.getElementById('localtonet-reconnect-spinner').style.display = 'block'
-            document.getElementById('localtonet-state-error').style.display = 'none'
-
-            try {
-                const response = await fetch('/api/tunnels/localtonet/connect', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                })
-                const data = await response.json()
-
-                document.getElementById('localtonet-reconnect-spinner').style.display = 'none'
-
-                if (data.success && data.address) {
-                    document.getElementById('localtonet-address').textContent = data.address
-                    loadStatus()
-                } else {
-                    document.getElementById('localtonet-reconnect-btn').style.display = ''
-                    showLocaltonetError(data.error || 'Error al reconectar')
-                }
-            } catch (e) {
-                document.getElementById('localtonet-reconnect-btn').style.display = ''
-                document.getElementById('localtonet-reconnect-spinner').style.display = 'none'
-                showLocaltonetError('Error de conexión')
-            }
-        }
-
-        function changeLocaltonetToken() {
-            closeLocaltonetModal()
-
-            document.getElementById('localtonet-state-b').style.display = 'none'
-            document.getElementById('localtonet-state-a').style.display = 'block'
-            document.getElementById('localtonet-token-input').value = ''
-            document.getElementById('localtonet-address-input').value = ''
-            document.getElementById('localtonet-modal').classList.add('active')
-        }
-
-        function showLocaltonetError(msg) {
-            const errorDiv = document.getElementById('localtonet-state-error')
-            errorDiv.innerHTML = '⚠️ ' + msg
-            errorDiv.style.display = 'block'
-        }
 
         function escapeHtml(str) {
             const div = document.createElement('div')

@@ -470,26 +470,20 @@ def launch():
         return False
     print("Java listo.")
 
-    # Paso 4.5: Iniciando túnel Localtonet
+    # Paso 4.5: Iniciando túnel Serveo para Minecraft
     print("\n" + "="*60)
-    print("PASO 4.5: Iniciando túnel Localtonet")
+    print("PASO 4.5: Iniciando túnel Serveo para Minecraft")
     print("="*60)
     try:
         from panel import tunnel
-        from panel.drive import get_global_config
-        config = get_global_config()
-        authtoken = config.get('localtonet_proxy', {}).get('authtoken', '')
-
-        if authtoken:
-            success = tunnel.start_localtonet(authtoken)
-            if success:
-                print("[OK] Localtonet corriendo")
-            else:
-                print("[WARNING] Localtonet no pudo iniciarse, continuando sin túnel TCP")
+        success = tunnel.start_serveo()
+        if success:
+            print("[OK] Serveo corriendo")
+            print("[OK] IP del servidor: minecraftcito.serveo.net:25565")
         else:
-            print("[WARNING] No hay authtoken de localtonet guardado, continuando sin túnel TCP")
+            print("[WARNING] Serveo no pudo iniciarse, continuando sin túnel TCP")
     except Exception as e:
-        print(f"[WARNING] Error iniciando localtonet: {e}")
+        print(f"[WARNING] Error iniciando Serveo: {e}")
 
     # Paso 5: Iniciar Flask
     print("\n" + "=" * 60)
