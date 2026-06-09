@@ -132,27 +132,31 @@ class ServerManager:
                 "-XX:MaxGCPauseMillis=200"
             ]
 
+            # Elegir jar: paper.jar si existe, sino server.jar
+            jar_name = "server.jar"
+            paper_jar = os.path.join(server_path, "paper.jar")
+            if os.path.exists(paper_jar):
+                jar_name = "paper.jar"
+
             # Según server_type
             if server_type in ['paper', 'purpur', 'folia', 'vanilla', 'snapshot']:
-                java_cmd.extend(["-jar", "server.jar", "--nogui"])
+                java_cmd.extend(["-jar", jar_name, "--nogui"])
 
             elif server_type == 'fabric':
                 java_cmd.extend(["-jar", "fabric-server-launch.jar", "--nogui"])
 
             elif server_type in ['forge', 'neoforge']:
-                # Verificar si existe run.sh
                 run_sh = os.path.join(server_path, 'run.sh')
                 if os.path.exists(run_sh):
                     return ["bash", run_sh, "--nogui"]
                 else:
-                    java_cmd.extend(["-jar", "server.jar", "--nogui"])
+                    java_cmd.extend(["-jar", jar_name, "--nogui"])
 
             elif server_type == 'bedrock':
                 return ["./bedrock_server"]
 
             else:
-                # Default
-                java_cmd.extend(["-jar", "server.jar", "--nogui"])
+                java_cmd.extend(["-jar", jar_name, "--nogui"])
 
             return java_cmd
 
@@ -235,6 +239,7 @@ class ServerManager:
 
             # Buscar archivos específicos
             jar_files = {
+                'paper.jar': 'paper.jar' in files,
                 'server.jar': 'server.jar' in files,
                 'fabric-server-launch.jar': 'fabric-server-launch.jar' in files,
                 'forge': any(f.startswith('forge') and f.endswith('.jar') for f in files),
@@ -244,7 +249,9 @@ class ServerManager:
 
             # Determinar cuál usar
             jar_file = None
-            if jar_files['server.jar']:
+            if jar_files['paper.jar']:
+                jar_file = 'paper.jar'
+            elif jar_files['server.jar']:
                 jar_file = 'server.jar'
             elif jar_files['fabric-server-launch.jar']:
                 jar_file = 'fabric-server-launch.jar'

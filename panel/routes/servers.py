@@ -312,7 +312,7 @@ def install_paper(server_name: str, version: str, server_path: str) -> Dict:
         response = requests.get(download_url, stream=True, timeout=60)
         response.raise_for_status()
 
-        jar_path = os.path.join(server_path, 'server.jar')
+        jar_path = os.path.join(server_path, 'paper.jar')
         with open(jar_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
