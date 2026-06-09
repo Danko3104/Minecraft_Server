@@ -617,12 +617,26 @@
 
         // INICIALIZACIÓN
         document.addEventListener('DOMContentLoaded', () => {
-            if (token) {
-                showPanel();
-            } else {
-                showLogin();
-            }
+            autoLoginAndShowPanel();
         });
+
+        async function autoLoginAndShowPanel() {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (data.success) {
+                    token = data.token;
+                    localStorage.setItem('minecolab_token', token);
+                }
+            } catch (e) {
+                console.error('Auto-login failed:', e);
+            }
+            showPanel();
+        }
 
         // MOSTRAR LOGIN
         function showLogin() {
