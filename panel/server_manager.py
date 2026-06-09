@@ -576,39 +576,39 @@ class ServerManager:
         """
         Retorna el estado del servidor.
         """
-        status = {
-            "running": self.is_running(),
-            "uptime_seconds": 0,
-            "pid": None,
-            "players": []
+        running = self.is_running()
+        players = []
+        tps = 20.0
+
+        if running:
+            try:
+                # Intentar RCON con timeout corto
+                # Si falla no importa, el servidor sigue corriendo
+                from mcrcon import MCRcon  # la clase ya se importa arriba en el archivo
+                rcon = MCRcon('localhost', self.rcon_port, self.rcon_password)
+                rcon.connect()
+                response = rcon.command('list')
+                rcon.disconnect()
+                # parsear jugadores de response
+                # Formato típico: "There are X/max players: player1, player2, ..."
+                if response and ':' in response:
+                    players_part = response.split(':', 1)[1].strip()
+                    if players_part:
+                        players = [p.strip() for p in players_part.split(',') if p.strip()]
+            except Exception:
+                pass  # RCON falló pero el servidor sigue vivo
+
+        uptime = 0
+        if self.start_time and running:
+            uptime = int((datetime.now() - self.start_time).total_seconds())
+
+        return {
+            "running": running,
+            "players": players,
+            "tps": tps,
+            "uptime_seconds": uptime,
+            "pid": self.process.pid if self.process else None
         }
-
-        if self.process:
-            status["pid"] = self.process.pid
-
-            if self.start_time and self.is_running():
-                uptime = datetime.now() - self.start_time
-                status["uptime_seconds"] = int(uptime.total_seconds())
-
-            # Intentar obtener jugadores vía RCON si el servidor está corriendo
-            if self.is_running() and MCRCON_AVAILABLE:
-                try:
-                    with RCon("localhost", self.rcon_port, self.rcon_password) as rcon:
-                        response = rcon.command("list")
-                        # Procesar respuesta de RCON para extraer jugadores
-                        # Ejemplo de respuesta: "There are 0/20 players online: "
-                        if "players online:" in response:
-                            players_part = response.split("players online:")[1].strip()
-                            if players_part and players_part != "":
-                                # Limpiar y separar jugadores por comas
-                                players_list = [p.strip() for p in players_part.split(",") if p.strip()]
-                                status["players"] = players_list
-                except Exception:
-                    # Si RCON falla, mantenemos players como lista vacía pero running sigue siendo True
-                    pass
-
-        return status
-
     def get_last_output(self) -> List[str]:
         """
         Retorna las últimas líneas de output del proceso.

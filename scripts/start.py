@@ -15,6 +15,7 @@ from typing import Optional
 # Agregar el path del proyecto para poder importar panel
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from panel import tunnel
 from rich.console import Console
 from rich.panel import Panel
 
@@ -470,20 +471,15 @@ def launch():
         return False
     print("Java listo.")
 
-    # Paso 4.5: Iniciando túnel Serveo para Minecraft
-    print("\n" + "="*60)
-    print("PASO 4.5: Iniciando túnel Serveo para Minecraft")
-    print("="*60)
-    try:
-        from panel import tunnel
-        success = tunnel.start_serveo()
-        if success:
-            print("[OK] Serveo corriendo")
-            print("[OK] IP del servidor: minecraftcito.serveo.net:25565")
-        else:
-            print("[WARNING] Serveo no pudo iniciarse, continuando sin túnel TCP")
-    except Exception as e:
-        print(f"[WARNING] Error iniciando Serveo: {e}")
+    # Paso 4.5: Iniciar túnel frp para Minecraft
+    print("\n" + "=" * 60)
+    print("PASO 4.5: Iniciando túnel frp para Minecraft")
+    print("=" * 60)
+
+    if not tunnel.start_frp():
+        error_msg = "❌ Error iniciando túnel frp. Verifica que el VPS esté activo."
+        console.print(Panel(error_msg, title="ERROR", border_style="red"))
+        return False
 
     # Paso 5: Iniciar Flask
     print("\n" + "=" * 60)
