@@ -1,7 +1,6 @@
 import subprocess
 import os
 import time
-import threading
 
 
 def start_serveo() -> bool:
@@ -12,9 +11,13 @@ def start_serveo() -> bool:
 
         proc = subprocess.Popen(
             [
-                'ssh', '-o', 'StrictHostKeyChecking=no',
+                'ssh',
+                '-N',
+                '-T',
+                '-o', 'StrictHostKeyChecking=no',
                 '-o', 'ServerAliveInterval=30',
                 '-o', 'ServerAliveCountMax=3',
+                '-o', 'ExitOnForwardFailure=yes',
                 '-R', 'minecraftcito:25565:localhost:25565',
                 'serveo.net'
             ],
@@ -22,22 +25,26 @@ def start_serveo() -> bool:
             stderr=subprocess.PIPE
         )
 
-        def leer_output_serveo(proc):
-            for line in iter(proc.stderr.readline, b''):
-                print(f"[SERVEO] {line.decode().strip()}")
+        time.sleep(6)
 
-        time.sleep(2)
-        t = threading.Thread(target=leer_output_serveo, args=(proc,), daemon=True)
-        t.start()
+        import select
+        output_lines = []
+        while True:
+            ready = select.select([proc.stdout, proc.stderr], [], [], 0.5)[0]
+            if not ready:
+                break
+            for stream in ready:
+                line = stream.readline().decode().strip()
+                if line:
+                    output_lines.append(line)
+                    print(f"[SERVEO] {line}")
 
-        time.sleep(3)
         poll = proc.poll()
         print(f"[DEBUG] serveo estado: {poll}")
-
-        if poll is not None:
-            return False
-
-        return True
+        if poll is None:
+            print("[OK] Serveo corriendo")
+            return True
+        return False
 
     except Exception as e:
         print(f"[ERROR] start_serveo: {e}")
