@@ -532,7 +532,7 @@ def launch():
 Panel Web:
   {panel_url}
 
-Abre esa URL en tu navegador
+Abre la URL en tu navegador
 
 El servidor de Minecraft se
 controla desde el panel
@@ -543,6 +543,20 @@ controla desde el panel
         title="MineColab Panel Listo",
         border_style="green"
     ))
+
+    # Mostrar link clickable (funciona en Colab con click derecho)
+    try:
+        from IPython.display import display, HTML
+        display(HTML(f'''
+<div style="background:#1e293b;border:2px solid #22c55e;border-radius:12px;padding:24px;margin:16px 0;text-align:center;">
+    <h2 style="color:#22c55e;margin:0 0 16px 0;">✅ MineColab Panel Listo</h2>
+    <p style="color:#94a3b8;margin:0 0 8px 0;">Panel Web:</p>
+    <a href="{panel_url}" target="_blank" style="color:#60a5fa;font-size:18px;font-weight:bold;text-decoration:underline;word-break:break-all;">{panel_url}</a>
+    <p style="color:#64748b;margin-top:12px;font-size:13px;">Haz clic derecho → "Abrir en nueva pestaña" para abrir el panel</p>
+</div>
+'''))
+    except ImportError:
+        pass
 
     webbrowser.open(panel_url)
 
