@@ -476,10 +476,24 @@ def launch():
     print("PASO 4.5: Iniciando túnel SSH reverse al VPS")
     print("=" * 60)
 
-    if not tunnel.start_ssh_tunnel():
-        error_msg = "❌ Error iniciando túnel SSH. Verifica que el VPS esté activo."
-        console.print(Panel(error_msg, title="ERROR", border_style="red"))
-        return False
+    vps_connected = tunnel.start_ssh_tunnel()
+    pyjamas_address = None
+    if not vps_connected:
+        print("[WARN] SSH tunnel al VPS falló, usando pyjam.as como respaldo...")
+        pyjamas_address = tunnel.start_pyjamas()
+        if pyjamas_address:
+            tunnel.set_minecraft_url(pyjamas_address)
+            print(f"[OK] Túnel pyjam.as activo: {pyjamas_address}")
+            console.print(Panel(
+                f"🌐 Dirección del servidor: {pyjamas_address}\n\n"
+                "Conéctate desde Minecraft usando esa dirección.",
+                title="PYJAM.AS TUNNEL",
+                border_style="yellow"
+            ))
+        else:
+            error_msg = "❌ Error iniciando túnel SSH y pyjam.as. Sin acceso al servidor."
+            console.print(Panel(error_msg, title="ERROR", border_style="red"))
+            return False
 
     # Paso 5: Iniciar Flask
     print("\n" + "=" * 60)

@@ -352,7 +352,7 @@
                 <nav>
                     <a href="#" class="nav-item active" onclick="showSection('dashboard', event)">📊 Dashboard</a>
                      <a href="#" class="nav-item" onclick="showSection('console', event)">💬 Consola</a>
-                    <a href="#" class="nav-item disabled">👥 Jugadores</a>
+                    <a href="#" class="nav-item" onclick="showSection('players', event)">👥 Jugadores</a>
                     <a href="#" class="nav-item disabled">⚙️ Configuración</a>
                 </nav>
             </aside>
@@ -404,8 +404,12 @@
                             <div class="value" id="card-remaining">---:---</div>
                         </div>
                         <div class="card">
-                            <h3>IP DEL SERVIDOR</h3>
+                            <h3>IP DEL SERVIDOR (ORACLE VPS)</h3>
                             <div class="value" style="font-size:18px;word-break:break-all;">64.181.171.17:25565</div>
+                            <div id="pyjamas-ip" style="display:none;margin-top:8px;padding:8px;background:#1e3a5f;border-radius:6px;">
+                                <h3 style="color:#fbbf24;font-size:12px;">PYJAM.AS (RESPALDO)</h3>
+                                <div class="value" style="font-size:14px;word-break:break-all;color:#fbbf24;" id="pyjamas-address"></div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -423,9 +427,37 @@
                      </div>
                  </section>
                 <section id="players" class="section">
-                    <div class="card">
-                        <h3>Jugadores</h3>
-                        <p>Próximamente...</p>
+                    <div class="control-card">
+                        <h3>👥 Jugadores Conectados</h3>
+                        <div style="margin-bottom:16px;">
+                            <input type="text" id="broadcast-msg" placeholder="Mensaje para todos..." style="flex:1;padding:10px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:white;width:70%;">
+                            <button class="btn btn-green" onclick="broadcastMessage()" style="margin-left:8px;">📢 Broadcast</button>
+                        </div>
+                        <table id="players-table" style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #334155;">
+                                    <th style="text-align:left;padding:8px;color:#94a3b8;">Jugador</th>
+                                    <th style="text-align:center;padding:8px;color:#94a3b8;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="players-tbody">
+                                <tr><td colspan="2" style="text-align:center;padding:20px;color:#64748b;">Cargando jugadores...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="control-card">
+                        <h3>🚫 Jugadores Baneados</h3>
+                        <table id="banned-table" style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #334155;">
+                                    <th style="text-align:left;padding:8px;color:#94a3b8;">Jugador</th>
+                                    <th style="text-align:center;padding:8px;color:#94a3b8;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="banned-tbody">
+                                <tr><td colspan="2" style="text-align:center;padding:20px;color:#64748b;">Cargando lista de baneados...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </section>
                 <section id="settings" class="section">
@@ -526,6 +558,14 @@
                 document.getElementById('card-active').textContent = data.active_server || 'Ninguno';
                 document.getElementById('card-session').textContent = formatSeconds(data.session_uptime_seconds);
                 document.getElementById('card-remaining').textContent = formatSeconds(data.colab_time_remaining);
+
+                const pyjamasDiv = document.getElementById('pyjamas-ip');
+                if (data.minecraft_url && data.minecraft_url !== '64.181.171.17:25565') {
+                    pyjamasDiv.style.display = 'block';
+                    document.getElementById('pyjamas-address').textContent = data.minecraft_url;
+                } else {
+                    pyjamasDiv.style.display = 'none';
+                }
 
                 const btnStart = document.getElementById('btn-start');
                 const btnStop = document.getElementById('btn-stop');
@@ -664,19 +704,6 @@
             notification.textContent = message;
             document.body.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
-        }
-
-        function showSection(sectionId, event) {
-            event.preventDefault();
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById(sectionId).classList.add('active');
-            if (sectionId === 'console') {
-                startConsolePolling();
-            } else {
-                if (consoleInterval) { clearInterval(consoleInterval); consoleInterval = null; }
-            }
         }
 
         let modalState = 'idle';
@@ -890,7 +917,118 @@
             if (consoleDiv) consoleDiv.textContent = '';
         }
 
+        // === PLAYER MANAGEMENT ===
+        let playersInterval = null;
+
+        function showSection(sectionId, event) {
+            event.preventDefault();
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(sectionId).classList.add('active');
+            if (sectionId === 'console') {
+                startConsolePolling();
+            } else {
+                if (consoleInterval) { clearInterval(consoleInterval); consoleInterval = null; }
+            }
+            if (sectionId === 'players') {
+                loadPlayers();
+                loadBanned();
+                if (playersInterval) clearInterval(playersInterval);
+                playersInterval = setInterval(() => { loadPlayers(); loadBanned(); }, 5000);
+            } else {
+                if (playersInterval) { clearInterval(playersInterval); playersInterval = null; }
+            }
+        }
+
+        async function loadPlayers() {
+            try {
+                const res = await fetch('/api/players');
+                const data = await res.json();
+                const tbody = document.getElementById('players-tbody');
+                if (data.players && data.players.length > 0) {
+                    tbody.innerHTML = data.players.map(p => `
+                        <tr style="border-bottom:1px solid #1e293b;">
+                            <td style="padding:12px 8px;">🎮 ${p}</td>
+                            <td style="padding:12px 8px;text-align:center;">
+                                <button class="btn" style="padding:6px 12px;font-size:12px;background:#f59e0b;" onclick="playerAction('kick','${p}')">Expulsar</button>
+                                <button class="btn" style="padding:6px 12px;font-size:12px;background:#ef4444;" onclick="playerAction('ban','${p}')">Banear</button>
+                                <button class="btn" style="padding:6px 12px;font-size:12px;background:#22c55e;" onclick="playerAction('op','${p}')">OP</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:20px;color:#64748b;">Sin jugadores conectados</td></tr>';
+                }
+            } catch (e) {
+                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="2" style="text-align:center;padding:20px;color:#ef4444;">Error cargando jugadores</td></tr>';
+            }
+        }
+
+        async function loadBanned() {
+            try {
+                const res = await fetch('/api/players/banned');
+                const data = await res.json();
+                const tbody = document.getElementById('banned-tbody');
+                if (data.banned && data.banned.length > 0) {
+                    tbody.innerHTML = data.banned.map(p => `
+                        <tr style="border-bottom:1px solid #1e293b;">
+                            <td style="padding:12px 8px;">🚫 ${p}</td>
+                            <td style="padding:12px 8px;text-align:center;">
+                                <button class="btn" style="padding:6px 12px;font-size:12px;background:#6366f1;" onclick="playerAction('unban','${p}')">Desbanear</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;padding:20px;color:#64748b;">No hay jugadores baneados</td></tr>';
+                }
+            } catch (e) {
+                document.getElementById('banned-tbody').innerHTML = '<tr><td colspan="2" style="text-align:center;padding:20px;color:#ef4444;">Error cargando baneados</td></tr>';
+            }
+        }
+
+        async function playerAction(action, player) {
+            let reason = '';
+            if (action === 'kick') reason = prompt('Motivo de expulsión:', '');
+            if (action === 'ban') reason = prompt('Motivo de baneo:', '');
+            try {
+                const res = await fetch('/api/players/' + action, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player: player, reason: reason || '' })
+                });
+                const data = await res.json();
+                showNotification(data.message || data.error || 'OK', data.success ? 'success' : 'error');
+                loadPlayers();
+                loadBanned();
+            } catch (e) {
+                showNotification('Error de conexión', 'error');
+            }
+        }
+
+        async function broadcastMessage() {
+            const input = document.getElementById('broadcast-msg');
+            const msg = input.value.trim();
+            if (!msg) { showNotification('Escribe un mensaje', 'error'); return; }
+            try {
+                const res = await fetch('/api/players/say', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+                const data = await res.json();
+                showNotification(data.message || 'Mensaje enviado', data.success ? 'success' : 'error');
+                if (data.success) input.value = '';
+            } catch (e) {
+                showNotification('Error de conexión', 'error');
+            }
+        }
+
         window.showSection = showSection;
+        window.loadPlayers = loadPlayers;
+        window.loadBanned = loadBanned;
+        window.playerAction = playerAction;
+        window.broadcastMessage = broadcastMessage;
     </script>
 </body>
 </html>

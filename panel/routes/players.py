@@ -1,0 +1,95 @@
+from flask import Blueprint, jsonify, request
+
+players_bp = Blueprint('players', __name__, url_prefix='/api/players')
+
+def _get_command(command: str) -> str:
+    from panel.server_manager import server_manager
+    return server_manager.send_command(command)
+
+@players_bp.route('', methods=['GET'])
+def api_players():
+    try:
+        resp = _get_command('list')
+        players = []
+        if resp:
+            import re
+            m = re.search(r'There are (\d+) of (?:max )?(\d+) players? online:\s*(.*)', resp)
+            if m:
+                names = m.group(3).strip()
+                if names:
+                    players = [n.strip() for n in names.split(',') if n.strip()]
+        return jsonify({"players": players, "raw": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/kick', methods=['POST'])
+def api_player_kick():
+    try:
+        data = request.get_json()
+        player = data.get('player', '')
+        reason = data.get('reason', '')
+        cmd = f'kick {player} {reason}'.strip() if reason else f'kick {player}'
+        resp = _get_command(cmd)
+        return jsonify({"success": True, "message": f"Jugador {player} expulsado", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/ban', methods=['POST'])
+def api_player_ban():
+    try:
+        data = request.get_json()
+        player = data.get('player', '')
+        reason = data.get('reason', '')
+        cmd = f'ban {player} {reason}'.strip() if reason else f'ban {player}'
+        resp = _get_command(cmd)
+        return jsonify({"success": True, "message": f"Jugador {player} baneado", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/unban', methods=['POST'])
+def api_player_unban():
+    try:
+        data = request.get_json()
+        player = data.get('player', '')
+        resp = _get_command(f'pardon {player}')
+        return jsonify({"success": True, "message": f"Jugador {player} desbaneado", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/op', methods=['POST'])
+def api_player_op():
+    try:
+        data = request.get_json()
+        player = data.get('player', '')
+        resp = _get_command(f'op {player}')
+        return jsonify({"success": True, "message": f"Jugador {player} ahora es OP", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/say', methods=['POST'])
+def api_player_say():
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        if not message:
+            return jsonify({"success": False, "error": "Mensaje vacío"}), 400
+        resp = _get_command(f'say {message}')
+        return jsonify({"success": True, "message": "Mensaje enviado", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/banned', methods=['GET'])
+def api_players_banned():
+    try:
+        resp = _get_command('banlist')
+        banned = []
+        if resp:
+            import re
+            m = re.search(r'There are (\d+) banned players?:\s*(.*)', resp)
+            if m:
+                names = m.group(2).strip()
+                if names and names != 'There are no banned players':
+                    banned = [n.strip() for n in names.split(',') if n.strip()]
+        return jsonify({"banned": banned, "raw": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
