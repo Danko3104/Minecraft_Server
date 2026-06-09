@@ -1,103 +1,100 @@
 import subprocess
-from flask import Blueprint, jsonify
-from panel.tunnel import _wait_for_secret_key_after_claim, get_playit_tunnel_address, start_minecraft_tunnel
+from flask import Blueprint, jsonify, request
+from panel.tunnel import start_minecraft_tunnel, _is_localtonet_running
 from panel.drive import get_global_config, save_global_config
 from panel.routes.auth import verify_token
 
 tunnels_bp = Blueprint('tunnels', __name__, url_prefix='/api/tunnels')
 
 
-@tunnels_bp.route('/playit/start-claim', methods=['POST'])
+@tunnels_bp.route('/localtonet/save-token', methods=['POST'])
 @verify_token
-def api_playit_start_claim():
+def api_localtonet_save_token():
     try:
-        result = start_minecraft_tunnel(tunnel_service='playit')
-        if result.get("status") == "needs_claim":
-            return jsonify({
-                "success": True,
-                "claim_code": result["claim_code"]
-            })
-        return jsonify({
-            "success": False,
-            "error": result.get("error", "No se pudo iniciar el claim"),
-            "output": result.get("output", "")
-        }), 500
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e),
-            "output": ""
-        }), 500
-
-
-@tunnels_bp.route('/playit/confirm-claim', methods=['POST'])
-@verify_token
-def api_playit_confirm_claim():
-    try:
-        result = _wait_for_secret_key_after_claim()
-        if not result.get("success"):
+        data = request.get_json()
+        if not data or 'authtoken' not in data:
             return jsonify({
                 "success": False,
-                "error": result.get("error", "Failed to get secret key")
-            }), 500
+                "error": "Falta 'authtoken' en el body"
+            }), 400
 
-        secret_key = result["secret_key"]
+        authtoken = data['authtoken']
+        if not authtoken:
+            return jsonify({
+                "success": False,
+                "error": "authtoken no puede estar vac\u00edo"
+            }), 400
 
         config = get_global_config()
-        if 'playit_proxy' not in config:
-            config['playit_proxy'] = {}
-        config['playit_proxy']['secretkey'] = secret_key
-
-        address = get_playit_tunnel_address()
-        config['playit_proxy']['address'] = address
-        save_global_config(config)
-
-        return jsonify({
-            "success": True,
-            "address": address
-        })
-
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-@tunnels_bp.route('/playit/status', methods=['GET'])
-def api_playit_status():
-    try:
-        config = get_global_config()
-        playit_proxy = config.get('playit_proxy', {})
-
-        result = subprocess.run(['pgrep', 'playit'], capture_output=True, text=True)
-        running = result.returncode == 0 and result.stdout.strip() != ""
-
-        return jsonify({
-            "configured": bool(playit_proxy.get('secretkey', '')),
-            "address": playit_proxy.get('address', ''),
-            "running": running
-        })
-
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-@tunnels_bp.route('/playit/reset', methods=['POST'])
-@verify_token
-def api_playit_reset():
-    try:
-        config = get_global_config()
-        if 'playit_proxy' not in config:
-            config['playit_proxy'] = {}
-        config['playit_proxy']['secretkey'] = ''
-        config['playit_proxy']['address'] = ''
+        if 'localtonet_proxy' not in config:
+            config['localtonet_proxy'] = {}
+        config['localtonet_proxy']['authtoken'] = authtoken
         save_global_config(config)
 
         return jsonify({"success": True})
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@tunnels_bp.route('/localtonet/connect', methods=['POST'])
+@verify_token
+def api_localtonet_connect():
+    try:
+        config = get_global_config()
+        server_config = config.get('localtonet_proxy', {})
+        authtoken = server_config.get('authtoken', '')
+
+        if not authtoken:
+            return jsonify({
+                "success": False,
+                "error": "No hay token configurado"
+            }), 400
+
+        result = start_minecraft_tunnel(
+            tunnel_service='localtonet',
+            server_config=config,
+            server_type=''
+        )
+
+        if result.get("status") == "running" and result.get("address"):
+            config = get_global_config()
+            if 'localtonet_proxy' not in config:
+                config['localtonet_proxy'] = {}
+            config['localtonet_proxy']['address'] = result['address']
+            save_global_config(config)
+
+            return jsonify({
+                "success": True,
+                "address": result['address']
+            })
+
+        return jsonify({
+            "success": False,
+            "error": result.get("error", "No se pudo conectar")
+        }), 500
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@tunnels_bp.route('/localtonet/status', methods=['GET'])
+def api_localtonet_status():
+    try:
+        config = get_global_config()
+        localtonet_proxy = config.get('localtonet_proxy', {})
+
+        return jsonify({
+            "configured": bool(localtonet_proxy.get('authtoken', '')),
+            "address": localtonet_proxy.get('address', ''),
+            "running": _is_localtonet_running()
+        })
 
     except Exception as e:
         return jsonify({
