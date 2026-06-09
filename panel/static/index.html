@@ -570,6 +570,8 @@
                 </p>
                 <label for="localtonet-token-input">AuthToken de localtonet.com</label>
                 <input type="text" id="localtonet-token-input" placeholder="Pega tu AuthToken de localtonet.com" autocomplete="off">
+                <label for="localtonet-address-input">Dirección del túnel (ej: xxx.localto.net:25565)</label>
+                <input type="text" id="localtonet-address-input" placeholder="hz3kjpvwdg.localto.net:25565" autocomplete="off">
                 <button class="btn btn-green" onclick="saveAndConnectLocaltonet()" id="localtonet-connect-btn">
                     💾 Guardar y Conectar
                 </button>
@@ -1382,11 +1384,11 @@
                 })
                 const data = await response.json()
 
-                if (data.configured && data.running && data.address) {
+                if (data.configured && data.address) {
                     document.getElementById('localtonet-address').textContent = data.address
                     document.getElementById('localtonet-state-b').style.display = 'block'
                 } else if (data.configured) {
-                    document.getElementById('localtonet-address').textContent = data.address || 'Conectado (sin dirección)'
+                    document.getElementById('localtonet-address').textContent = 'Configurado (sin dirección)'
                     document.getElementById('localtonet-state-b').style.display = 'block'
                 } else {
                     document.getElementById('localtonet-state-a').style.display = 'block'
@@ -1398,9 +1400,15 @@
 
         async function saveAndConnectLocaltonet() {
             const tokenInput = document.getElementById('localtonet-token-input')
+            const addressInput = document.getElementById('localtonet-address-input')
             const authtoken = tokenInput.value.trim()
+            const address = addressInput.value.trim()
             if (!authtoken) {
                 showLocaltonetError('Por favor ingresa un AuthToken')
+                return
+            }
+            if (!address) {
+                showLocaltonetError('Por favor ingresa la dirección del túnel')
                 return
             }
 
@@ -1415,7 +1423,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + token
                     },
-                    body: JSON.stringify({ authtoken: authtoken })
+                    body: JSON.stringify({ authtoken: authtoken, address: address })
                 })
                 const saveData = await saveResp.json()
 
@@ -1488,6 +1496,7 @@
             document.getElementById('localtonet-state-b').style.display = 'none'
             document.getElementById('localtonet-state-a').style.display = 'block'
             document.getElementById('localtonet-token-input').value = ''
+            document.getElementById('localtonet-address-input').value = ''
             document.getElementById('localtonet-modal').classList.add('active')
         }
 

@@ -1,8 +1,6 @@
 import subprocess
 import os
-import re
 import time
-import select
 
 _localtonet_process = None
 _minecraft_url = ""
@@ -48,37 +46,13 @@ def _start_localtonet(authtoken: str) -> dict:
             stderr=subprocess.STDOUT,
         )
 
-        output = ""
-        start = time.time()
-        timeout = 30
-        poll = select.poll()
-        poll.register(_localtonet_process.stdout, select.POLLIN)
+        time.sleep(10)
 
-        while time.time() - start < timeout:
-            if poll.poll(500):
-                raw = _localtonet_process.stdout.readline()
-                if not raw:
-                    break
-                line = raw.decode('utf-8', errors='ignore')
-                output += line
-                print(f"[LOCALTONET] {line.strip()}")
-
-                match = re.search(
-                    r'([a-zA-Z0-9-]+\.localtonet\.com:\d+)',
-                    output
-                )
-                if match:
-                    return {'success': True, 'address': match.group(1)}
-
-                match = re.search(r'Hostname[:\s]+([^\s]+)', output)
-                if match:
-                    return {'success': True, 'address': match.group(1)}
-
-            elif _localtonet_process.poll() is not None:
-                break
+        if _is_localtonet_running():
+            return {'success': True}
 
         _localtonet_process = None
-        return {'success': False, 'error': output}
+        return {'success': False, 'error': 'localtonet no logró conectar'}
     except Exception as e:
         print(f"[ERROR] _start_localtonet: {e}")
         return {'success': False, 'error': str(e)}
@@ -109,10 +83,15 @@ def start_minecraft_tunnel(tunnel_service: str = '', server_config: dict = None,
         return {"status": "error", "error": f"Tunnel service not supported: {tunnel_service}"}
 
     server_config = server_config or {}
-    authtoken = server_config.get('localtonet_proxy', {}).get('authtoken', '')
+    localtonet_proxy = server_config.get('localtonet_proxy', {})
+    authtoken = localtonet_proxy.get('authtoken', '')
+    address = localtonet_proxy.get('address', '')
 
     if not authtoken:
         return {'status': 'needs_token'}
+
+    if not address:
+        return {'status': 'needs_address'}
 
     try:
         _install_localtonet()
@@ -121,7 +100,7 @@ def start_minecraft_tunnel(tunnel_service: str = '', server_config: dict = None,
 
     resultado = _start_localtonet(authtoken)
     if resultado.get('success'):
-        return {'status': 'running', 'address': resultado.get('address', '')}
+        return {'status': 'running', 'address': address}
     return {'status': 'error', 'error': resultado.get('error', 'Failed to start localtonet')}
 
 

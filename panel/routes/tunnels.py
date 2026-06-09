@@ -12,23 +12,32 @@ tunnels_bp = Blueprint('tunnels', __name__, url_prefix='/api/tunnels')
 def api_localtonet_save_token():
     try:
         data = request.get_json()
-        if not data or 'authtoken' not in data:
+        if not data:
             return jsonify({
                 "success": False,
-                "error": "Falta 'authtoken' en el body"
+                "error": "Faltan datos en el body"
             }), 400
 
-        authtoken = data['authtoken']
+        authtoken = data.get('authtoken', '')
+        address = data.get('address', '')
+
         if not authtoken:
             return jsonify({
                 "success": False,
                 "error": "authtoken no puede estar vac\u00edo"
             }), 400
 
+        if not address:
+            return jsonify({
+                "success": False,
+                "error": "address no puede estar vac\u00edo"
+            }), 400
+
         config = get_global_config()
         if 'localtonet_proxy' not in config:
             config['localtonet_proxy'] = {}
         config['localtonet_proxy']['authtoken'] = authtoken
+        config['localtonet_proxy']['address'] = address
         save_global_config(config)
 
         return jsonify({"success": True})
@@ -45,13 +54,20 @@ def api_localtonet_save_token():
 def api_localtonet_connect():
     try:
         config = get_global_config()
-        server_config = config.get('localtonet_proxy', {})
-        authtoken = server_config.get('authtoken', '')
+        localtonet_proxy = config.get('localtonet_proxy', {})
+        authtoken = localtonet_proxy.get('authtoken', '')
+        address = localtonet_proxy.get('address', '')
 
         if not authtoken:
             return jsonify({
                 "success": False,
                 "error": "No hay token configurado"
+            }), 400
+
+        if not address:
+            return jsonify({
+                "success": False,
+                "error": "No hay dirección configurada"
             }), 400
 
         result = start_minecraft_tunnel(
@@ -60,16 +76,10 @@ def api_localtonet_connect():
             server_type=''
         )
 
-        if result.get("status") == "running" and result.get("address"):
-            config = get_global_config()
-            if 'localtonet_proxy' not in config:
-                config['localtonet_proxy'] = {}
-            config['localtonet_proxy']['address'] = result['address']
-            save_global_config(config)
-
+        if result.get("status") == "running":
             return jsonify({
                 "success": True,
-                "address": result['address']
+                "address": address
             })
 
         return jsonify({
