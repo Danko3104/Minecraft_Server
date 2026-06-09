@@ -17,39 +17,56 @@ def set_minecraft_url(url: str):
 def get_current_minecraft_url() -> str:
     return _minecraft_url
 
-def _install_frpc():
-    frpc_path = "/usr/local/bin/frpc"
-    if os.path.exists(frpc_path):
-        return
-    print("[INFO] Downloading frpc (linux_amd64)...")
-    import urllib.request
-    url = ("https://github.com/fatedier/frp/releases/download/v0.69.1/"
-           "frp_0.69.1_linux_amd64.tar.gz")
-    urllib.request.urlretrieve(url, "/tmp/frp_amd64.tar.gz")
-    import tarfile
-    with tarfile.open("/tmp/frp_amd64.tar.gz") as tar:
-        tar.extractall("/tmp")
-    subprocess.run(["cp", "/tmp/frp_0.69.1_linux_amd64/frpc", frpc_path], check=True)
-    subprocess.run(["chmod", "+x", frpc_path], check=True)
-    print("[OK] frpc installed")
+ORACLE_KEY = """-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEA2MeMFtvYxdyYBBYv91X4wpqVMArqL1PZCrYEeJWzD5fInEgW
+/qTs+UE+LqlVSflo1ZZnmgUyTKHAFDE8DUVMZKNgQArXtKLcI0Y0DWotaVLDA7JT
+tuf/ewOtmaP2tmAjMXKsLWgr3SwNM1nvqOy6iNPDP3/95veIlwgKCQ73l5izyi9w
+D7XALYYW8EfSkPtQuYlaVsvzylJddZVjBkut2pPTE6sa3j0pW9vxa4nirBS5ck4y
+PvzG2OwMtE7FrtEsp2NCMPWfcrrGQHrX3OGjRWZAZ+r3AdXPh+Os684DGqFlysz6
+8H2WTriLJlBsTTBYGn+AIilFTvq1hvSSNp3xbwIDAQABAoIBAAYAWDzVxJrjBYOv
+cuUqXc2oET3tlMLPU8XmeMSMgxLeb9urvz84z6VYN2F7/J7PUdCqmPRRn9fb7oEL
+RTn/fiLscaC0QXkrEmRuRXNNn4jilVWH3VDF/B5VYWah0cBbdFNNH754u3t5rw/f
+NdxRBBpU9SXP5EvoScFso+J7pe0YwcM+5FsrMFHcxQVCCY6yVGTh/NWvU2IP1Xsk
+4pClthLVFMeIR1/FEfDhrVq26G7ow01en48ZKGWwL3svRxH4kvXD4sgWZyqOdKOL
+3UxFjOV7LfRUIE0UkVTmS0M8tU11HJPOpctb1iBds8BPeUNgN2V5Ze541F/N9vt6
+jeqxrUECgYEA7zaJcSxTPQMKMM8Z7DvcUXWT6xUkEk1choJRq4T0xL97Obrn+Rzh
+FlYocNP2eM0iR2b9XNBya5V7aQLcmUDqFSApR4wlFnU7iyMVSRB8ZBL9Z6O5G2H6
+5zJF2JTFcQUalDwyQeNkcoQd3/WfYasmHHRYoxZTuic5uNe2FN+YOGECgYEA5/39
+0LGABvHkC9iZcWY1v42O8Vk+YGANL3ggt+aD6dQmDuOwbQxQf3ynecObz8UZK7Ya
+SR/9C/zbAQBOoLTg5K9R+5aVqUKwTkHGs+Nec04N3uctBMvNZeSyRA/sgoo0LUha
+P/zUc0ujusGdfS3lJ/xkX0xxqtwr1Cx2x3nKO88CgYEAtgvID0PPWQg+MiT6Mmjf
+43JajrY5DGCpgIgexSxa5nxet/GA5nlO5yPMhQkacpaSdspvGLpdyXgqQiF2Zn8b
+ZdZi89s4wl2XYeziHweX0sUM6lmT3r3zJw2AUDHwDHH450TkbnYyFGBtJ+qST87j
+IxZ7+ilcsLd3Wy92l24ONyECgYEA34ZZDMBJc+eS61sKFTn+5Y6WQLLVJ/TEH42m
+MKq5RQ30kXoOXjN0SDGqB+dR9DGbHAO8deKNZQR/WwqZt7wvyAeofTlNACXSS8SS
+mHalZYG6WZ/yP2HCiL9+h5e0MN7KgSrqUibf6CrkGag9fwQ+fHVxnGTCTHcQ/8DL
+vUz6bv8CgYEAsXwpboKbX4KEWEjNCxwT2PSL0kg64VWd0eHE1iNUHc2VzcmwpVjF
+Wt9QjjXLay0HeDMMhKkV8rJlNd1Jts4jkmzc4CqBaniKRZldKX3TjiiZEXTLnZp2
+/1Z/vRk7fYm5p2SyCYGXnSLFZXyE6r3iwFLYIdpObqtajXofutRdU98=
+-----END RSA PRIVATE KEY-----"""
 
-def start_frp() -> bool:
+def start_ssh_tunnel() -> bool:
     try:
-        _install_frpc()
+        key_path = "/tmp/oracle_key"
+        with open(key_path, "w") as f:
+            f.write(ORACLE_KEY)
+        os.chmod(key_path, 0o600)
 
-        subprocess.run(['pkill', '-f', 'frpc'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'ssh.*oracle_key'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         t.sleep(1)
 
-        config = 'serverAddr = "64.181.171.17"\nserverPort = 443\n\n[[proxies]]\nname = "minecraft"\ntype = "tcp"\nlocalIP = "127.0.0.1"\nlocalPort = 25565\nremotePort = 25565\n'
-        with open("/tmp/frpc.toml", "w") as f:
-            f.write(config)
-
-        print("[INFO] Starting frpc...")
-        proc = subprocess.Popen(
-            ['/usr/local/bin/frpc', '-c', '/tmp/frpc.toml'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
+        print("[INFO] Starting SSH reverse tunnel to VPS...")
+        proc = subprocess.Popen([
+            'ssh',
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'ServerAliveInterval=30',
+            '-o', 'ServerAliveCountMax=3',
+            '-o', 'ExitOnForwardFailure=yes',
+            '-N',
+            '-R', '0.0.0.0:25565:localhost:25565',
+            'ubuntu@64.181.171.17',
+            '-i', key_path
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         q = queue.Queue()
         def reader(stream):
@@ -63,22 +80,22 @@ def start_frp() -> bool:
         while t.time() < end:
             try:
                 line = q.get(timeout=1)
-                print(f"[FRPC] {line}")
-                if 'login to server success' in line.lower() or 'start proxy success' in line.lower():
+                if line:
+                    print(f"[SSH] {line}")
+                if 'forwarding port' in line.lower() or 'entering interactive session' in line.lower():
                     connected = True
                     break
-                if 'error' in line.lower() or 'failed' in line.lower():
-                    print(f"[ERROR] frpc: {line}")
             except:
                 pass
 
-        if connected:
-            print(f"[OK] frpc conectado a VPS: 64.181.171.17:25565")
+        if proc.poll() is None:
+            print("[OK] SSH tunnel established: 64.181.171.17:25565")
             return True
         else:
-            print("[WARNING] frpc no confirmó conexión en 10 segundos")
-            return proc.poll() is None
+            stderr_output = proc.stderr.read().decode() if proc.stderr else ""
+            print(f"[ERROR] SSH tunnel failed: {stderr_output}")
+            return False
 
     except Exception as e:
-        print(f"[ERROR] start_frp: {e}")
+        print(f"[ERROR] start_ssh_tunnel: {e}")
         return False

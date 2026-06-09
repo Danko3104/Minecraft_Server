@@ -471,13 +471,13 @@ def launch():
         return False
     print("Java listo.")
 
-    # Paso 4.5: Iniciar túnel frp para Minecraft
+    # Paso 4.5: Iniciar túnel SSH reverse para Minecraft
     print("\n" + "=" * 60)
-    print("PASO 4.5: Iniciando túnel frp para Minecraft")
+    print("PASO 4.5: Iniciando túnel SSH reverse al VPS")
     print("=" * 60)
 
-    if not tunnel.start_frp():
-        error_msg = "❌ Error iniciando túnel frp. Verifica que el VPS esté activo."
+    if not tunnel.start_ssh_tunnel():
+        error_msg = "❌ Error iniciando túnel SSH. Verifica que el VPS esté activo."
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
