@@ -20,6 +20,7 @@ from panel.server_manager import server_manager
 from panel.routes.servers import servers_bp
 from panel.routes.tunnels import tunnels_bp
 from panel.routes.players import players_bp
+from panel.routes.tunnel_routes import tunnel_routes_bp
 from panel import tunnel as tunnel_module
 
 # =============================================================================
@@ -39,6 +40,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 app.register_blueprint(servers_bp)
 app.register_blueprint(tunnels_bp)
 app.register_blueprint(players_bp)
+app.register_blueprint(tunnel_routes_bp)
 
 # =============================================================================
 # VARIABLES GLOBALES

@@ -477,6 +477,9 @@ def launch():
     print("=" * 60)
 
     vps_connected = tunnel.start_ssh_tunnel()
+    if vps_connected:
+        with open('/tmp/tunnel_address.txt', 'w') as f:
+            f.write('')
     pyjamas_address = None
     if not vps_connected:
         print("[WARN] SSH tunnel al VPS falló, usando pyjam.as como respaldo...")
@@ -484,6 +487,8 @@ def launch():
         if pyjamas_address:
             tunnel.set_minecraft_url(pyjamas_address)
             print(f"[OK] Túnel pyjam.as activo: {pyjamas_address}")
+            with open('/tmp/tunnel_address.txt', 'w') as f:
+                f.write(pyjamas_address)
             console.print(Panel(
                 f"🌐 Dirección del servidor: {pyjamas_address}\n\n"
                 "Conéctate desde Minecraft usando esa dirección.",
