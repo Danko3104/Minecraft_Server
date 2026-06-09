@@ -1,8 +1,6 @@
 import subprocess
 import os
 import time
-import urllib.request
-import tarfile
 
 _localtonet_process = None
 _minecraft_url = ""
@@ -13,19 +11,31 @@ def _install_localtonet():
     if os.path.exists('/usr/local/bin/localtonet'):
         return
 
-    url = "https://localtonet.com/download/localtonet-linux-x64.tar.gz"
-    dest = "/tmp/localtonet.tar.gz"
+    # Opción 1: script de instalación oficial
+    result = subprocess.run(
+        'curl -fsSL https://localtonet.com/install.sh | sh',
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
 
-    try:
-        urllib.request.urlretrieve(url, dest)
-    except Exception as e:
-        raise Exception(f"Failed to download localtonet: {e}")
+    if result.returncode == 0 and os.path.exists('/usr/local/bin/localtonet'):
+        return
+
+    # Opción 2: descarga manual (el archivo es .zip, no .tar.gz)
+    import urllib.request
+    import zipfile
+
+    url = "https://localtonet.com/download/localtonet-linux-x64.zip"
+    dest = "/tmp/localtonet.zip"
+
+    urllib.request.urlretrieve(url, dest)
 
     if not os.path.exists(dest) or os.path.getsize(dest) == 0:
         raise Exception("Downloaded file is missing or empty")
 
-    with tarfile.open(dest, 'r:gz') as tar:
-        tar.extractall('/usr/local/bin/')
+    with zipfile.ZipFile(dest, 'r') as z:
+        z.extractall('/usr/local/bin/')
 
     os.chmod('/usr/local/bin/localtonet', 0o755)
 
