@@ -471,32 +471,39 @@ def launch():
         return False
     print("Java listo.")
 
-    # Paso 4.5: Iniciar túnel SSH reverse para Minecraft
+    # Paso 4.5: Iniciar túnel para Minecraft
     print("\n" + "=" * 60)
-    print("PASO 4.5: Iniciando túnel SSH reverse al VPS")
+    print("PASO 4.5: Iniciando túnel para Minecraft")
     print("=" * 60)
 
-    vps_connected = tunnel.start_ssh_tunnel()
-    if vps_connected:
+    serveo_address = tunnel.start_serveo()
+    tunnel_address = None
+    if serveo_address:
+        tunnel_address = serveo_address
+        tunnel.set_minecraft_url(serveo_address)
         with open('/tmp/tunnel_address.txt', 'w') as f:
-            f.write('')
-    pyjamas_address = None
-    if not vps_connected:
-        print("[WARN] SSH tunnel al VPS falló, usando pyjam.as como respaldo...")
-        pyjamas_address = tunnel.start_pyjamas()
-        if pyjamas_address:
-            tunnel.set_minecraft_url(pyjamas_address)
-            print(f"[OK] Túnel pyjam.as activo: {pyjamas_address}")
+            f.write(serveo_address)
+        console.print(Panel(
+            f"🌐 Dirección del servidor: {serveo_address}\n\n"
+            "Conéctate desde Minecraft usando esa dirección.",
+            title="SERVEO TUNNEL",
+            border_style="green"
+        ))
+    else:
+        print("[WARN] Serveo falló, intentando VPS Oracle como respaldo...")
+        vps_connected = tunnel.start_ssh_tunnel()
+        if vps_connected:
             with open('/tmp/tunnel_address.txt', 'w') as f:
-                f.write(pyjamas_address)
+                f.write('')
+            tunnel_address = "64.181.171.17:25565"
             console.print(Panel(
-                f"🌐 Dirección del servidor: {pyjamas_address}\n\n"
-                "Conéctate desde Minecraft usando esa dirección.",
-                title="PYJAM.AS TUNNEL",
+                "🌐 Dirección del servidor: 64.181.171.17:25565\n\n"
+                "Nota: Solo funciona si el Security List de Oracle permite el puerto.",
+                title="VPS ORACLE TUNNEL",
                 border_style="yellow"
             ))
         else:
-            error_msg = "❌ Error iniciando túnel SSH y pyjam.as. Sin acceso al servidor."
+            error_msg = "❌ Error: no se pudo conectar Serveo ni VPS Oracle. Sin acceso al servidor."
             console.print(Panel(error_msg, title="ERROR", border_style="red"))
             return False
 

@@ -18,38 +18,49 @@ def set_minecraft_url(url: str):
 def get_current_minecraft_url() -> str:
     return _minecraft_url
 
-def start_pyjamas() -> str:
-    """Retorna la dirección del túnel o None si falla"""
+SERVEO_SUBDOMAIN = "minecraftcito"
+
+def start_serveo() -> str:
+    """Retorna la dirección serveo.net o None si falla"""
     try:
-        subprocess.run(['pkill', '-f', 'pyjam.as'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'ssh.*pyjam'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-f', 'serveo.net'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         t.sleep(1)
 
+        print(f"[INFO] Conectando a serveo.net con subdominio {SERVEO_SUBDOMAIN}...")
         proc = subprocess.Popen(
             ['ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'ServerAliveInterval=30',
-             '-R', '1:localhost:25565', 'plan@pyjam.as'],
+             '-o', 'ServerAliveCountMax=3',
+             '-R', f'{SERVEO_SUBDOMAIN}:25565:localhost:25565', 'serveo.net'],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
-        end = t.time() + 15
+        end = t.time() + 20
         address = None
         while t.time() < end:
             ready = select.select([proc.stdout, proc.stderr], [], [], 1)[0]
             for stream in ready:
                 line = stream.readline().decode().strip()
                 if line:
-                    print(f"[PYJAMAS] {line}")
-                    if 'pyjam.as' in line and ':' in line:
-                        address = line.strip()
+                    print(f"[SERVEO] {line}")
+                    if 'forwarding' in line.lower() and 'serveo.net' in line:
+                        import re
+                        m = re.search(r'[\w.-]+\.serveo\.net:\d+', line)
+                        if m:
+                            address = m.group(0)
                         break
             if address:
                 break
 
         if proc.poll() is None:
-            return address or "pyjam.as tunnel active (check output above)"
+            address = address or f"{SERVEO_SUBDOMAIN}.serveo.net:25565"
+            print(f"[OK] Túnel Serveo activo: {address}")
+            return address
+
+        stderr_out = proc.stderr.read().decode() if proc.stderr else "sin salida"
+        print(f"[ERROR] Serveo falló: {stderr_out[:200]}")
         return None
     except Exception as e:
-        print(f"[ERROR] start_pyjamas: {e}")
+        print(f"[ERROR] start_serveo: {e}")
         return None
 
 ORACLE_KEY = """-----BEGIN RSA PRIVATE KEY-----

@@ -404,14 +404,13 @@
                             <div class="value" id="card-remaining">---:---</div>
                         </div>
                         <div class="card">
-                            <h3>IP DEL SERVIDOR (ORACLE VPS)</h3>
-                            <div class="value" style="font-size:18px;word-break:break-all;">64.181.171.17:25565</div>
-                            <div id="pyjamas-ip" style="display:none;margin-top:8px;padding:8px;background:#1e3a5f;border-radius:6px;">
-                                <h3 style="color:#fbbf24;font-size:12px;">PYJAM.AS (RESPALDO)</h3>
+                            <h3>IP DEL SERVIDOR</h3>
+                            <div id="tunnel-address-container">
                                 <div style="display:flex;align-items:center;gap:8px;">
-                                    <div class="value" style="font-size:14px;word-break:break-all;color:#fbbf24;flex:1;" id="pyjamas-address"></div>
-                                    <button id="copy-pyjamas-btn" onclick="copyPyjamasAddress()" style="padding:6px 12px;font-size:12px;background:#475569;color:white;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">Copiar</button>
+                                    <div class="value" style="font-size:18px;word-break:break-all;" id="tunnel-address">Cargando...</div>
+                                    <button id="copy-tunnel-btn" onclick="copyTunnelAddress()" style="padding:6px 12px;font-size:12px;background:#475569;color:white;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">Copiar</button>
                                 </div>
+                                <div style="margin-top:6px;font-size:11px;color:#64748b;" id="tunnel-label">Conéctate con esta dirección en Minecraft</div>
                             </div>
                         </div>
                     </div>
@@ -563,15 +562,17 @@
                 document.getElementById('card-remaining').textContent = formatSeconds(data.colab_time_remaining);
 
                 fetch('/api/tunnel/address').then(r => r.json()).then(tunnelData => {
-                    const pyjamasDiv = document.getElementById('pyjamas-ip');
+                    const addrEl = document.getElementById('tunnel-address');
+                    const labelEl = document.getElementById('tunnel-label');
                     if (tunnelData.address) {
-                        pyjamasDiv.style.display = 'block';
-                        document.getElementById('pyjamas-address').textContent = tunnelData.address;
+                        addrEl.textContent = tunnelData.address;
+                        labelEl.textContent = '🌐 Serveo tunnel';
                     } else {
-                        pyjamasDiv.style.display = 'none';
+                        addrEl.textContent = 'Esperando túnel...';
+                        labelEl.textContent = 'Conéctate cuando el túnel esté activo';
                     }
                 }).catch(() => {
-                    document.getElementById('pyjamas-ip').style.display = 'none';
+                    document.getElementById('tunnel-address').textContent = 'Error cargando';
                 });
 
                 const btnStart = document.getElementById('btn-start');
@@ -1031,12 +1032,12 @@
             }
         }
 
-        async function copyPyjamasAddress() {
-            const addr = document.getElementById('pyjamas-address').textContent;
-            if (!addr) return;
+        async function copyTunnelAddress() {
+            const addr = document.getElementById('tunnel-address').textContent;
+            if (!addr || addr === 'Cargando...' || addr === 'Esperando túnel...' || addr === 'Error cargando') return;
             try {
                 await navigator.clipboard.writeText(addr);
-                const btn = document.getElementById('copy-pyjamas-btn');
+                const btn = document.getElementById('copy-tunnel-btn');
                 const original = btn.textContent;
                 btn.textContent = '¡Copiado!';
                 btn.style.background = '#22c55e';
