@@ -546,23 +546,6 @@ def launch():
     print("MINECOLAB PANEL LISTO")
     print("=" * 60)
 
-    # Panel final bonito con rich
-    final_message = f"""
-Panel Web:
-  {panel_url}
-
-Abre la URL en tu navegador
-
-El servidor de Minecraft se
-controla desde el panel
-    """
-
-    console.print(Panel(
-        final_message,
-        title="MineColab Panel Listo",
-        border_style="green"
-    ))
-
     # Mostrar link clickable (funciona en Colab con click derecho)
     try:
         from IPython.display import display, HTML
