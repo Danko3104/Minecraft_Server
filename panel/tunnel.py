@@ -1,6 +1,8 @@
 import subprocess
 import os
 import time
+import urllib.request
+import tarfile
 
 _localtonet_process = None
 _minecraft_url = ""
@@ -11,36 +13,19 @@ def _install_localtonet():
     if os.path.exists('/usr/local/bin/localtonet'):
         return
 
-    url = 'https://localtonet.com/download/localtonet-linux-x64.tar.gz'
-    dst = '/tmp/localtonet.tar.gz'
+    url = "https://localtonet.com/download/localtonet-linux-x64.tar.gz"
+    dest = "/tmp/localtonet.tar.gz"
 
-    result = subprocess.run(
-        ['wget', '-q', url, '-O', dst],
-        capture_output=True
-    )
-    if result.returncode != 0:
-        stderr = result.stderr.decode('utf-8', errors='ignore')
-        print(f"[WGET] failed (rc={result.returncode}): {stderr}")
-        result = subprocess.run(
-            ['curl', '-sL', url, '-o', dst],
-            capture_output=True
-        )
-        if result.returncode != 0:
-            stderr = result.stderr.decode('utf-8', errors='ignore')
-            stdout = result.stdout.decode('utf-8', errors='ignore')
-            print(f"[CURL] failed (rc={result.returncode}): stderr={stderr} stdout={stdout}")
-            raise Exception(f"Failed to download localtonet via wget and curl")
+    try:
+        urllib.request.urlretrieve(url, dest)
+    except Exception as e:
+        raise Exception(f"Failed to download localtonet: {e}")
 
-    if not os.path.exists(dst) or os.path.getsize(dst) == 0:
+    if not os.path.exists(dest) or os.path.getsize(dest) == 0:
         raise Exception("Downloaded file is missing or empty")
 
-    result = subprocess.run(
-        ['tar', '-xzf', dst, '-C', '/usr/local/bin/'],
-        capture_output=True
-    )
-    if result.returncode != 0:
-        stderr = result.stderr.decode('utf-8', errors='ignore')
-        raise Exception(f"Failed to extract localtonet: {stderr}")
+    with tarfile.open(dest, 'r:gz') as tar:
+        tar.extractall('/usr/local/bin/')
 
     os.chmod('/usr/local/bin/localtonet', 0o755)
 
