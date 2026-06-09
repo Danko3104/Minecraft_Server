@@ -54,16 +54,32 @@ def start_localtonet(authtoken: str) -> bool:
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1)
 
-        subprocess.Popen(
+        print(f"[DEBUG] Matando procesos localtonet previos...")
+        subprocess.run(['pkill', '-f', 'localtonet'],
+                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(1)
+
+        print(f"[DEBUG] Lanzando localtonet con authtoken: {authtoken[:6]}...")
+        proc = subprocess.Popen(
             ['/usr/local/bin/localtonet', 'authtoken', authtoken],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
         )
 
-        time.sleep(3)
+        time.sleep(4)
 
-        result = subprocess.run(['pgrep', '-f', 'localtonet'],
-                               stdout=subprocess.PIPE)
+        poll = proc.poll()
+        print(f"[DEBUG] Estado del proceso (None=corriendo): {poll}")
+
+        if poll is not None:
+            stdout = proc.stdout.read().decode()[:500]
+            stderr = proc.stderr.read().decode()[:500]
+            print(f"[DEBUG] stdout: {stdout}")
+            print(f"[DEBUG] stderr: {stderr}")
+            return False
+
+        result = subprocess.run(['pgrep', '-f', 'localtonet'], stdout=subprocess.PIPE)
+        print(f"[DEBUG] pgrep returncode: {result.returncode}")
         return result.returncode == 0
 
     except Exception as e:
