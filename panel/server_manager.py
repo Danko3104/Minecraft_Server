@@ -352,9 +352,14 @@ class ServerManager:
             os.makedirs(connect_config_dir, exist_ok=True)
             config_path = os.path.join(connect_config_dir, 'config.yml')
             with open(config_path, 'w') as f:
-                f.write('endpoint: "minecolab13-free"\n')
+                f.write('endpoint: "minecolab03-free"\n')
                 f.write('allow-offline-mode-players: true\n')
-            print(f"[OK] config.yml actualizado con endpoint: minecolab13-free y allow-offline-mode-players: true")
+            print(f"[OK] config.yml actualizado")
+
+            token_path = os.path.join(connect_config_dir, 'token.json')
+            with open(token_path, 'w') as f:
+                f.write('{"token": "uwq3t20xoge7cv81o4kyyhrr"}\n')
+            print(f"[OK] token.json creado")
 
             return True
         except Exception as e:
