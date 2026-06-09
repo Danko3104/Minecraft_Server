@@ -470,31 +470,30 @@ def launch():
         return False
     print("Java listo.")
 
-    # Paso 4.5: Configurar túnel Playit para Minecraft
-    print("\n" + "=" * 60)
-    print("PASO 4.5: Configurando túnel Playit para Minecraft")
-    print("=" * 60)
-
+    # Paso 4.5: Iniciando túnel Localtonet
+    print("\n" + "="*60)
+    print("PASO 4.5: Iniciando túnel Localtonet")
+    print("="*60)
     try:
-        from panel import tunnel as tunnel_module
-        from panel.drive import get_global_config
+        from panel import drive, tunnel
+        server_data = drive.load_server_list()
+        authtoken = None
+        for s in server_data.values():
+            proxy = s.get("localtonet_proxy", {})
+            if proxy.get("authtoken"):
+                authtoken = proxy["authtoken"]
+                break
 
-        config = get_global_config()
-        secret_key = config.get('playit_proxy', {}).get('secretkey', '')
-
-        result = tunnel_module.start_playit(secret_key)
-
-        if result.get('configured'):
-            tunnel_module.set_minecraft_url("configured")
-            print("[OK] Playit iniciado con cuenta configurada")
-            print("[INFO] Ver IP en: https://playit.gg/account/tunnels")
+        if authtoken:
+            success = tunnel.start_localtonet(authtoken)
+            if success:
+                print("[OK] Localtonet corriendo")
+            else:
+                print("[WARNING] Localtonet no pudo iniciarse, continuando sin túnel TCP")
         else:
-            tunnel_module.set_minecraft_url("")
-            print("[WARNING] Playit sin cuenta configurada")
-            print("[INFO] Configura tu cuenta en: https://playit.gg")
+            print("[WARNING] No hay authtoken de localtonet guardado, continuando sin túnel TCP")
     except Exception as e:
-        print(f"[WARNING] Error configurando Playit: {e}")
-        tunnel_module.set_minecraft_url("")
+        print(f"[WARNING] Error iniciando localtonet: {e}")
 
     # Paso 5: Iniciar Flask
     print("\n" + "=" * 60)

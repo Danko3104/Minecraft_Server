@@ -40,6 +40,31 @@ def _install_localtonet():
     os.chmod('/usr/local/bin/localtonet', 0o755)
 
 
+def start_localtonet(authtoken: str) -> bool:
+    try:
+        _install_localtonet()
+
+        subprocess.run(['pkill', '-f', 'localtonet'],
+                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(1)
+
+        subprocess.Popen(
+            ['/usr/local/bin/localtonet', 'authtoken', authtoken],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        time.sleep(3)
+
+        result = subprocess.run(['pgrep', '-f', 'localtonet'],
+                               stdout=subprocess.PIPE)
+        return result.returncode == 0
+
+    except Exception as e:
+        print(f"[ERROR] start_localtonet: {e}")
+        return False
+
+
 def _start_localtonet(authtoken: str) -> dict:
     global _localtonet_process
     try:
