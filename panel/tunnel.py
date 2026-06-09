@@ -11,18 +11,31 @@ def _install_localtonet():
     if os.path.exists('/usr/local/bin/localtonet'):
         return
 
+    url = 'https://localtonet.com/download/localtonet-linux-x64.tar.gz'
+    dst = '/tmp/localtonet.tar.gz'
+
     result = subprocess.run(
-        ['wget', '-q',
-         'https://localtonet.com/download/localtonet-linux-x64.tar.gz',
-         '-O', '/tmp/localtonet.tar.gz'],
+        ['wget', '-q', url, '-O', dst],
         capture_output=True
     )
     if result.returncode != 0:
         stderr = result.stderr.decode('utf-8', errors='ignore')
-        raise Exception(f"Failed to download localtonet: {stderr}")
+        print(f"[WGET] failed (rc={result.returncode}): {stderr}")
+        result = subprocess.run(
+            ['curl', '-sL', url, '-o', dst],
+            capture_output=True
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.decode('utf-8', errors='ignore')
+            stdout = result.stdout.decode('utf-8', errors='ignore')
+            print(f"[CURL] failed (rc={result.returncode}): stderr={stderr} stdout={stdout}")
+            raise Exception(f"Failed to download localtonet via wget and curl")
+
+    if not os.path.exists(dst) or os.path.getsize(dst) == 0:
+        raise Exception("Downloaded file is missing or empty")
 
     result = subprocess.run(
-        ['tar', '-xzf', '/tmp/localtonet.tar.gz', '-C', '/usr/local/bin/'],
+        ['tar', '-xzf', dst, '-C', '/usr/local/bin/'],
         capture_output=True
     )
     if result.returncode != 0:
