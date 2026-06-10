@@ -23,6 +23,7 @@ from panel.server_manager import server_manager
 from panel.routes.servers import servers_bp
 from panel.routes.players import players_bp
 from panel.routes.plugins import plugins_bp
+from panel.routes.files import files_bp
 
 # =============================================================================
 # CONFIGURACIÓN
@@ -41,6 +42,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 app.register_blueprint(servers_bp)
 app.register_blueprint(players_bp)
 app.register_blueprint(plugins_bp)
+app.register_blueprint(files_bp)
 
 # =============================================================================
 # VARIABLES GLOBALES
