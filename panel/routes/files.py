@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, jsonify, request, send_file, Response
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
@@ -87,6 +87,66 @@ def download_file():
             return jsonify({"success": False, "error": "No es un archivo"}), 400
 
         return send_file(full, as_attachment=True, download_name=os.path.basename(full))
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@files_bp.route('/read', methods=['GET'])
+def read_file():
+    try:
+        from panel.drive import get_active_server
+        server_name = get_active_server()
+        if not server_name:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        rel_path = request.args.get('path', '')
+        full = _resolve(server_name, rel_path)
+        if not full:
+            return jsonify({"success": False, "error": "Acceso denegado"}), 403
+        if not os.path.isfile(full):
+            return jsonify({"success": False, "error": "No es un archivo"}), 400
+
+        size = os.path.getsize(full)
+        if size > 5 * 1024 * 1024:
+            return jsonify({"success": False, "error": "Archivo demasiado grande (>5MB)"}), 400
+
+        try:
+            with open(full, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
+        except Exception:
+            return jsonify({"success": False, "error": "No se puede leer como texto"}), 400
+
+        return jsonify({
+            "success": True,
+            "content": content,
+            "name": os.path.basename(full),
+            "path": rel_path,
+            "size": size
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@files_bp.route('/write', methods=['PUT'])
+def write_file():
+    try:
+        from panel.drive import get_active_server
+        server_name = get_active_server()
+        if not server_name:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        data = request.get_json()
+        if not data or 'path' not in data or 'content' not in data:
+            return jsonify({"success": False, "error": "Faltan 'path' y 'content'"}), 400
+
+        full = _resolve(server_name, data['path'])
+        if not full:
+            return jsonify({"success": False, "error": "Acceso denegado"}), 403
+
+        with open(full, 'w', encoding='utf-8') as f:
+            f.write(data['content'])
+
+        return jsonify({"success": True, "message": "Archivo guardado"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

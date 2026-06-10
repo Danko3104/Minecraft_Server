@@ -161,6 +161,7 @@
         .data-table th { text-align: left; padding: 10px 12px; font-size: 12px; color: #8b949e; font-weight: 500; border-bottom: 1px solid #21262d; text-transform: uppercase; letter-spacing: 0.5px; }
         .data-table td { padding: 10px 12px; font-size: 14px; border-bottom: 1px solid #161b22; }
         .data-table tr:last-child td { border-bottom: none; }
+        .file-row:hover { background: #161b22; }
         .data-table .player-cell { display: flex; align-items: center; gap: 10px; }
         .data-table .player-cell img { width: 24px; height: 24px; border-radius: 4px; }
         .data-table .actions-cell { display: flex; gap: 4px; }
@@ -603,7 +604,8 @@
                 <!-- ===== ARCHIVOS ===== -->
                 <section id="section-files" class="section">
                     <div class="control-card">
-                        <h3><i class="fas fa-folder-open"></i> Archivos del Servidor <span id="files-current-path" style="font-size:12px;color:#484f58;font-weight:400;margin-left:8px;"></span></h3>
+                        <h3><i class="fas fa-folder-open"></i> Archivos del Servidor</h3>
+                        <div id="file-breadcrumb" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;font-size:13px;"></div>
                         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
                             <input type="file" id="file-upload-input" style="display:none;" onchange="uploadServerFile(event)">
                             <button class="btn btn-primary btn-sm" onclick="document.getElementById('file-upload-input').click()"><i class="fas fa-upload"></i> Subir archivo</button>
@@ -615,6 +617,21 @@
                         </div>
                     </div>
                 </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITOR DE ARCHIVOS -->
+    <div class="modal-overlay" id="modal-file-editor" onclick="if(event.target===this) closeFileEditor()">
+        <div class="modal" style="max-width:800px;width:90%;">
+            <h2><i class="fas fa-code" style="color:#3fb950;"></i> <span id="file-editor-title">Editor</span></h2>
+            <div style="margin:12px 0;max-height:60vh;overflow:auto;">
+                <textarea id="file-editor-content" style="width:100%;min-height:300px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:12px;font-family:'Consolas','Courier New',monospace;font-size:13px;resize:vertical;tab-size:2;"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <span id="file-editor-status" style="flex:1;font-size:12px;color:#8b949e;display:flex;align-items:center;"></span>
+                <button class="btn btn-secondary" onclick="closeFileEditor()"><i class="fas fa-times"></i> Cancelar</button>
+                <button class="btn btn-primary" onclick="saveFileEditor()"><i class="fas fa-save"></i> Guardar</button>
             </div>
         </div>
     </div>
@@ -1777,10 +1794,48 @@
 
         // ============ FILE BROWSER ============
         let filesCurrentPath = '';
+        let fileEditorPath = '';
+
+        function _fileIcon(name, isDir) {
+            if (isDir) return 'fa-folder';
+            const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+            const map = {
+                'txt': 'fa-file-alt', 'json': 'fa-file-code', 'yml': 'fa-file-code',
+                'yaml': 'fa-file-code', 'xml': 'fa-file-code', 'toml': 'fa-file-code',
+                'properties': 'fa-file-code', 'cfg': 'fa-file-code', 'conf': 'fa-file-code',
+                'py': 'fa-file-code', 'js': 'fa-file-code', 'sh': 'fa-file-code',
+                'html': 'fa-file-code', 'css': 'fa-file-code', 'md': 'fa-file-code',
+                'png': 'fa-file-image', 'jpg': 'fa-file-image', 'jpeg': 'fa-file-image',
+                'gif': 'fa-file-image', 'svg': 'fa-file-image', 'ico': 'fa-file-image',
+                'zip': 'fa-file-archive', 'gz': 'fa-file-archive', 'tar': 'fa-file-archive',
+                'jar': 'fa-file-archive', 'mca': 'fa-cubes', 'dat': 'fa-database',
+                'log': 'fa-file-alt', 'txt': 'fa-file-alt',
+            };
+            return map[ext] || 'fa-file';
+        }
+        function _fileColor(name, isDir) {
+            if (isDir) return '#d29922';
+            const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+            const map = {
+                'yml': '#3fb950', 'yaml': '#3fb950', 'json': '#d29922',
+                'properties': '#8b949e', 'toml': '#8b949e',
+                'png': '#c9d1d9', 'jpg': '#c9d1d9', 'jar': '#f85149',
+                'mca': '#58a6ff', 'dat': '#58a6ff', 'log': '#8b949e',
+                'sh': '#3fb950', 'py': '#d29922', 'js': '#f0883e',
+                'md': '#8b949e', 'cfg': '#8b949e',
+            };
+            return map[ext] || '#8b949e';
+        }
+        function _editableExt(name) {
+            const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+            return ['txt','json','yml','yaml','xml','toml','properties','cfg','conf',
+                    'py','js','sh','html','css','md','log','txt','dat'].includes(ext);
+        }
 
         async function loadFiles(path) {
             if (path !== undefined) filesCurrentPath = path;
             const container = document.getElementById('file-browser');
+            const bc = document.getElementById('file-breadcrumb');
             container.innerHTML = '<p style="font-size:13px;color:#8b949e;"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
             try {
                 const params = new URLSearchParams();
@@ -1791,33 +1846,58 @@
                     container.innerHTML = '<p style="font-size:13px;color:#f85149;">' + (data.error || 'Error') + '</p>';
                     return;
                 }
-                document.getElementById('files-current-path').textContent = data.path;
 
+                // Breadcrumbs
+                const parts = data.path.split('/').filter(Boolean);
+                let acc = '';
+                bc.innerHTML = '<span style="color:#8b949e;margin-right:4px;"><i class="fas fa-folder-open"></i></span> ';
+                bc.innerHTML += '<a href="#" onclick="loadFiles(\'\');return false;" style="color:#8b949e;text-decoration:none;">raíz</a>';
+                parts.forEach((p, i) => {
+                    acc += (i > 0 ? '/' : '') + p;
+                    const isLast = i === parts.length - 1;
+                    bc.innerHTML += ' <span style="color:#30363d;">/</span> ';
+                    if (isLast) {
+                        bc.innerHTML += `<span style="color:#e6edf3;">${p}</span>`;
+                    } else {
+                        bc.innerHTML += `<a href="#" onclick="loadFiles('${acc}');return false;" style="color:#58a6ff;text-decoration:none;">${p}</a>`;
+                    }
+                });
+
+                // Tabla
                 let html = '<table class="data-table"><thead><tr><th>Nombre</th><th>Tamaño</th><th>Modificado</th><th style="text-align:center;">Acciones</th></tr></thead><tbody>';
 
-                // Subir un nivel
+                // Subir nivel
                 if (data.parent !== null && data.parent !== '') {
-                    html += `<tr style="cursor:pointer;" onclick="loadFiles('${data.parent}')">
-                        <td colspan="4"><i class="fas fa-level-up-alt" style="color:#8b949e;margin-right:6px;"></i> <span style="color:#8b949e;">..</span></td>
+                    html += `<tr class="file-row" onclick="loadFiles('${data.parent}')">
+                        <td colspan="4"><i class="fas fa-level-up-alt" style="color:#8b949e;margin-right:8px;"></i> <span style="color:#8b949e;">..</span></td>
                     </tr>`;
                 }
 
-                for (const e of data.entries) {
-                    const icon = e.is_dir ? 'fa-folder' : 'fa-file';
-                    const iconColor = e.is_dir ? '#d29922' : '#8b949e';
+                const sorted = [...data.entries].sort((a, b) => {
+                    if (a.is_dir !== b.is_dir) return a.is_dir ? -1 : 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                for (const e of sorted) {
+                    const icon = _fileIcon(e.name, e.is_dir);
+                    const iconColor = _fileColor(e.name, e.is_dir);
                     const entryPath = filesCurrentPath ? filesCurrentPath + '/' + e.name : e.name;
                     const encodedPath = encodeURIComponent(entryPath);
                     const downloadUrl = '/api/files/download?path=' + encodedPath;
+                    const editable = !e.is_dir && _editableExt(e.name);
+                    const onClick = e.is_dir
+                        ? `loadFiles('${entryPath.replace(/'/g, "\\'")}')`
+                        : editable
+                            ? `openFileEditor('${entryPath.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')`
+                            : '';
 
-                    html += `<tr${e.is_dir ? ' style="cursor:pointer;" onclick="navigateTo(\'' + entryPath.replace(/'/g, "\\'") + '\')"' : ''}>
-                        <td>
-                            <div class="player-cell"><i class="fas ${icon}" style="color:${iconColor};"></i> ${e.name}</div>
-                        </td>
-                        <td>${e.size_display || '-'}</td>
-                        <td>${e.modified}</td>
-                        <td style="text-align:center;">
-                            ${!e.is_dir ? `<a href="${downloadUrl}" class="btn btn-secondary btn-sm" style="text-decoration:none;" download><i class="fas fa-download"></i></a> ` : ''}
-                            <button class="btn btn-danger btn-sm" onclick="deleteServerFile('${entryPath.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
+                    html += `<tr class="file-row"${onClick ? ' onclick="' + onClick + '"' : ''}>
+                        <td><div class="player-cell"><i class="fas ${icon}" style="color:${iconColor};width:18px;text-align:center;"></i> ${e.name}</div></td>
+                        <td style="color:#8b949e;">${e.size_display || '-'}</td>
+                        <td style="color:#8b949e;">${e.modified}</td>
+                        <td style="text-align:center;white-space:nowrap;">
+                            ${!e.is_dir ? `<a href="${downloadUrl}" class="btn btn-secondary btn-sm" style="text-decoration:none;" title="Descargar" download><i class="fas fa-download"></i></a> ` : ''}
+                            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteServerFile('${entryPath.replace(/'/g, "\\'")}','${e.name.replace(/'/g, "\\'")}')" title="Eliminar"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>`;
                 }
@@ -1878,8 +1958,54 @@
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 
-        function navigateTo(path) {
-            loadFiles(path);
+        // ============ FILE EDITOR ============
+        async function openFileEditor(path, name) {
+            fileEditorPath = path;
+            document.getElementById('file-editor-title').textContent = name;
+            document.getElementById('file-editor-content').value = 'Cargando...';
+            document.getElementById('file-editor-status').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+            document.getElementById('modal-file-editor').classList.add('active');
+            try {
+                const res = await fetch('/api/files/read?path=' + encodeURIComponent(path));
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('file-editor-content').value = data.content;
+                    document.getElementById('file-editor-status').textContent = (data.size / 1024).toFixed(1) + ' KB';
+                } else {
+                    document.getElementById('file-editor-content').value = 'Error: ' + (data.error || 'No se pudo leer');
+                    document.getElementById('file-editor-status').style.color = '#f85149';
+                    document.getElementById('file-editor-status').textContent = 'Error';
+                }
+            } catch(e) {
+                document.getElementById('file-editor-content').value = 'Error de conexión';
+                document.getElementById('file-editor-status').textContent = 'Error';
+            }
+        }
+        function closeFileEditor() {
+            document.getElementById('modal-file-editor').classList.remove('active');
+            fileEditorPath = '';
+        }
+        async function saveFileEditor() {
+            const content = document.getElementById('file-editor-content').value;
+            if (!fileEditorPath) return;
+            document.getElementById('file-editor-status').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+            try {
+                const res = await fetch('/api/files/write', {
+                    method: 'PUT',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({path: fileEditorPath, content})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('file-editor-status').innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Guardado';
+                    toast('Archivo guardado', 'success');
+                    loadFiles();
+                } else {
+                    document.getElementById('file-editor-status').innerHTML = '<span style="color:#f85149;">Error: ' + (data.error || '') + '</span>';
+                }
+            } catch(e) {
+                document.getElementById('file-editor-status').innerHTML = '<span style="color:#f85149;">Error de conexión</span>';
+            }
         }
 
         // ============ PLUGINS ============
