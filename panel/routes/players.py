@@ -20,13 +20,28 @@ def api_players():
     try:
         resp = _get_command('list')
         players = []
-        if resp:
+
+        def _parse_player_list(text):
             import re
-            m = re.search(r'There are (\d+) of (?:max )?(\d+) players? online:\s*(.*)', resp)
+            m = re.search(r'There are (\d+) of (?:max )?(\d+) players? online:\s*(.*)', text)
             if m:
                 names = m.group(3).strip()
                 if names:
-                    players = [n.strip() for n in names.split(',') if n.strip()]
+                    return [n.strip() for n in names.split(',') if n.strip()]
+            return None
+
+        if resp:
+            parsed = _parse_player_list(resp)
+            if parsed is not None:
+                players = parsed
+            else:
+                from panel.server_manager import server_manager
+                for line in reversed(server_manager.get_last_output()):
+                    parsed = _parse_player_list(line)
+                    if parsed is not None:
+                        players = parsed
+                        break
+
         return jsonify({"players": players, "raw": resp})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

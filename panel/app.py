@@ -4,7 +4,10 @@ Maneja las rutas HTTP y WebSocket para el panel de control.
 """
 
 from datetime import datetime
-from flask import Flask, jsonify, request, send_from_directory
+import os
+import re
+import psutil
+from flask import Flask, jsonify, request, send_from_directory, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 
@@ -227,6 +230,32 @@ def api_server_command():
         }), 500
 
 
+@app.route('/api/server/stats', methods=['GET'])
+def api_server_stats():
+    try:
+        if not server_manager.is_running():
+            return jsonify({"success": False, "error": "Servidor no está corriendo"}), 400
+
+        tps_resp = server_manager.send_command('tps')
+        ram_bytes = psutil.Process(server_manager.process.pid).memory_info().rss if server_manager.process else 0
+        cpu_percent = psutil.Process(server_manager.process.pid).cpu_percent(interval=0.5) if server_manager.process else 0
+
+        import re
+        tps_values = []
+        m = re.findall(r'(?:§[a-z])?(\d+\.\d+)', tps_resp)
+        if m:
+            tps_values = [float(v) for v in m[:3]]
+
+        return jsonify({
+            "success": True,
+            "tps": tps_values,
+            "ram_mb": round(ram_bytes / 1024 / 1024, 1),
+            "cpu_percent": cpu_percent
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route('/api/server/last-output', methods=['GET'])
 def api_server_last_output():
     """
@@ -350,6 +379,36 @@ def api_settings_reset_world():
 
         result = server_manager.reset_world(active_server)
         return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/server-icon', methods=['GET', 'POST'])
+def api_settings_server_icon():
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        server_path = server_manager.get_server_path(active_server)
+        icon_path = os.path.join(server_path, 'server-icon.png')
+
+        if request.method == 'GET':
+            if os.path.exists(icon_path):
+                return send_file(icon_path, mimetype='image/png')
+            return jsonify({"success": False, "error": "No hay icono"}), 404
+
+        elif request.method == 'POST':
+            if 'file' not in request.files:
+                return jsonify({"success": False, "error": "Falta archivo"}), 400
+
+            f = request.files['file']
+            if not f.filename.lower().endswith('.png'):
+                return jsonify({"success": False, "error": "Solo archivos .png"}), 400
+
+            f.save(icon_path)
+            return jsonify({"success": True, "message": "Icono del servidor actualizado. Se requiere reinicio."})
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

@@ -455,6 +455,36 @@ def update_all_plugins():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@plugins_bp.route('/uninstall', methods=['POST'])
+def uninstall_plugin():
+    try:
+        data = request.get_json()
+        if not data or 'file' not in data:
+            return jsonify({"success": False, "error": "Falta 'file'"}), 400
+
+        plugins_dir = _get_plugins_dir()
+        if not plugins_dir:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        file_param = data['file']
+        jar_path = os.path.join(plugins_dir, file_param)
+
+        if os.path.exists(jar_path):
+            os.remove(jar_path)
+            return jsonify({"success": True, "message": f"Plugin eliminado"})
+
+        # Fallback: buscar case-insensitive en el directorio
+        if os.path.exists(plugins_dir):
+            for f in os.listdir(plugins_dir):
+                if f.lower() == file_param.lower():
+                    os.remove(os.path.join(plugins_dir, f))
+                    return jsonify({"success": True, "message": f"Plugin '{f}' eliminado"})
+
+        return jsonify({"success": False, "error": "Plugin no encontrado"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @plugins_bp.route('/upload', methods=['POST'])
 def upload_plugin():
     try:

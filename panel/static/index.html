@@ -303,7 +303,7 @@
                     </div>
 
                     <div class="stats-grid">
-                        <div class="stat-card">
+                        <div class="stat-card" onclick="openStatsModal()" style="cursor:pointer;" title="Click para ver estadísticas del servidor">
                             <div class="stat-header">
                                 <span class="stat-label">Estado</span>
                                 <i class="fas fa-signal"></i>
@@ -338,9 +338,8 @@
                     </div>
 
                     <div class="ip-card">
-                        <div class="ip-label"><i class="fas fa-globe"></i> Dirección del Servidor</div>
-                        <div class="ip-value" id="server-address">minecolab03-free.play.minekube.net</div>
-                        <button class="btn-copy" onclick="copyAddress()"><i class="fas fa-copy"></i> <span id="copy-text">Copiar</span></button>
+                        <div class="ip-label"><i class="fas fa-globe"></i> Dirección del Servidor <span style="font-size:11px;color:#484f58;font-weight:400;">(click para copiar)</span></div>
+                        <div class="ip-value" id="server-address" onclick="copyAddress()" style="cursor:pointer;" title="Click para copiar">minecolab03-free.play.minekube.net <i class="fas fa-copy" style="font-size:12px;color:#484f58;margin-left:6px;"></i></div>
                     </div>
 
                     <div class="resource-section" id="resource-section" style="display:none;">
@@ -515,7 +514,26 @@
                                 </div>
                                 <input type="hidden" id="prop-command-blocks" value="false">
                             </div>
-                            <button class="btn btn-primary" onclick="saveServerProperties()" style="margin-top:8px;"><i class="fas fa-save"></i> Guardar cambios</button>
+                            <div style="display:flex;gap:8px;margin-top:8px;">
+                                <button class="btn btn-primary" onclick="saveServerProperties()"><i class="fas fa-save"></i> Guardar cambios</button>
+                                <button class="btn btn-secondary" onclick="reloadServer()" title="Recarga config sin reiniciar (no recomendado en producción)"><i class="fas fa-sync-alt"></i> Reload</button>
+                            </div>
+                        </div>
+
+                        <div class="update-card">
+                            <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-image"></i> Icono del Servidor</h3>
+                            <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
+                                <div id="server-icon-preview" style="width:64px;height:64px;background:#0d1117;border:2px dashed #30363d;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#484f58;overflow:hidden;">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                <div>
+                                    <label class="btn btn-primary btn-sm" style="cursor:pointer;"><i class="fas fa-upload"></i> Subir icono (64x64 PNG)
+                                        <input type="file" accept=".png" style="display:none;" onchange="uploadServerIcon(event)">
+                                    </label>
+                                    <p style="font-size:11px;color:#484f58;margin-top:4px;">Se requiere reinicio para que el servidor lo muestre</p>
+                                </div>
+                            </div>
+                            <div id="server-icon-status" style="font-size:12px;color:#8b949e;"></div>
                         </div>
 
                         <div class="update-card">
@@ -607,6 +625,20 @@
                     <button type="submit" class="btn btn-primary" id="btn-create-server" onclick="createAndInstallServer()"><i class="fas fa-rocket"></i> Crear e Instalar</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ESTADÍSTICAS DEL SERVIDOR -->
+    <div class="modal-overlay" id="modal-stats" onclick="if(event.target===this) closeStatsModal()">
+        <div class="modal" style="max-width:420px;">
+            <h2><i class="fas fa-chart-line" style="color:#3fb950;"></i> Estadísticas del Servidor</h2>
+            <div id="stats-content" style="padding:12px 0;">
+                <p style="font-size:13px;color:#8b949e;"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeStatsModal()">Cerrar</button>
+                <button class="btn btn-primary" onclick="loadServerStats()"><i class="fas fa-sync"></i> Refrescar</button>
+            </div>
         </div>
     </div>
 
@@ -921,6 +953,48 @@
         function closeRestartModal() {
             document.getElementById('modal-restart').classList.remove('active');
         }
+
+        // ============ STATS MODAL ============
+        async function openStatsModal() {
+            document.getElementById('modal-stats').classList.add('active');
+            await loadServerStats();
+        }
+        function closeStatsModal() {
+            document.getElementById('modal-stats').classList.remove('active');
+        }
+        async function loadServerStats() {
+            const container = document.getElementById('stats-content');
+            container.innerHTML = '<p style="font-size:13px;color:#8b949e;"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
+            try {
+                const res = await fetch('/api/server/stats');
+                const data = await res.json();
+                if (!data.success) {
+                    container.innerHTML = '<p style="font-size:13px;color:#f85149;">' + (data.error || 'No disponible') + '</p>';
+                    return;
+                }
+                let html = '<div style="display:flex;flex-direction:column;gap:16px;">';
+
+                // TPS
+                html += '<div><div style="font-size:12px;color:#8b949e;margin-bottom:4px;">TPS (1m / 5m / 15m)</div><div style="display:flex;gap:8px;">';
+                const tps = data.tps || [0, 0, 0];
+                tps.forEach(t => {
+                    const color = t > 18 ? '#3fb950' : t > 15 ? '#d29922' : '#f85149';
+                    html += `<span style="background:#0d1117;padding:8px 14px;border-radius:6px;font-size:18px;font-weight:600;color:${color};">${t.toFixed(1)}</span>`;
+                });
+                html += '</div></div>';
+
+                // RAM
+                html += `<div><div style="font-size:12px;color:#8b949e;margin-bottom:4px;">RAM usada</div><div style="font-size:16px;font-weight:600;">${data.ram_mb || 0} MB</div></div>`;
+
+                // CPU
+                html += `<div><div style="font-size:12px;color:#8b949e;margin-bottom:4px;">CPU</div><div style="font-size:16px;font-weight:600;">${data.cpu_percent || 0}%</div></div>`;
+
+                html += '</div>';
+                container.innerHTML = html;
+            } catch(e) {
+                container.innerHTML = '<p style="font-size:13px;color:#f85149;">Error al cargar estadísticas</p>';
+            }
+        }
         async function restartServer() {
             closeRestartModal();
             toast('Reiniciando servidor...', 'info');
@@ -932,13 +1006,13 @@
 
         // ============ IP COPY ============
         async function copyAddress() {
-            const addr = document.getElementById('server-address').textContent;
+            const addr = document.getElementById('server-address').textContent.replace(/<[^>]*>/g, '').trim();
             try {
                 await navigator.clipboard.writeText(addr);
-                const btn = document.querySelector('.ip-card .btn-copy');
-                btn.classList.add('copied');
-                document.getElementById('copy-text').textContent = '¡Copiado!';
-                setTimeout(() => { btn.classList.remove('copied'); document.getElementById('copy-text').textContent = 'Copiar'; }, 2000);
+                const el = document.getElementById('server-address');
+                const original = el.innerHTML;
+                el.innerHTML = '<i class="fas fa-check-circle" style="color:#3fb950;"></i> ¡Copiado!';
+                setTimeout(() => { el.innerHTML = original; }, 2000);
             } catch(e) {
                 toast('Error al copiar', 'error');
             }
@@ -1372,6 +1446,7 @@
                 }
             } catch(e) { console.error('version check error:', e); }
 
+            loadServerIcon();
             loadBackups();
         }
 
@@ -1419,11 +1494,24 @@
                 if (data.success) {
                     const notice = document.getElementById('props-saved-notice');
                     notice.style.display = 'flex';
-                    setTimeout(() => { notice.style.display = 'none'; }, 5000);
-                    toast('Propiedades guardadas', 'success');
+                    setTimeout(() => { notice.style.display = 'none'; }, 8000);
+                    toast('Propiedades guardadas. Reinicia el servidor para aplicar los cambios.', 'success');
                 } else {
                     toast(data.error || 'Error al guardar', 'error');
                 }
+            } catch(e) { toast('Error de conexión', 'error'); }
+        }
+
+        async function reloadServer() {
+            if (!confirm('¿Ejecutar /reload? Esto recargará plugins y config sin reiniciar. No recomendado en producción.')) return;
+            try {
+                const res = await fetch('/api/server/command', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command: 'reload'})
+                });
+                const data = await res.json();
+                toast(data.response || 'Comando enviado', 'info');
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 
@@ -1530,6 +1618,50 @@
                 status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
             });
             input.value = '';
+        }
+
+        // ============ SERVER ICON ============
+        async function loadServerIcon() {
+            const preview = document.getElementById('server-icon-preview');
+            try {
+                const res = await fetch('/api/settings/server-icon');
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    preview.innerHTML = `<img src="${url}" style="width:64px;height:64px;border-radius:6px;">`;
+                }
+            } catch(e) {}
+        }
+
+        async function uploadServerIcon(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.png')) {
+                toast('Solo archivos .png', 'error');
+                event.target.value = '';
+                return;
+            }
+            const status = document.getElementById('server-icon-status');
+            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+            const form = new FormData();
+            form.append('file', file);
+            try {
+                const res = await fetch('/api/settings/server-icon', { method: 'POST', body: form });
+                const data = await res.json();
+                if (data.success) {
+                    toast('Icono actualizado. Requiere reinicio.', 'success');
+                    status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                    loadServerIcon();
+                } else {
+                    toast(data.error || 'Error', 'error');
+                    status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                }
+            } catch(e) {
+                toast('Error de conexión', 'error');
+                status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+            }
+            event.target.value = '';
+            setTimeout(() => { status.innerHTML = ''; }, 3000);
         }
 
         // ============ BACKUPS ============
