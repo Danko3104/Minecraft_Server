@@ -66,21 +66,37 @@ class ServerManager:
             server_path = self.get_server_path(server_name)
             props_path = os.path.join(server_path, 'server.properties')
 
-            REQUIRED = {
+            # Propiedades críticas — SIEMPRE se fuerzan (necesarias para RCON, conexión, etc.)
+            FORCED = {
                 'enable-rcon': 'true',
                 'rcon.port': str(self.rcon_port),
                 'rcon.password': self.rcon_password,
                 'server-port': '25565',
-                'max-players': '20',
-                'level-name': 'world',
                 'enforce-secure-profile': 'false',
                 'online-mode': 'false',
                 'white-list': 'true',
             }
 
+            # Propiedades por defecto — solo se escriben si el archivo no existe
+            DEFAULTS = {
+                'max-players': '20',
+                'level-name': 'world',
+                'motd': 'A Minecraft Server',
+                'difficulty': 'normal',
+                'gamemode': 'survival',
+                'pvp': 'true',
+                'spawn-monsters': 'true',
+                'spawn-animals': 'true',
+                'render-distance': '10',
+                'simulation-distance': '10',
+                'view-distance': '10',
+                'spawn-protection': '16',
+                'enable-command-block': 'false',
+            }
+
             if not os.path.exists(props_path):
                 with open(props_path, 'w') as f:
-                    for k, v in REQUIRED.items():
+                    for k, v in {**FORCED, **DEFAULTS}.items():
                         f.write(f'{k}={v}\n')
                 print(f"[INFO] server.properties creado para '{server_name}'")
                 return True
@@ -95,14 +111,23 @@ class ServerManager:
                 if '=' in stripped and not stripped.startswith('#'):
                     key = stripped.split('=', 1)[0].strip()
                     seen.add(key)
-                    if key in REQUIRED:
-                        new_lines.append(f'{key}={REQUIRED[key]}\n')
+                    if key in FORCED:
+                        # Siempre escribir el valor forzado
+                        new_lines.append(f'{key}={FORCED[key]}\n')
                     else:
+                        # Mantener el valor existente del usuario
                         new_lines.append(line)
                 else:
                     new_lines.append(line)
 
-            for k, v in REQUIRED.items():
+            # Agregar forzadas que falten
+            for k, v in FORCED.items():
+                if k not in seen:
+                    new_lines.append(f'{k}={v}\n')
+                    seen.add(k)
+
+            # Agregar defaults que falten (solo si el usuario no las ha puesto)
+            for k, v in DEFAULTS.items():
                 if k not in seen:
                     new_lines.append(f'{k}={v}\n')
 
@@ -511,8 +536,9 @@ class ServerManager:
             # Iniciar hilo para leer output
             self._start_output_reader()
 
-            # Guardar tiempos
+            # Guardar tiempos y nombre del servidor (para backup automático)
             self.start_time = datetime.now()
+            self._current_server = server_name
             self.intentional_stop = False
 
             # Esperar 5 segundos y verificar que sigue vivo
@@ -557,6 +583,7 @@ class ServerManager:
     def stop(self) -> dict:
         """
         Detiene el servidor de Minecraft.
+        Antes de detener, guarda el mundo y hace backup automático.
         """
         try:
             # Verificar si hay proceso
@@ -567,6 +594,18 @@ class ServerManager:
                 }
 
             self.intentional_stop = True
+
+            # Backup automático del mundo (si se conoce el server_name)
+            if hasattr(self, '_current_server') and self._current_server:
+                print("[INFO] Guardando mundo...")
+                if MCRCON_AVAILABLE and self.process.poll() is None:
+                    try:
+                        with RCon("localhost", self.rcon_port, self.rcon_password) as rcon:
+                            rcon.command("save-all")
+                    except Exception:
+                        pass
+                print("[INFO] Haciendo backup automático del mundo...")
+                self._backup_world(self._current_server)
 
             # Intentar primero con RCON
             if MCRCON_AVAILABLE and self.process.poll() is None:
@@ -695,6 +734,183 @@ class ServerManager:
             return "Comando enviado"
         except Exception as e:
             return f"Error al enviar comando: {e}"
+
+    # =========================================================================
+    # BACKUP DEL MUNDO
+    # =========================================================================
+
+    def get_backups_dir(self) -> str:
+        """Retorna la ruta de la carpeta de backups en Drive."""
+        return '/content/drive/MyDrive/Copias de mundo de Minecraft'
+
+    def _backup_world(self, server_name: str) -> Optional[str]:
+        """
+        Hace backup del mundo en Copias de mundo de Minecraft/.
+        Retorna el nombre del backup o None si falla.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            world_path = os.path.join(server_path, 'world')
+            if not os.path.exists(world_path):
+                print(f"[INFO] No hay mundo que respaldar para '{server_name}'")
+                return None
+
+            backups_dir = self.get_backups_dir()
+            os.makedirs(backups_dir, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            backup_name = f"{server_name}_world_{timestamp}"
+            backup_path = os.path.join(backups_dir, backup_name)
+
+            shutil.copytree(world_path, backup_path)
+            print(f"[INFO] Backup creado: {backup_path}")
+            return backup_name
+        except Exception as e:
+            print(f"[ERROR] _backup_world: {e}")
+            return None
+
+    def list_backups(self, server_name: str) -> List[Dict]:
+        """
+        Lista los backups del servidor con fecha y tamaño.
+        """
+        try:
+            backups_dir = self.get_backups_dir()
+            if not os.path.exists(backups_dir):
+                return []
+
+            result = []
+            for entry in sorted(os.listdir(backups_dir), reverse=True):
+                entry_path = os.path.join(backups_dir, entry)
+                # Filtrar solo backups que empiecen con el nombre del servidor
+                if entry.startswith(server_name + '_world_') and os.path.isdir(entry_path):
+                    size = sum(os.path.getsize(os.path.join(dp, f)) for dp, dn, fn in os.walk(entry_path) for f in fn)
+                    # Extraer timestamp del nombre
+                    ts_str = entry.replace(server_name + '_world_', '')
+                    try:
+                        ts = datetime.strptime(ts_str, "%Y-%m-%d_%H-%M-%S")
+                    except ValueError:
+                        ts = None
+                    result.append({
+                        "name": entry,
+                        "date": ts.strftime("%Y-%m-%d %H:%M:%S") if ts else ts_str,
+                        "size_bytes": size,
+                        "size_display": f"{size/1024/1024:.1f} MB" if size > 1024*1024 else f"{size/1024:.0f} KB"
+                    })
+            return result
+        except Exception as e:
+            print(f"[ERROR] list_backups: {e}")
+            return []
+
+    def restore_backup(self, server_name: str, backup_name: str) -> Dict:
+        """
+        Restaura un backup: detiene server, reemplaza world/, reinicia.
+        """
+        try:
+            backups_dir = self.get_backups_dir()
+            backup_path = os.path.join(backups_dir, backup_name)
+            if not os.path.exists(backup_path):
+                return {"success": False, "error": f"Backup '{backup_name}' no encontrado"}
+
+            server_path = self.get_server_path(server_name)
+            world_path = os.path.join(server_path, 'world')
+
+            was_running = self.is_running()
+            if was_running:
+                # Forzar guardado antes de detener
+                if MCRCON_AVAILABLE:
+                    try:
+                        with RCon("localhost", self.rcon_port, self.rcon_password) as rcon:
+                            rcon.command("save-all")
+                    except Exception:
+                        pass
+                self.stop()
+                time.sleep(2)
+
+            # Backup del mundo actual antes de restaurar
+            if os.path.exists(world_path):
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                pre_restore_backup = os.path.join(backups_dir, f"{server_name}_world_{timestamp}_prerestore")
+                shutil.copytree(world_path, pre_restore_backup)
+
+            # Eliminar mundo actual
+            if os.path.exists(world_path):
+                shutil.rmtree(world_path)
+
+            # Copiar backup
+            shutil.copytree(backup_path, world_path)
+            print(f"[INFO] Backup '{backup_name}' restaurado para '{server_name}'")
+
+            if was_running:
+                self.start(server_name)
+
+            return {"success": True, "message": f"Backup '{backup_name}' restaurado"}
+        except Exception as e:
+            print(f"[ERROR] restore_backup: {e}")
+            return {"success": False, "error": str(e)}
+
+    def delete_backup(self, server_name: str, backup_name: str) -> Dict:
+        """
+        Elimina un backup.
+        """
+        try:
+            backups_dir = self.get_backups_dir()
+            backup_path = os.path.join(backups_dir, backup_name)
+            if not os.path.exists(backup_path):
+                return {"success": False, "error": f"Backup '{backup_name}' no encontrado"}
+            shutil.rmtree(backup_path)
+            return {"success": True, "message": f"Backup '{backup_name}' eliminado"}
+        except Exception as e:
+            print(f"[ERROR] delete_backup: {e}")
+            return {"success": False, "error": str(e)}
+
+    def upload_world(self, server_name: str, zip_path: str) -> Dict:
+        """
+        Reemplaza el mundo actual con el contenido de un .zip.
+        Antes hace backup del mundo actual.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            world_path = os.path.join(server_path, 'world')
+
+            # Backup automático del mundo actual
+            self._backup_world(server_name)
+
+            was_running = self.is_running()
+            if was_running:
+                if MCRCON_AVAILABLE:
+                    try:
+                        with RCon("localhost", self.rcon_port, self.rcon_password) as rcon:
+                            rcon.command("save-all")
+                    except Exception:
+                        pass
+                self.stop()
+                time.sleep(2)
+
+            # Eliminar mundo actual
+            if os.path.exists(world_path):
+                shutil.rmtree(world_path)
+
+            # Extraer zip
+            os.makedirs(world_path, exist_ok=True)
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                zf.extractall(world_path)
+
+            # Si el zip contenía una carpeta interna 'world/', subir un nivel
+            inner_world = os.path.join(world_path, 'world')
+            if os.path.isdir(inner_world):
+                for item in os.listdir(inner_world):
+                    shutil.move(os.path.join(inner_world, item), os.path.join(world_path, item))
+                shutil.rmtree(inner_world)
+
+            print(f"[INFO] Mundo subido para '{server_name}'")
+
+            if was_running:
+                self.start(server_name)
+
+            return {"success": True, "message": "Mundo subido correctamente"}
+        except Exception as e:
+            print(f"[ERROR] upload_world: {e}")
+            return {"success": False, "error": str(e)}
 
     # =========================================================================
     # MÉTODOS DE CONFIGURACIÓN (SETTINGS)

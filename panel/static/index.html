@@ -43,8 +43,15 @@
         .header-left h2 { font-size: 20px; font-weight: 600; color: #e6edf3; white-space: nowrap; }
         .server-select { padding: 8px 36px 8px 12px; border: 1px solid #30363d; border-radius: 6px; background: #161b22; color: #e6edf3; font-size: 13px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; min-width: 180px; }
         .server-select:focus { outline: none; border-color: #3fb950; }
-        .btn-new-server { padding: 8px 16px; background: #3fb950; color: #0f1117; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+        .btn-new-server { padding: 8px 16px; background: #3fb950; color: #0f1117; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .btn-new-server:hover { background: #4ade80; }
+        .server-tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
+        .server-tab { padding: 8px 16px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+        .server-tab:hover { color: #e6edf3; background: #1c2128; border-radius: 6px 6px 0 0; }
+        .server-tab.active { color: #3fb950; border-bottom-color: #3fb950; }
+        .server-tab .tab-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+        .server-tab .tab-dot.online { background: #3fb950; }
+        .server-tab .tab-dot.offline { background: #f85149; }
         .header-right { display: flex; align-items: center; gap: 16px; }
         .status-badge { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; background: #161b22; border: 1px solid #30363d; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f85149; }
@@ -268,9 +275,7 @@
             <header class="header">
                 <div class="header-left">
                     <h2 id="section-title">Dashboard</h2>
-                    <select class="server-select" id="server-select">
-                        <option value="">Cargando...</option>
-                    </select>
+                    <div class="server-tabs" id="server-tabs"></div>
                     <button class="btn-new-server" onclick="openNewServerModal()"><i class="fas fa-plus"></i> Nuevo</button>
                 </div>
                 <div class="header-right">
@@ -482,6 +487,30 @@
                                 </div>
                                 <input type="hidden" id="prop-animals" value="true">
                             </div>
+                            <div class="setting-field">
+                                <label>Distancia de renderizado (chunks)</label>
+                                <input type="number" id="prop-render-distance" min="2" max="32" placeholder="10">
+                            </div>
+                            <div class="setting-field">
+                                <label>Distancia de simulación (chunks)</label>
+                                <input type="number" id="prop-simulation-distance" min="2" max="32" placeholder="10">
+                            </div>
+                            <div class="setting-field">
+                                <label>Distancia de visión (chunks)</label>
+                                <input type="number" id="prop-view-distance" min="2" max="32" placeholder="10">
+                            </div>
+                            <div class="setting-field">
+                                <label>Protección de spawn (radio)</label>
+                                <input type="number" id="prop-spawn-protection" min="0" max="100" placeholder="16">
+                            </div>
+                            <div class="setting-field">
+                                <label>Bloques de comandos</label>
+                                <div class="toggle-group">
+                                    <button class="toggle-btn" data-target="prop-command-blocks" data-value="true">Activado</button>
+                                    <button class="toggle-btn active" data-target="prop-command-blocks" data-value="false">Desactivado</button>
+                                </div>
+                                <input type="hidden" id="prop-command-blocks" value="false">
+                            </div>
                             <button class="btn btn-primary" onclick="saveServerProperties()" style="margin-top:8px;"><i class="fas fa-save"></i> Guardar cambios</button>
                         </div>
 
@@ -495,11 +524,26 @@
                                 <label>Nivel</label>
                                 <input type="text" id="world-level" readonly style="color:#8b949e;" value="Cargando...">
                             </div>
-                            <div class="danger-zone" style="margin-top:16px;border:1px solid #f8514940;border-radius:8px;padding:16px;background:#f8514908;">
-                                <h4 style="color:#f85149;font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;"><i class="fas fa-exclamation-triangle"></i> Zona de Peligro</h4>
-                                <p style="font-size:13px;color:#8b949e;margin-bottom:12px;">Resetear el mundo borrará todo el progreso. Se creará un backup automático antes de resetear.</p>
-                                <button class="btn btn-danger" onclick="openResetWorldModal()"><i class="fas fa-trash-alt"></i> Resetear Mundo</button>
+                            <div style="margin-top:16px;border:1px solid #30363d;border-radius:8px;padding:16px;">
+                                <h4 style="font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;"><i class="fas fa-upload"></i> Subir mundo</h4>
+                                <p style="font-size:13px;color:#8b949e;margin-bottom:12px;">Sube un archivo .zip con el mundo. Se hará backup automático del mundo actual antes de reemplazarlo.</p>
+                                <input type="file" id="world-upload-input" accept=".zip" style="display:none;" onchange="uploadWorld(this)">
+                                <div style="display:flex;gap:8px;">
+                                    <button class="btn btn-primary" onclick="document.getElementById('world-upload-input').click()"><i class="fas fa-file-archive"></i> Seleccionar .zip</button>
+                                    <span id="upload-status" style="font-size:13px;color:#8b949e;display:flex;align-items:center;"></span>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                    <div class="update-card" style="margin-top:20px;">
+                        <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-history"></i> Copias de mundo de Minecraft</h3>
+                        <p style="font-size:13px;color:#8b949e;margin-bottom:16px;">Se hace un backup automático cada vez que se detiene el servidor. También puedes crear backups manualmente.</p>
+                        <div style="display:flex;gap:8px;margin-bottom:16px;">
+                            <button class="btn btn-primary" onclick="createBackup()"><i class="fas fa-save"></i> Crear backup ahora</button>
+                            <button class="btn btn-secondary" onclick="loadBackups()"><i class="fas fa-sync"></i> Refrescar</button>
+                        </div>
+                        <div id="backup-list">
+                            <p style="font-size:13px;color:#484f58;">Cargando backups...</p>
                         </div>
                     </div>
                 </section>
@@ -560,25 +604,6 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeBanModal()">Cancelar</button>
                 <button class="btn btn-danger" onclick="executeBan()"><i class="fas fa-ban"></i> Banear</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: RESET MUNDO -->
-    <div class="modal-overlay" id="modal-reset-world" onclick="if(event.target===this) closeResetWorldModal()">
-        <div class="modal">
-            <h2><i class="fas fa-exclamation-triangle" style="color:#f85149;"></i> Resetear Mundo</h2>
-            <div class="danger-zone">
-                <h4><i class="fas fa-skull-crossbones"></i> ¡Esto es irreversible!</h4>
-                <p style="font-size:13px;color:#8b949e;">Todo el mundo actual será respaldado y se generará uno nuevo. El backup se guardará como <code style="color:#e6edf3;">world_backup_YYYY-MM-DD</code>.</p>
-            </div>
-            <p>Escribe <strong>CONFIRMAR</strong> para habilitar el botón de reseteo.</p>
-            <div class="confirm-input">
-                <input type="text" id="input-reset-confirm" placeholder="Escribe CONFIRMAR" oninput="onResetConfirmInput()">
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeResetWorldModal()">Cancelar</button>
-                <button class="btn btn-danger" id="btn-reset-world" disabled onclick="executeResetWorld()"><i class="fas fa-trash-alt"></i> Resetear Mundo</button>
             </div>
         </div>
     </div>
@@ -665,19 +690,24 @@
                     text.textContent = 'Fuera de línea';
                 }
 
-                const sel = document.getElementById('server-select');
-                sel.innerHTML = '';
+                // Renderizar tabs de servidores
+                const tabsContainer = document.getElementById('server-tabs');
+                tabsContainer.innerHTML = '';
                 if (data.servers && data.servers.length > 0) {
                     data.servers.forEach(s => {
-                        const opt = document.createElement('option');
-                        opt.value = s; opt.textContent = s;
-                        if (s === data.active_server) opt.selected = true;
-                        sel.appendChild(opt);
+                        const tab = document.createElement('button');
+                        tab.className = 'server-tab';
+                        if (s === data.active_server) tab.classList.add('active');
+                        const dot = document.createElement('span');
+                        dot.className = 'tab-dot ' + (data.minecraft_running && s === data.active_server ? 'online' : 'offline');
+                        tab.appendChild(dot);
+                        tab.appendChild(document.createTextNode(s));
+                        tab.onclick = () => { if (s !== data.active_server) selectServer(s); };
+                        tabsContainer.appendChild(tab);
                     });
                 } else {
-                    sel.innerHTML = '<option value="">Sin servidores</option>';
+                    tabsContainer.innerHTML = '<span style="font-size:13px;color:#484f58;padding:8px 0;">Sin servidores</span>';
                 }
-                sel.onchange = () => { if (sel.value) selectServer(sel.value); };
 
                 document.getElementById('sidebar-active-server').textContent = data.active_server || 'Ninguno';
 
@@ -710,7 +740,17 @@
                 }
 
                 if (data.active_server) {
-                    document.getElementById('card-players').textContent = '0 / 20';
+                    if (data.minecraft_running) {
+                        // Obtener contador real de jugadores
+                        fetch('/api/players').then(r => r.json()).then(pd => {
+                            const count = (pd.players && pd.players.length) || 0;
+                            document.getElementById('card-players').textContent = count + ' / 20';
+                            document.getElementById('sidebar-player-count').textContent = count;
+                        }).catch(() => {});
+                    } else {
+                        document.getElementById('card-players').textContent = '0 / 20';
+                        document.getElementById('sidebar-player-count').textContent = '0';
+                    }
                 }
             } catch (e) {
                 console.error('status error:', e);
@@ -757,7 +797,21 @@
                     body: JSON.stringify({server_name: name})
                 });
                 const data = await res.json();
-                if (data.success) { toast('Servidor cambiado a ' + name, 'success'); loadStatus(); }
+                if (data.success) {
+                    toast('Servidor cambiado a ' + name, 'success');
+                    // Actualizar tabs visualmente
+                    document.querySelectorAll('.server-tab').forEach(t => {
+                        t.classList.toggle('active', t.textContent.trim() === name);
+                    });
+                    await loadStatus();
+                    // Recargar datos de la sección actual
+                    const activeSection = document.querySelector('.section.active');
+                    if (activeSection) {
+                        const id = activeSection.id.replace('section-', '');
+                        if (id === 'settings') loadSettings();
+                        if (id === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); }
+                    }
+                }
                 else toast(data.error || 'Error', 'error');
             } catch(e) { toast('Error de conexión', 'error'); }
         }
@@ -773,7 +827,7 @@
                     toast('Servidor iniciando...', 'success');
                     state.running = true;
                     state.uptimeSeconds = 0;
-                    setTimeout(loadStatus, 3000);
+                    await waitForStatus(true, 30);
                 } else {
                     let msg = data.error || 'Error al iniciar';
                     if (data.output) msg += '\n\n' + data.output.join('\n').slice(-500);
@@ -791,6 +845,22 @@
             }
         }
 
+        async function waitForStatus(targetRunning, maxAttempts) {
+            for (let i = 0; i < maxAttempts; i++) {
+                try {
+                    const r = await fetch('/api/status');
+                    const d = await r.json();
+                    if (d.minecraft_running === targetRunning) {
+                        await loadStatus();
+                        return true;
+                    }
+                } catch(e) {}
+                await new Promise(r => setTimeout(r, 1000));
+            }
+            await loadStatus();
+            return false;
+        }
+
         async function stopServer() {
             const btn = document.getElementById('btn-stop');
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deteniendo...';
@@ -800,7 +870,7 @@
                 if (data.success) {
                     toast('Servidor detenido', 'success');
                     state.running = false;
-                    setTimeout(loadStatus, 2000);
+                    await waitForStatus(false, 15);
                 } else {
                     toast(data.error || 'Error al detener', 'error');
                     btn.disabled = false;
@@ -823,14 +893,9 @@
             closeRestartModal();
             toast('Reiniciando servidor...', 'info');
             const stopRes = await fetch('/api/server/stop', {method:'POST'});
-            await new Promise(r => setTimeout(r, 3000));
+            await waitForStatus(false, 15);
             const startRes = await fetch('/api/server/start', {method:'POST'});
-            if (startRes.ok) {
-                const data = await startRes.json();
-                if (data.success) { toast('Servidor reiniciado', 'success'); state.running = true; state.uptimeSeconds = 0; }
-                else toast('Error al reiniciar: ' + (data.error || ''), 'error');
-            }
-            setTimeout(loadStatus, 2000);
+            await waitForStatus(true, 30);
         }
 
         // ============ IP COPY ============
@@ -1255,6 +1320,11 @@
                     setToggle('prop-pvp', data.properties['pvp'] !== 'false');
                     setToggle('prop-monsters', data.properties['spawn-monsters'] !== 'false');
                     setToggle('prop-animals', data.properties['spawn-animals'] !== 'false');
+                    document.getElementById('prop-render-distance').value = data.properties['render-distance'] || '10';
+                    document.getElementById('prop-simulation-distance').value = data.properties['simulation-distance'] || '10';
+                    document.getElementById('prop-view-distance').value = data.properties['view-distance'] || '10';
+                    document.getElementById('prop-spawn-protection').value = data.properties['spawn-protection'] || '16';
+                    setToggle('prop-command-blocks', data.properties['enable-command-block'] === 'true');
                     document.getElementById('world-level').value = data.properties['level-name'] || 'world';
                     document.getElementById('world-seed').value = data.properties['level-seed'] || '(no configurada)';
                 }
@@ -1269,6 +1339,8 @@
                     document.getElementById('current-version').textContent = 'No disponible';
                 }
             } catch(e) { console.error('version check error:', e); }
+
+            loadBackups();
         }
 
         function setToggle(id, on) {
@@ -1299,6 +1371,11 @@
                 'pvp': document.getElementById('prop-pvp').value,
                 'spawn-monsters': document.getElementById('prop-monsters').value,
                 'spawn-animals': document.getElementById('prop-animals').value,
+                'render-distance': document.getElementById('prop-render-distance').value || '10',
+                'simulation-distance': document.getElementById('prop-simulation-distance').value || '10',
+                'view-distance': document.getElementById('prop-view-distance').value || '10',
+                'spawn-protection': document.getElementById('prop-spawn-protection').value || '16',
+                'enable-command-block': document.getElementById('prop-command-blocks').value,
             };
             try {
                 const res = await fetch('/api/settings/server-properties', {
@@ -1393,34 +1470,104 @@
             }
         }
 
-        // ============ WORLD RESET ============
-        function openResetWorldModal() {
-            document.getElementById('modal-reset-world').classList.add('active');
-            document.getElementById('input-reset-confirm').value = '';
-            document.getElementById('btn-reset-world').disabled = true;
+        // ============ UPLOAD MUNDO ============
+        function uploadWorld(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const status = document.getElementById('upload-status');
+            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+            const formData = new FormData();
+            formData.append('file', file);
+            fetch('/api/settings/upload-world', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    toast('Mundo subido correctamente', 'success');
+                    status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                } else {
+                    toast(data.error || 'Error al subir', 'error');
+                    status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                }
+                setTimeout(() => { status.innerHTML = ''; }, 3000);
+            })
+            .catch(e => {
+                toast('Error de conexión', 'error');
+                status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+            });
+            input.value = '';
         }
-        function closeResetWorldModal() {
-            document.getElementById('modal-reset-world').classList.remove('active');
-        }
-        function onResetConfirmInput() {
-            const val = document.getElementById('input-reset-confirm').value.trim();
-            document.getElementById('btn-reset-world').disabled = val !== 'CONFIRMAR';
-        }
-        async function executeResetWorld() {
-            closeResetWorldModal();
-            toast('Reseteando mundo...', 'warning');
+
+        // ============ BACKUPS ============
+        async function createBackup() {
+            toast('Creando backup...', 'info');
             try {
-                const res = await fetch('/api/settings/reset-world', {method:'POST'});
+                const res = await fetch('/api/settings/backup-world', {method:'POST'});
                 const data = await res.json();
                 if (data.success) {
-                    toast(data.message || 'Mundo reseteado', 'success');
-                    setTimeout(() => { loadSettings(); }, 2000);
+                    toast(data.message || 'Backup creado', 'success');
+                    loadBackups();
                 } else {
-                    toast(data.error || 'Error al resetear mundo', 'error');
+                    toast(data.error || 'Error al crear backup', 'error');
+                }
+            } catch(e) { toast('Error de conexión', 'error'); }
+        }
+
+        async function loadBackups() {
+            const container = document.getElementById('backup-list');
+            container.innerHTML = '<p style="font-size:13px;color:#484f58;">Cargando backups...</p>';
+            try {
+                const res = await fetch('/api/settings/backups');
+                const data = await res.json();
+                if (data.success && data.backups && data.backups.length > 0) {
+                    container.innerHTML = '<table class="data-table"><thead><tr><th>Fecha</th><th>Tamaño</th><th style="text-align:center;">Acciones</th></tr></thead><tbody>' +
+                        data.backups.map(b => `
+                            <tr>
+                                <td><i class="fas fa-archive" style="color:#8b949e;margin-right:8px;"></i>${b.date}</td>
+                                <td>${b.size_display}</td>
+                                <td style="text-align:center;">
+                                    <button class="btn btn-secondary btn-sm" onclick="restoreBackup('${b.name}')" title="Restaurar"><i class="fas fa-undo"></i></button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteBackup('${b.name}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        `).join('') + '</tbody></table>';
+                } else {
+                    container.innerHTML = '<p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">No hay backups todavía. Los backups se crean automáticamente al detener el servidor.</p>';
                 }
             } catch(e) {
-                toast('Error de conexión', 'error');
+                container.innerHTML = '<p style="font-size:13px;color:#f85149;">Error al cargar backups</p>';
             }
+        }
+
+        async function restoreBackup(name) {
+            if (!confirm('¿Restaurar el backup "' + name + '"? El mundo actual será respaldado primero.')) return;
+            toast('Restaurando backup...', 'info');
+            try {
+                const res = await fetch('/api/settings/backups/restore', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({backup_name: name})
+                });
+                const data = await res.json();
+                toast(data.message || data.error, data.success ? 'success' : 'error');
+                if (data.success) loadBackups();
+            } catch(e) { toast('Error de conexión', 'error'); }
+        }
+
+        async function deleteBackup(name) {
+            if (!confirm('¿Eliminar el backup "' + name + '" permanentemente?')) return;
+            try {
+                const res = await fetch('/api/settings/backups/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({backup_name: name})
+                });
+                const data = await res.json();
+                toast(data.message || data.error, data.success ? 'success' : 'error');
+                if (data.success) loadBackups();
+            } catch(e) { toast('Error de conexión', 'error'); }
         }
 
         // ============ ERROR DETAIL MODAL ============
@@ -1460,9 +1607,9 @@
         window.whitelistRemove = whitelistRemove; window.openBanModal = openBanModal; window.closeBanModal = closeBanModal;
         window.executeBan = executeBan; window.openNewServerModal = openNewServerModal; window.closeNewServerModal = closeNewServerModal;
         window.createAndInstallServer = createAndInstallServer; window.onServerTypeChange = onServerTypeChange;
-        window.checkUpdates = checkUpdates; window.performUpdate = performUpdate; window.openResetWorldModal = openResetWorldModal;
-        window.closeResetWorldModal = closeResetWorldModal; window.onResetConfirmInput = onResetConfirmInput;
-        window.executeResetWorld = executeResetWorld; window.saveServerProperties = saveServerProperties;
+        window.checkUpdates = checkUpdates; window.performUpdate = performUpdate; window.saveServerProperties = saveServerProperties;
+        window.uploadWorld = uploadWorld; window.createBackup = createBackup; window.loadBackups = loadBackups;
+        window.restoreBackup = restoreBackup; window.deleteBackup = deleteBackup;
         window.loadSettings = loadSettings; window.showErrorDetail = showErrorDetail; window.closeErrorDetailModal = closeErrorDetailModal;
         window.hideModalError = hideModalError; window.selectServer = selectServer;
     </script>

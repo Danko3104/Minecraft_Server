@@ -353,6 +353,126 @@ def api_settings_reset_world():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/settings/backup-world', methods=['POST'])
+def api_settings_backup_world():
+    """
+    POST /api/settings/backup-world — Backup manual del mundo.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        result = server_manager._backup_world(active_server)
+        if result:
+            return jsonify({"success": True, "backup_name": result, "message": f"Backup creado: {result}"})
+        else:
+            return jsonify({"success": False, "error": "No se pudo crear el backup"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/backups', methods=['GET'])
+def api_settings_list_backups():
+    """
+    GET /api/settings/backups — Lista backups del servidor activo.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        backups = server_manager.list_backups(active_server)
+        return jsonify({"success": True, "backups": backups})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/backups/restore', methods=['POST'])
+def api_settings_restore_backup():
+    """
+    POST /api/settings/backups/restore — Restaura un backup.
+    Body: {"backup_name": "..."}
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        data = request.get_json()
+        backup_name = data.get('backup_name', '') if data else ''
+        if not backup_name:
+            return jsonify({"success": False, "error": "Falta 'backup_name'"}), 400
+
+        result = server_manager.restore_backup(active_server, backup_name)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/backups/delete', methods=['POST'])
+def api_settings_delete_backup():
+    """
+    POST /api/settings/backups/delete — Elimina un backup.
+    Body: {"backup_name": "..."}
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        data = request.get_json()
+        backup_name = data.get('backup_name', '') if data else ''
+        if not backup_name:
+            return jsonify({"success": False, "error": "Falta 'backup_name'"}), 400
+
+        result = server_manager.delete_backup(active_server, backup_name)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/upload-world', methods=['POST'])
+def api_settings_upload_world():
+    """
+    POST /api/settings/upload-world — Sube un .zip para reemplazar el mundo.
+    Body: multipart/form-data con campo 'file'
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No se envió ningún archivo"}), 400
+
+        file = request.files['file']
+        if not file.filename.endswith('.zip'):
+            return jsonify({"success": False, "error": "Solo se aceptan archivos .zip"}), 400
+
+        # Guardar temporalmente
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp:
+            file.save(tmp.name)
+            tmp_path = tmp.name
+
+        try:
+            result = server_manager.upload_world(active_server, tmp_path)
+            return jsonify(result)
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # =============================================================================
 # FIN RUTAS DE CONFIGURACIÓN
 # =============================================================================
