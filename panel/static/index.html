@@ -320,7 +320,7 @@
                                 <span class="stat-label">Jugadores</span>
                                 <i class="fas fa-user"></i>
                             </div>
-                            <div class="stat-value" id="card-players">0 / 20</div>
+                            <div class="stat-value" id="card-players">0 / --</div>
                             <div class="stat-sub" id="card-players-sub">Conectados</div>
                         </div>
                         <div class="stat-card">
@@ -713,7 +713,8 @@
             uptimeSeconds: 0,
             colabRemaining: 43200,
             sessionStart: Date.now(),
-            minecraftStart: null
+            minecraftStart: null,
+            maxPlayers: 20
         };
         let statusInterval = null;
         let consoleInterval = null;
@@ -825,14 +826,18 @@
 
                 if (data.active_server) {
                     if (data.minecraft_running) {
-                        // Obtener contador real de jugadores
                         fetch('/api/players').then(r => r.json()).then(pd => {
                             const count = (pd.players && pd.players.length) || 0;
-                            document.getElementById('card-players').textContent = count + ' / 20';
+                            const mx = pd.max || 20;
+                            state.maxPlayers = mx;
+                            document.getElementById('card-players').textContent = count + ' / ' + mx;
+                            document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
                             document.getElementById('sidebar-player-count').textContent = count;
                         }).catch(() => {});
                     } else {
-                        document.getElementById('card-players').textContent = '0 / 20';
+                        const mx = state.maxPlayers || 20;
+                        document.getElementById('card-players').textContent = '0 / ' + mx;
+                        document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
                         document.getElementById('sidebar-player-count').textContent = '0';
                     }
                 }
@@ -1181,11 +1186,14 @@
             try {
                 const res = await fetch('/api/players');
                 const data = await res.json();
+                const mx = data.max || state.maxPlayers || 20;
+                state.maxPlayers = mx;
                 const grid = document.getElementById('players-grid');
                 if (data.players && data.players.length > 0) {
                     state.players = data.players;
                     document.getElementById('sidebar-player-count').textContent = data.players.length;
-                    document.getElementById('card-players').textContent = data.players.length + ' / 20';
+                    document.getElementById('card-players').textContent = data.players.length + ' / ' + mx;
+                    document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
                     grid.innerHTML = data.players.map(p => `
                         <div class="player-card">
                             <img class="avatar" src="https://mc-heads.net/avatar/${p}/32" alt="${p}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Crect fill=%22%2321262d%22 width=%2232%22 height=%2232%22/%3E%3Ctext x=%2216%22 y=%2221%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2214%22%3E${p[0].toUpperCase()}%3C/text%3E%3C/svg%3E'">
@@ -1202,8 +1210,10 @@
                     `).join('');
                 } else {
                     state.players = [];
+                    const mx = state.maxPlayers || 20;
                     document.getElementById('sidebar-player-count').textContent = '0';
-                    document.getElementById('card-players').textContent = '0 / 20';
+                    document.getElementById('card-players').textContent = '0 / ' + mx;
+                    document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
                     grid.innerHTML = '<div class="player-empty"><i class="fas fa-user-slash"></i><p>Nadie conectado todavía</p></div>';
                 }
             } catch(e) { console.error('loadPlayers error:', e); }

@@ -20,29 +20,39 @@ def api_players():
     try:
         resp = _get_command('list')
         players = []
+        max_players = 20
 
         def _parse_player_list(text):
             import re
-            m = re.search(r'There are (\d+) of (?:max )?(\d+) players? online:\s*(.*)', text)
+            m = re.search(r'There are (\d+) of .*? (\d+) players? online:\s*(.*)', text)
             if m:
+                count = int(m.group(1))
+                mx = int(m.group(2))
                 names = m.group(3).strip()
-                if names:
-                    return [n.strip() for n in names.split(',') if n.strip()]
-            return None
+                lst = []
+                if names and names != 'There are no':
+                    lst = [n.strip() for n in names.split(',') if n.strip()]
+                return lst, mx
+            return None, None
 
-        if resp:
-            parsed = _parse_player_list(resp)
-            if parsed is not None:
-                players = parsed
-            else:
-                from panel.server_manager import server_manager
+        parsed, mx = _parse_player_list(resp)
+        if parsed is not None:
+            players = parsed
+            max_players = mx
+        else:
+            from panel.server_manager import server_manager
+            import time
+            # Esperar hasta 2s a que aparezca el output del comando 'list' en stdout
+            for _ in range(10):
                 for line in reversed(server_manager.get_last_output()):
-                    parsed = _parse_player_list(line)
+                    parsed, mx = _parse_player_list(line)
                     if parsed is not None:
                         players = parsed
-                        break
+                        max_players = mx
+                        return jsonify({"players": players, "max": max_players, "raw": resp})
+                time.sleep(0.2)
 
-        return jsonify({"players": players, "raw": resp})
+        return jsonify({"players": players, "max": max_players, "raw": resp})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
