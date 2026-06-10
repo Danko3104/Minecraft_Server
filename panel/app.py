@@ -243,6 +243,121 @@ def api_server_last_output():
         }), 500
 
 
+# =============================================================================
+# RUTAS DE CONFIGURACIÓN (SETTINGS)
+# =============================================================================
+
+
+@app.route('/api/settings/server-properties', methods=['GET', 'PUT'])
+def api_settings_server_properties():
+    """
+    GET /api/settings/server-properties — Lee server.properties del servidor activo
+    PUT /api/settings/server-properties — Guarda server.properties
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        if request.method == 'GET':
+            props = server_manager.read_server_properties(active_server)
+            return jsonify({"success": True, "properties": props})
+
+        elif request.method == 'PUT':
+            data = request.get_json()
+            if not data or 'properties' not in data:
+                return jsonify({"success": False, "error": "Faltan 'properties' en el body"}), 400
+
+            success = server_manager.write_server_properties(active_server, data['properties'])
+            if success:
+                return jsonify({"success": True, "message": "Propiedades guardadas"})
+            else:
+                return jsonify({"success": False, "error": "Error al guardar server.properties"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/paper-version', methods=['GET'])
+def api_settings_paper_version():
+    """
+    GET /api/settings/paper-version — Retorna la versión de PaperMC instalada.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        version = server_manager.get_paper_version(active_server)
+        return jsonify({"success": True, "version": version or "Desconocida"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/check-updates', methods=['POST'])
+def api_settings_check_updates():
+    """
+    POST /api/settings/check-updates — Consulta API de PaperMC por versiones más nuevas.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        result = server_manager.check_paper_updates(active_server)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/update', methods=['POST'])
+def api_settings_update():
+    """
+    POST /api/settings/update — Actualiza PaperMC a la versión especificada.
+    Body: {"version": "1.21.1"}
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        data = request.get_json()
+        version = data.get('version', '') if data else ''
+
+        if not version:
+            return jsonify({"success": False, "error": "Falta 'version' en el body"}), 400
+
+        result = server_manager.update_paper(active_server, version)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/reset-world', methods=['POST'])
+def api_settings_reset_world():
+    """
+    POST /api/settings/reset-world — Resetea el mundo con backup.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        result = server_manager.reset_world(active_server)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# =============================================================================
+# FIN RUTAS DE CONFIGURACIÓN
+# =============================================================================
+
+
 @app.route('/api/server/diagnose', methods=['GET'])
 def api_server_diagnose():
     """

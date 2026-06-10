@@ -9,6 +9,9 @@ import time
 import subprocess
 import json
 import threading
+import shutil
+import re
+import zipfile
 from datetime import datetime
 from typing import Optional, Dict, List
 
@@ -692,6 +695,279 @@ class ServerManager:
             return "Comando enviado"
         except Exception as e:
             return f"Error al enviar comando: {e}"
+
+    # =========================================================================
+    # MÉTODOS DE CONFIGURACIÓN (SETTINGS)
+    # =========================================================================
+
+    def read_server_properties(self, server_name: str) -> Dict[str, str]:
+        """
+        Lee server.properties y retorna como dict.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            props_path = os.path.join(server_path, 'server.properties')
+            props = {}
+            if os.path.exists(props_path):
+                with open(props_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and '=' in line and not line.startswith('#'):
+                            key, _, value = line.partition('=')
+                            props[key.strip()] = value.strip()
+            return props
+        except Exception as e:
+            print(f"[ERROR] read_server_properties: {e}")
+            return {}
+
+    def write_server_properties(self, server_name: str, new_props: Dict[str, str]) -> bool:
+        """
+        Actualiza server.properties con los valores dados.
+        Solo sobreescribe las claves existentes; agrega las que faltan.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            props_path = os.path.join(server_path, 'server.properties')
+            current = self.read_server_properties(server_name)
+
+            # Actualizar solo las claves dadas
+            current.update(new_props)
+
+            # Asegurar valores críticos
+            current['enable-rcon'] = 'true'
+            current['rcon.port'] = str(self.rcon_port)
+            current['rcon.password'] = self.rcon_password
+            current['server-port'] = '25565'
+            current['online-mode'] = 'false'
+            current['enforce-secure-profile'] = 'false'
+            current['white-list'] = 'true'
+
+            lines = []
+            seen = set()
+            if os.path.exists(props_path):
+                with open(props_path, 'r') as f:
+                    for line in f:
+                        stripped = line.strip()
+                        if '=' in stripped and not stripped.startswith('#'):
+                            key = stripped.split('=', 1)[0].strip()
+                            seen.add(key)
+                            if key in current:
+                                lines.append(f'{key}={current[key]}\n')
+                            else:
+                                lines.append(line)
+                        else:
+                            lines.append(line)
+
+            for k, v in current.items():
+                if k not in seen:
+                    lines.append(f'{k}={v}\n')
+
+            with open(props_path, 'w') as f:
+                f.writelines(lines)
+
+            print(f"[INFO] server.properties actualizado para '{server_name}'")
+            return True
+        except Exception as e:
+            print(f"[ERROR] write_server_properties: {e}")
+            return False
+
+    def get_paper_version(self, server_name: str) -> Optional[str]:
+        """
+        Obtiene la versión de PaperMC desde el manifest del JAR.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            jar_path = os.path.join(server_path, 'paper.jar')
+
+            if not os.path.exists(jar_path):
+                # Intentar server.jar
+                jar_path = os.path.join(server_path, 'server.jar')
+                if not os.path.exists(jar_path):
+                    return None
+
+            # Leer version.json del JAR
+            with zipfile.ZipFile(jar_path, 'r') as zf:
+                if 'version.json' in zf.namelist():
+                    with zf.open('version.json') as f:
+                        data = json.loads(f.read().decode('utf-8'))
+                        return data.get('name', data.get('id', 'Desconocida'))
+
+                # Alternativa: leer paper.yml
+                if 'META-INF/versions.list' in zf.namelist():
+                    with zf.open('META-INF/versions.list') as f:
+                        content = f.read().decode('utf-8').strip()
+                        if content:
+                            return content.split('\n')[-1].split('\t')[-1]
+
+            return None
+        except Exception as e:
+            print(f"[ERROR] get_paper_version: {e}")
+            return None
+
+    def check_paper_updates(self, server_name: str) -> Dict:
+        """
+        Consulta la API de PaperMC para ver si hay versión más nueva.
+        """
+        try:
+            current_version = self.get_paper_version(server_name)
+            if not current_version:
+                return {"success": False, "error": "No se pudo determinar la versión actual"}
+
+            import requests
+            response = requests.get(
+                'https://api.papermc.io/v2/projects/paper',
+                timeout=10
+            )
+            response.raise_for_status()
+            data = response.json()
+            all_versions = data.get('versions', [])
+
+            # Encontrar versión más nueva
+            def parse_version(v):
+                parts = str(v).split('.')
+                try:
+                    return tuple(int(p) for p in parts)
+                except ValueError:
+                    return (0,)
+
+            sorted_versions = sorted(all_versions, key=parse_version)
+            latest = sorted_versions[-1] if sorted_versions else current_version
+
+            # Comparar
+            is_update = parse_version(latest) > parse_version(current_version)
+
+            return {
+                "success": True,
+                "current_version": current_version,
+                "latest_version": latest,
+                "update_available": is_update,
+                "all_versions": all_versions[-5:]  # Últimas 5
+            }
+        except Exception as e:
+            print(f"[ERROR] check_paper_updates: {e}")
+            return {"success": False, "error": str(e)}
+
+    def update_paper(self, server_name: str, target_version: str) -> Dict:
+        """
+        Actualiza PaperMC: detiene servidor, respalda mundo, descarga nuevo JAR, reinicia.
+        Retorna steps con estado para mostrar progreso en el frontend.
+        """
+        steps = []
+
+        try:
+            server_path = self.get_server_path(server_name)
+
+            # Paso 1: Detener servidor
+            steps.append({"step": "stop", "status": "active", "message": "Deteniendo servidor..."})
+            if self.is_running():
+                self.stop()
+                time.sleep(2)
+            steps[-1]["status"] = "done"
+            steps[-1]["message"] = "Servidor detenido"
+
+            # Paso 2: Backup del mundo
+            steps.append({"step": "backup", "status": "active", "message": "Haciendo backup del mundo..."})
+            world_path = os.path.join(server_path, 'world')
+            if os.path.exists(world_path):
+                backup_name = f'world_backup_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                backup_path = os.path.join(server_path, backup_name)
+                shutil.copytree(world_path, backup_path)
+                steps[-1]["message"] = f"Backup creado: {backup_name}"
+            else:
+                steps[-1]["message"] = "No se encontró mundo para backup"
+            steps[-1]["status"] = "done"
+
+            # Paso 3: Descargar nuevo Paper
+            steps.append({"step": "download", "status": "active", "message": f"Descargando Paper {target_version}..."})
+
+            import requests
+            # Obtener builds
+            res = requests.get(
+                f'https://api.papermc.io/v2/projects/paper/versions/{target_version}',
+                timeout=10
+            )
+            res.raise_for_status()
+            version_data = res.json()
+            builds = version_data.get('builds', [])
+            if not builds:
+                raise Exception(f"No hay builds para Paper {target_version}")
+            build = builds[-1]
+
+            # Obtener detalles del build
+            res = requests.get(
+                f'https://api.papermc.io/v2/projects/paper/versions/{target_version}/builds/{build}',
+                timeout=10
+            )
+            res.raise_for_status()
+            build_data = res.json()
+            jar_name = build_data['downloads']['application']['name']
+
+            # Descargar
+            download_url = f'https://api.papermc.io/v2/projects/paper/versions/{target_version}/builds/{build}/downloads/{jar_name}'
+            res = requests.get(download_url, stream=True, timeout=120)
+            res.raise_for_status()
+
+            jar_path = os.path.join(server_path, 'paper.jar')
+            total = int(res.headers.get('content-length', 0))
+            downloaded = 0
+            with open(jar_path, 'wb') as f:
+                for chunk in res.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    downloaded += len(chunk)
+
+            steps[-1]["status"] = "done"
+            steps[-1]["message"] = f"Paper {target_version} (build {build}) descargado"
+
+            # Paso 4: Iniciar servidor
+            steps.append({"step": "restart", "status": "active", "message": "Reiniciando servidor..."})
+            start_result = self.start(server_name)
+            if start_result.get("success"):
+                steps[-1]["status"] = "done"
+                steps[-1]["message"] = "Servidor iniciado"
+            else:
+                steps[-1]["status"] = "done"
+                steps[-1]["message"] = f"Servidor listo para iniciar manualmente ({start_result.get('error', '')})"
+
+            return {"success": True, "steps": steps}
+
+        except Exception as e:
+            print(f"[ERROR] update_paper: {e}")
+            steps.append({"step": "error", "status": "error", "message": str(e)})
+            return {"success": False, "error": str(e), "steps": steps}
+
+    def reset_world(self, server_name: str) -> Dict:
+        """
+        Resetea el mundo: backup + eliminación + reinicio.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            world_path = os.path.join(server_path, 'world')
+
+            # Detener servidor si corre
+            was_running = self.is_running()
+            if was_running:
+                self.stop()
+                time.sleep(2)
+
+            # Backup del mundo actual
+            if os.path.exists(world_path):
+                backup_name = f'world_old_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                backup_path = os.path.join(server_path, backup_name)
+                shutil.copytree(world_path, backup_path)
+                shutil.rmtree(world_path)
+                msg = f"Mundo respaldado como '{backup_name}' y eliminado"
+            else:
+                msg = "No se encontró mundo para resetear"
+
+            # Reiniciar servidor si estaba corriendo
+            if was_running:
+                self.start(server_name)
+
+            return {"success": True, "message": msg}
+
+        except Exception as e:
+            print(f"[ERROR] reset_world: {e}")
+            return {"success": False, "error": str(e)}
 
 
 # =============================================================================
