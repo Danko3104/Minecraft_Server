@@ -1085,7 +1085,7 @@ class ServerManager:
             steps.append({"step": "backup", "status": "active", "message": "Haciendo backup del mundo..."})
             world_path = os.path.join(server_path, 'world')
             if os.path.exists(world_path):
-                backup_name = f'world_backup_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                backup_name = f'{server_name}_preupdate_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                 backup_path = os.path.join(server_path, backup_name)
                 shutil.copytree(world_path, backup_path)
                 steps[-1]["message"] = f"Backup creado: {backup_name}"
@@ -1167,7 +1167,7 @@ class ServerManager:
 
             # Backup del mundo actual
             if os.path.exists(world_path):
-                backup_name = f'world_old_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                backup_name = f'{server_name}_prereset_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                 backup_path = os.path.join(server_path, backup_name)
                 shutil.copytree(world_path, backup_path)
                 shutil.rmtree(world_path)
