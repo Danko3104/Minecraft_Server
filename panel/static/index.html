@@ -1565,6 +1565,9 @@
                     info.innerHTML = `<div style="padding:12px;border:1px solid #d2992240;border-radius:8px;background:#d2992208;">
                         <p style="color:#d29922;font-weight:600;"><i class="fas fa-download"></i> Actualización disponible</p>
                         <p style="font-size:13px;color:#8b949e;">${data.current_version} → <strong style="color:#e6edf3;">${data.latest_version}</strong></p>
+                        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#8b949e;cursor:pointer;">
+                            <input type="checkbox" id="chk-full-backup" checked> <i class="fas fa-archive"></i> Hacer backup completo (zip) antes de actualizar
+                        </label>
                         <button class="btn btn-primary" style="margin-top:12px;" onclick="performUpdate('${data.latest_version}')"><i class="fas fa-cloud-download-alt"></i> Actualizar a ${data.latest_version}</button>
                     </div>`;
                 } else {
@@ -1584,20 +1587,26 @@
         }
 
         async function performUpdate(version) {
+            const doFullBackup = document.getElementById('chk-full-backup')?.checked || false;
             const stepsDiv = document.getElementById('update-steps');
             stepsDiv.style.display = 'block';
-            stepsDiv.innerHTML = `
+            let stepsHtml = `
                 <div class="step" id="step-stop"><i class="fas fa-circle"></i> Deteniendo servidor...</div>
-                <div class="step" id="step-backup"><i class="fas fa-circle"></i> Haciendo backup del mundo...</div>
+                <div class="step" id="step-backup"><i class="fas fa-circle"></i> Haciendo backup del mundo...</div>`;
+            if (doFullBackup) {
+                stepsHtml += `<div class="step" id="step-full_backup"><i class="fas fa-circle"></i> Haciendo backup completo del servidor...</div>`;
+            }
+            stepsHtml += `
                 <div class="step" id="step-download"><i class="fas fa-circle"></i> Descargando Paper ${version}...</div>
                 <div class="step" id="step-restart"><i class="fas fa-circle"></i> Reiniciando servidor...</div>
             `;
+            stepsDiv.innerHTML = stepsHtml;
 
             try {
                 const res = await fetch('/api/settings/update', {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({version})
+                    body: JSON.stringify({version, full_backup: doFullBackup})
                 });
                 const data = await res.json();
 

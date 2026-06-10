@@ -769,6 +769,27 @@ class ServerManager:
             print(f"[ERROR] _backup_world: {e}")
             return None
 
+    def _backup_full_server(self, server_name: str) -> Optional[str]:
+        """
+        Hace backup completo del servidor (world + config + plugins) en un zip
+        dentro de Copias de mundo de Minecraft/.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            backups_dir = self.get_backups_dir()
+            os.makedirs(backups_dir, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            backup_name = f"{server_name}_full_{timestamp}.zip"
+            backup_path = os.path.join(backups_dir, backup_name)
+
+            shutil.make_archive(backup_path[:-4], 'zip', server_path)
+            print(f"[INFO] Backup completo creado: {backup_path}")
+            return backup_name
+        except Exception as e:
+            print(f"[ERROR] _backup_full_server: {e}")
+            return None
+
     def list_backups(self, server_name: str) -> List[Dict]:
         """
         Lista los backups del servidor con fecha y tamaño.
@@ -1063,7 +1084,7 @@ class ServerManager:
             print(f"[ERROR] check_paper_updates: {e}")
             return {"success": False, "error": str(e)}
 
-    def update_paper(self, server_name: str, target_version: str) -> Dict:
+    def update_paper(self, server_name: str, target_version: str, full_backup: bool = False) -> Dict:
         """
         Actualiza PaperMC: detiene servidor, respalda mundo, descarga nuevo JAR, reinicia.
         Retorna steps con estado para mostrar progreso en el frontend.
@@ -1092,6 +1113,13 @@ class ServerManager:
             else:
                 steps[-1]["message"] = "No se encontró mundo para backup"
             steps[-1]["status"] = "done"
+
+            # Paso 2b: Backup completo opcional
+            if full_backup:
+                steps.append({"step": "full_backup", "status": "active", "message": "Haciendo backup completo del servidor..."})
+                fb = self._backup_full_server(server_name)
+                steps[-1]["message"] = f"Backup completo creado: {fb}" if fb else "Error al crear backup completo"
+                steps[-1]["status"] = "done"
 
             # Paso 3: Descargar nuevo Paper
             steps.append({"step": "download", "status": "active", "message": f"Descargando Paper {target_version}..."})

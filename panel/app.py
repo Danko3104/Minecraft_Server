@@ -358,11 +358,12 @@ def api_settings_update():
 
         data = request.get_json()
         version = data.get('version', '') if data else ''
+        full_backup = data.get('full_backup', False) if data else False
 
         if not version:
             return jsonify({"success": False, "error": "Falta 'version' en el body"}), 400
 
-        result = server_manager.update_paper(active_server, version)
+        result = server_manager.update_paper(active_server, version, full_backup)
         return jsonify(result)
 
     except Exception as e:
