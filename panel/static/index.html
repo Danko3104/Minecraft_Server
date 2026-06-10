@@ -555,7 +555,7 @@
                 <!-- ===== PLUGINS ===== -->
                 <section id="section-plugins" class="section">
                     <div class="control-card">
-                        <h3><i class="fas fa-search"></i> Buscar Plugins</h3>
+                        <h3><i class="fas fa-search"></i> Buscar Plugins <span id="plugin-server-version" style="font-size:12px;color:#8b949e;font-weight:400;"></span></h3>
                         <div class="input-group">
                             <input type="text" id="plugin-search-input" placeholder="Buscar plugins (ej: essentials, worldedit, luckperms)..." onkeydown="if(event.key==='Enter') searchPlugins()">
                             <button class="btn btn-primary" onclick="searchPlugins()"><i class="fas fa-search"></i> Buscar</button>
@@ -564,8 +564,12 @@
                     </div>
                     <div class="control-card">
                         <h3><i class="fas fa-box"></i> Plugins Instalados</h3>
-                        <div style="margin-bottom:12px;display:flex;gap:8px;">
+                        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn btn-secondary btn-sm" onclick="loadInstalledPlugins()"><i class="fas fa-sync"></i> Refrescar</button>
+                            <button class="btn btn-secondary btn-sm" onclick="checkPluginUpdates()"><i class="fas fa-cloud-upload-alt"></i> Verificar Actualizaciones</button>
+                            <label class="btn btn-secondary btn-sm" style="cursor:pointer;"><i class="fas fa-upload"></i> Subir .jar
+                                <input type="file" accept=".jar" style="display:none;" onchange="uploadPlugin(event)">
+                            </label>
                             <span style="font-size:12px;color:#8b949e;display:flex;align-items:center;">Requiere reinicio del servidor para cargar nuevos plugins</span>
                         </div>
                         <div id="installed-plugins-list">
@@ -693,7 +697,7 @@
                 if (section === 'console') { startConsolePolling(); } else { stopConsolePolling(); }
                 if (section === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); startPlayersPolling(); } else { stopPlayersPolling(); }
                 if (section === 'settings') { loadSettings(); }
-                if (section === 'plugins') { loadInstalledPlugins(); }
+                if (section === 'plugins') { loadPluginsSection(); }
             });
         });
 
@@ -836,7 +840,7 @@
                     if (activeSection) {
                         const id = activeSection.id.replace('section-', '');
                         if (id === 'settings') loadSettings();
-                        if (id === 'plugins') loadInstalledPlugins();
+                        if (id === 'plugins') loadPluginsSection();
                         if (id === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); }
                     }
                 }
@@ -1599,6 +1603,10 @@
         }
 
         // ============ PLUGINS ============
+        async function loadPluginsSection() {
+            await loadInstalledPlugins();
+        }
+
         async function searchPlugins() {
             const q = document.getElementById('plugin-search-input').value.trim();
             if (!q) { toast('Escribe un término de búsqueda', 'warning'); return; }
@@ -1608,20 +1616,23 @@
             try {
                 const res = await fetch('/api/plugins/search?q=' + encodeURIComponent(q) + '&limit=12');
                 const data = await res.json();
+                if (data.server_version) {
+                    document.getElementById('plugin-server-version').textContent = '— Servidor: ' + data.server_version;
+                }
                 if (data.success && data.results && data.results.length > 0) {
                     container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">' +
                         data.results.map(p => `
-                            <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px;display:flex;flex-direction:column;">
+                            <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px;display:flex;flex-direction:column;${p.compatible === false ? 'opacity:0.6;' : ''}">
                                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                                     ${p.icon_url ? `<img src="${p.icon_url}" style="width:28px;height:28px;border-radius:4px;" onerror="this.style.display='none'">` : `<i class="fas fa-puzzle-piece" style="font-size:20px;color:#8b949e;"></i>`}
                                     <div style="flex:1;min-width:0;">
-                                        <div style="font-weight:600;font-size:14px;">${p.name}</div>
+                                        <div style="font-weight:600;font-size:14px;">${p.name} ${p.compatible === false ? '<span style="font-size:10px;color:#f85149;font-weight:400;"><i class="fas fa-exclamation-triangle"></i> No compatible</span>' : ''}</div>
                                         <div style="font-size:11px;color:#8b949e;">${p.author} · ${p.downloads.toLocaleString()} descargas</div>
                                     </div>
                                 </div>
                                 <p style="font-size:12px;color:#8b949e;margin-bottom:12px;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description || 'Sin descripción'}</p>
                                 <div style="display:flex;gap:6px;">
-                                    <button class="btn btn-primary btn-sm" onclick="installPlugin('${p.source}','${p.slug}','${p.name}')" style="flex:1;"><i class="fas fa-download"></i> Instalar</button>
+                                    <button class="btn btn-primary btn-sm" onclick="installPlugin('${p.source}','${p.slug}','${p.name}')" style="flex:1;" ${p.compatible === false ? 'disabled' : ''}><i class="fas fa-download"></i> Instalar</button>
                                     <a href="${p.url}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;text-align:center;"><i class="fas fa-external-link-alt"></i></a>
                                 </div>
                             </div>
@@ -1643,8 +1654,19 @@
                     body: JSON.stringify({source, slug, name})
                 });
                 const data = await res.json();
-                toast(data.message || data.error, data.success ? 'success' : 'error');
-                if (data.success) loadInstalledPlugins();
+                if (data.success) {
+                    let msg = data.message;
+                    if (data.installed && data.installed.length > 1) {
+                        msg += ' (+ ' + (data.installed.length - 1) + ' dependencia(s))';
+                    }
+                    if (data.warnings && data.warnings.length > 0) {
+                        msg += ' | Advertencias: ' + data.warnings.join('; ');
+                    }
+                    toast(msg, 'success');
+                    loadInstalledPlugins();
+                } else {
+                    toast((data.server_version ? data.error + ' (servidor: ' + data.server_version + ')' : data.error) || 'Error', 'error');
+                }
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 
@@ -1654,6 +1676,9 @@
             try {
                 const res = await fetch('/api/plugins/installed');
                 const data = await res.json();
+                if (data.server_version) {
+                    document.getElementById('plugin-server-version').textContent = '— Servidor: ' + data.server_version;
+                }
                 if (data.success && data.plugins && data.plugins.length > 0) {
                     container.innerHTML = '<table class="data-table"><thead><tr><th>Plugin</th><th>Tamaño</th><th>Modificado</th><th style="text-align:center;">Acciones</th></tr></thead><tbody>' +
                         data.plugins.map(p => `
@@ -1685,6 +1710,54 @@
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
                 if (data.success) loadInstalledPlugins();
+            } catch(e) { toast('Error de conexión', 'error'); }
+        }
+
+        async function uploadPlugin(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const form = new FormData();
+            form.append('file', file);
+            toast('Subiendo ' + file.name + '...', 'info');
+            try {
+                const res = await fetch('/api/plugins/upload', { method: 'POST', body: form });
+                const data = await res.json();
+                toast(data.message || data.error, data.success ? 'success' : 'error');
+                if (data.success) loadInstalledPlugins();
+            } catch(e) { toast('Error de conexión', 'error'); }
+            event.target.value = '';
+        }
+
+        async function checkPluginUpdates() {
+            toast('Verificando actualizaciones...', 'info');
+            try {
+                const res = await fetch('/api/plugins/check-updates', { method: 'POST' });
+                const data = await res.json();
+                if (!data.success) { toast(data.error, 'error'); return; }
+                if (!data.updates || data.updates.length === 0) {
+                    toast('Todos los plugins están actualizados', 'success');
+                    return;
+                }
+                const names = data.updates.map(p => p.name).join(', ');
+                toast(data.updates.length + ' plugin(s) con actualizaciones: ' + names + '. ¿Actualizar todos?', 'info');
+                if (confirm(data.updates.length + ' plugin(s) tienen actualizaciones disponibles:\n' + names + '\n\n¿Actualizar todos?')) {
+                    await updateAllPlugins();
+                }
+            } catch(e) { toast('Error de conexión', 'error'); }
+        }
+
+        async function updateAllPlugins() {
+            toast('Actualizando plugins...', 'info');
+            try {
+                const res = await fetch('/api/plugins/update-all', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    toast((data.updated.length > 0 ? 'Actualizados: ' + data.updated.join(', ') : 'Nada que actualizar') +
+                        (data.errors.length > 0 ? ' | Errores: ' + data.errors.join(', ') : ''), data.updated.length > 0 ? 'success' : 'info');
+                    loadInstalledPlugins();
+                } else {
+                    toast(data.error, 'error');
+                }
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 
