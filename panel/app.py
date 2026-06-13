@@ -466,7 +466,11 @@ def api_settings_server_icon():
 
             os.makedirs(os.path.dirname(icon_path), exist_ok=True)
             f.save(icon_path)
-            return jsonify({"success": True, "message": "Icono del servidor actualizado. Se requiere reinicio."})
+            # Guardar copia de respaldo para restaurar en cada inicio
+            import shutil
+            backup_icon = os.path.join(os.path.dirname(icon_path), '.server-icon-backup.png')
+            shutil.copy2(icon_path, backup_icon)
+            return jsonify({"success": True, "message": "Icono del servidor actualizado."})
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

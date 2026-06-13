@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `61943d7 fix: restaurar Minekube preservando config manual, no sobrescribe`
+**Último commit:** `8d82a65 fix: token Minekube configurado, IP visible en panel`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `61943d7 fix: restaurar Minekube preservando config manual, no sobrescribe`
+**2026-06-12 · Último commit:** `8d82a65 fix: token Minekube configurado, IP visible en panel`

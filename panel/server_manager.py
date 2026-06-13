@@ -572,8 +572,13 @@ class ServerManager:
                     # Sigue vivo — éxito
                     pass
 
-            # Minekube Connect plugin (solo descarga/config si no existe)
+            # Minekube Connect plugin
             self._setup_minekube(server_path)
+            # Restaurar icono del servidor (Minekube lo sobreescribe)
+            backup_icon = os.path.join(server_path, '.server-icon-backup.png')
+            if os.path.exists(backup_icon):
+                import shutil
+                shutil.copy2(backup_icon, os.path.join(server_path, 'server-icon.png'))
 
             print(f"[INFO] Servidor '{server_name}' iniciado (PID: {self.process.pid})")
 
