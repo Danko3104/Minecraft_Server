@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `9cc59ab fix: rutas adaptativas Colab/local y crear directorios automaticamente`
+**Último commit:** `8e18795 fix: visor de archivos ahora muestra raiz del servidor completo y navegacion libre`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `9cc59ab fix: rutas adaptativas Colab/local y crear directorios automaticamente`
+**2026-06-12 · Último commit:** `8e18795 fix: visor de archivos ahora muestra raiz del servidor completo y navegacion libre`

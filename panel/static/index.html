@@ -432,88 +432,86 @@
 
                 <!-- ===== SETTINGS ===== -->
                 <section id="section-properties" class="section">
-                    <div class="settings-grid">
-                        <div class="update-card">
-                            <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-sliders-h"></i> Propiedades del Servidor</h3>
-                            <div class="setting-saved-notice" id="props-saved-notice"><i class="fas fa-check-circle"></i> Cambios guardados. Se requiere reinicio para aplicar.</div>
-                            <div class="setting-field">
-                                <label>Nombre del servidor (MOTD)</label>
-                                <input type="text" id="prop-motd" placeholder="A Minecraft Server">
+                    <div class="update-card">
+                        <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-sliders-h"></i> Propiedades del Servidor</h3>
+                        <div class="setting-saved-notice" id="props-saved-notice"><i class="fas fa-check-circle"></i> Cambios guardados. Se requiere reinicio para aplicar.</div>
+                        <div class="setting-field">
+                            <label>Nombre del servidor (MOTD)</label>
+                            <input type="text" id="prop-motd" placeholder="A Minecraft Server">
+                        </div>
+                        <div class="setting-field">
+                            <label>Máximo de jugadores</label>
+                            <input type="number" id="prop-max-players" min="1" max="100">
+                        </div>
+                        <div class="setting-field">
+                            <label>Dificultad</label>
+                            <select id="prop-difficulty">
+                                <option value="peaceful">Peaceful</option>
+                                <option value="easy">Easy</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                        <div class="setting-field">
+                            <label>Modo de juego</label>
+                            <select id="prop-gamemode">
+                                <option value="survival">Survival</option>
+                                <option value="creative">Creative</option>
+                                <option value="adventure">Adventure</option>
+                                <option value="spectator">Spectator</option>
+                            </select>
+                        </div>
+                        <div class="setting-field">
+                            <label>PVP</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" data-target="prop-pvp" data-value="true">Activado</button>
+                                <button class="toggle-btn" data-target="prop-pvp" data-value="false">Desactivado</button>
                             </div>
-                            <div class="setting-field">
-                                <label>Máximo de jugadores</label>
-                                <input type="number" id="prop-max-players" min="1" max="100">
+                            <input type="hidden" id="prop-pvp" value="true">
+                        </div>
+                        <div class="setting-field">
+                            <label>Monstruos</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" data-target="prop-monsters" data-value="true">Activado</button>
+                                <button class="toggle-btn" data-target="prop-monsters" data-value="false">Desactivado</button>
                             </div>
-                            <div class="setting-field">
-                                <label>Dificultad</label>
-                                <select id="prop-difficulty">
-                                    <option value="peaceful">Peaceful</option>
-                                    <option value="easy">Easy</option>
-                                    <option value="normal" selected>Normal</option>
-                                    <option value="hard">Hard</option>
-                                </select>
+                            <input type="hidden" id="prop-monsters" value="true">
+                        </div>
+                        <div class="setting-field">
+                            <label>Animales</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" data-target="prop-animals" data-value="true">Activado</button>
+                                <button class="toggle-btn" data-target="prop-animals" data-value="false">Desactivado</button>
                             </div>
-                            <div class="setting-field">
-                                <label>Modo de juego</label>
-                                <select id="prop-gamemode">
-                                    <option value="survival">Survival</option>
-                                    <option value="creative">Creative</option>
-                                    <option value="adventure">Adventure</option>
-                                    <option value="spectator">Spectator</option>
-                                </select>
+                            <input type="hidden" id="prop-animals" value="true">
+                        </div>
+                        <div class="setting-field">
+                            <label>Distancia de renderizado (chunks)</label>
+                            <input type="number" id="prop-render-distance" min="2" max="32" placeholder="10">
+                        </div>
+                        <div class="setting-field">
+                            <label>Distancia de simulación (chunks)</label>
+                            <input type="number" id="prop-simulation-distance" min="2" max="32" placeholder="10">
+                        </div>
+                        <div class="setting-field">
+                            <label>Distancia de visión (chunks)</label>
+                            <input type="number" id="prop-view-distance" min="2" max="32" placeholder="10">
+                        </div>
+                        <div class="setting-field">
+                            <label>Protección de spawn (radio)</label>
+                            <input type="number" id="prop-spawn-protection" min="0" max="100" placeholder="16">
+                        </div>
+                        <div class="setting-field">
+                            <label>Bloques de comandos</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn" data-target="prop-command-blocks" data-value="true">Activado</button>
+                                <button class="toggle-btn active" data-target="prop-command-blocks" data-value="false">Desactivado</button>
                             </div>
-                            <div class="setting-field">
-                                <label>PVP</label>
-                                <div class="toggle-group">
-                                    <button class="toggle-btn active" data-target="prop-pvp" data-value="true">Activado</button>
-                                    <button class="toggle-btn" data-target="prop-pvp" data-value="false">Desactivado</button>
-                                </div>
-                                <input type="hidden" id="prop-pvp" value="true">
-                            </div>
-                            <div class="setting-field">
-                                <label>Monstruos</label>
-                                <div class="toggle-group">
-                                    <button class="toggle-btn active" data-target="prop-monsters" data-value="true">Activado</button>
-                                    <button class="toggle-btn" data-target="prop-monsters" data-value="false">Desactivado</button>
-                                </div>
-                                <input type="hidden" id="prop-monsters" value="true">
-                            </div>
-                            <div class="setting-field">
-                                <label>Animales</label>
-                                <div class="toggle-group">
-                                    <button class="toggle-btn active" data-target="prop-animals" data-value="true">Activado</button>
-                                    <button class="toggle-btn" data-target="prop-animals" data-value="false">Desactivado</button>
-                                </div>
-                                <input type="hidden" id="prop-animals" value="true">
-                            </div>
-                            <div class="setting-field">
-                                <label>Distancia de renderizado (chunks)</label>
-                                <input type="number" id="prop-render-distance" min="2" max="32" placeholder="10">
-                            </div>
-                            <div class="setting-field">
-                                <label>Distancia de simulación (chunks)</label>
-                                <input type="number" id="prop-simulation-distance" min="2" max="32" placeholder="10">
-                            </div>
-                            <div class="setting-field">
-                                <label>Distancia de visión (chunks)</label>
-                                <input type="number" id="prop-view-distance" min="2" max="32" placeholder="10">
-                            </div>
-                            <div class="setting-field">
-                                <label>Protección de spawn (radio)</label>
-                                <input type="number" id="prop-spawn-protection" min="0" max="100" placeholder="16">
-                            </div>
-                            <div class="setting-field">
-                                <label>Bloques de comandos</label>
-                                <div class="toggle-group">
-                                    <button class="toggle-btn" data-target="prop-command-blocks" data-value="true">Activado</button>
-                                    <button class="toggle-btn active" data-target="prop-command-blocks" data-value="false">Desactivado</button>
-                                </div>
-                                <input type="hidden" id="prop-command-blocks" value="false">
-                            </div>
-                            <div style="display:flex;gap:8px;margin-top:8px;">
-                                <button class="btn btn-primary" onclick="saveServerProperties()"><i class="fas fa-save"></i> Guardar cambios</button>
-                                <button class="btn btn-secondary" onclick="reloadServer()" title="Recarga config sin reiniciar (no recomendado en producción)"><i class="fas fa-sync-alt"></i> Reload</button>
-                            </div>
+                            <input type="hidden" id="prop-command-blocks" value="false">
+                        </div>
+                        <div style="display:flex;gap:8px;margin-top:8px;">
+                            <button class="btn btn-primary" onclick="saveServerProperties()"><i class="fas fa-save"></i> Guardar cambios</button>
+                            <button class="btn btn-secondary" onclick="reloadServer()" title="Recarga config sin reiniciar (no recomendado en producción)"><i class="fas fa-sync-alt"></i> Reload</button>
                         </div>
                     </div>
                 </section>
