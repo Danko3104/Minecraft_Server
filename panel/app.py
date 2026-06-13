@@ -63,6 +63,7 @@ PUBLIC_API_PATHS = [
     '/api/software/versions',
     '/api/settings/server-icon',
     '/api/settings/check-updates',
+    '/api/settings/server-properties',
 ]
 
 
