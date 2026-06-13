@@ -61,6 +61,8 @@ PUBLIC_API_PATHS = [
     '/api/auth/logout',
     '/api/software/types',
     '/api/software/versions',
+    '/api/settings/server-icon',
+    '/api/settings/check-updates',
 ]
 
 
@@ -70,7 +72,7 @@ def require_auth():
         return
     if request.path in PUBLIC_API_PATHS:
         return
-    if request.method == 'GET' and not request.path.startswith('/api/settings/'):
+    if request.method == 'GET':
         return
     if not check_token():
         return jsonify({"success": False, "error": "No autorizado"}), 401

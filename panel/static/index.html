@@ -259,6 +259,10 @@
                     <span class="nav-text">Jugadores</span>
                     <span class="badge" id="sidebar-player-count">0</span>
                 </div>
+                <div class="nav-item" data-section="properties">
+                    <i class="fas fa-sliders-h"></i>
+                    <span class="nav-text">Propiedades</span>
+                </div>
                 <div class="nav-item" data-section="settings">
                     <i class="fas fa-cog"></i>
                     <span class="nav-text">Configuración</span>
@@ -427,20 +431,7 @@
                 </section>
 
                 <!-- ===== SETTINGS ===== -->
-                <section id="section-settings" class="section">
-                    <div class="update-card">
-                        <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-cloud-download-alt"></i> Actualización del Servidor</h3>
-                        <div class="version-display">
-                            <div>
-                                <div class="version-label">Versión Actual</div>
-                                <div class="current-version" id="current-version">Cargando...</div>
-                            </div>
-                            <button class="btn btn-primary" id="btn-check-updates" onclick="checkUpdates()"><i class="fas fa-search"></i> Buscar actualizaciones</button>
-                        </div>
-                        <div id="update-info" style="display:none;"></div>
-                        <div id="update-steps" style="display:none;" class="update-steps"></div>
-                    </div>
-
+                <section id="section-properties" class="section">
                     <div class="settings-grid">
                         <div class="update-card">
                             <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-sliders-h"></i> Propiedades del Servidor</h3>
@@ -524,6 +515,24 @@
                                 <button class="btn btn-secondary" onclick="reloadServer()" title="Recarga config sin reiniciar (no recomendado en producción)"><i class="fas fa-sync-alt"></i> Reload</button>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <section id="section-settings" class="section">
+                    <div class="update-card">
+                        <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-cloud-download-alt"></i> Actualización del Servidor</h3>
+                        <div class="version-display">
+                            <div>
+                                <div class="version-label">Versión Actual</div>
+                                <div class="current-version" id="current-version">Cargando...</div>
+                            </div>
+                            <button class="btn btn-primary" id="btn-check-updates" onclick="checkUpdates()"><i class="fas fa-search"></i> Buscar actualizaciones</button>
+                        </div>
+                        <div id="update-info" style="display:none;"></div>
+                        <div id="update-steps" style="display:none;" class="update-steps"></div>
+                    </div>
+
+                    <div class="settings-grid">
 
                         <div class="update-card">
                             <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-image"></i> Icono del Servidor</h3>
@@ -763,10 +772,12 @@
                 document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
                 this.classList.add('active');
                 document.getElementById('section-' + section).classList.add('active');
-                document.getElementById('section-title').textContent = section.charAt(0).toUpperCase() + section.slice(1);
+                const titles = { 'properties': 'Propiedades' };
+                document.getElementById('section-title').textContent = titles[section] || section.charAt(0).toUpperCase() + section.slice(1);
                 if (section === 'console') { startConsolePolling(); } else { stopConsolePolling(); }
                 if (section === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); startPlayersPolling(); } else { stopPlayersPolling(); }
                 if (section === 'settings') { loadSettings(); }
+                if (section === 'properties') { loadSettings(); }
                 if (section === 'plugins') { loadPluginsSection(); }
                 if (section === 'files') { loadFiles(); }
             });
