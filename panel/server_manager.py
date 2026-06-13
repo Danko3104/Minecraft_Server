@@ -167,6 +167,7 @@ class ServerManager:
                 "java",
                 f"-Xms{xms}",
                 f"-Xmx{xmx}",
+                "-XX:-UseContainerSupport",
                 "-XX:+UseG1GC",
                 "-XX:+ParallelRefProcEnabled",
                 "-XX:MaxGCPauseMillis=200"
