@@ -2,13 +2,24 @@
 
 ## 📍 Dónde Quedamos
 
-**PASO 8 - CORRECCIÓN CRÍTICA:** Completada ✅
+**PASO 9 - RCON + CONSOLA + SEGURIDAD:** Completado ✅
 
-La celda de Colab ahora se mantiene activa con `while True` después de mostrar la URL del panel.
+Implementación completa de:
+- `panel/rcon.py` - Cliente RCON con socket/struct
+- `panel/routes/console.py` - Rutas de consola (/api/console/output, command, players)
+- `panel/socketio_events.py` - Eventos WebSocket con streaming de consola
+- `panel/routes/dashboard.py` - Stats del dashboard
+- **Fixes de seguridad**: verify_token real, login con contraseña, middleware before_request, debug=false, token Minekube aleatorio
 
 ### Últimos Commits Realizados
 
 ```
+b89b092 - feat: implementacion de rcon, consola, dashboard, socketio events y fixes de seguridad
+855c177 - feat: improved file browser with editor, icons, breadcrumbs
+8770ad4 - feat: optional full server backup (zip) before Paper update
+18cb148 - fix: backup names include server name in all 3 locations
+fc01181 - fix: player counter now shows connected players and real max
+b420247 - feat: file browser tab for server world files
 ca6824d - docs: actualizar instrucciones en Server.ipynb
 94574f0 - fix: mantener celda de Colab activa con while True
 bab1931 - fix: Java 21, versiones ordenadas, bug modal
@@ -22,67 +33,46 @@ bab1931 - fix: Java 21, versiones ordenadas, bug modal
 
 ## ✅ Lo que Está Implementado y Funcional
 
-1. **Panel Web** - Login, dashboard, creación de servidores
-2. **API REST** - 19 rutas funcionando con autenticación JWT
+1. **Panel Web** - Dashboard, servidores, consola, jugadores, plugins, archivos, settings
+2. **API REST** - 50+ rutas con autenticación JWT real en endpoints críticos
 3. **Instalación de Servidores** - Paper, Purpur, Vanilla, Fabric
-4. **Control de Minecraft** - Start/Stop con diagnóstico
-5. **Google Colab** - Celda se mantiene activa indefinidamente
-6. **Túnel Cloudflare** - URL pública automática
+4. **Control de Minecraft** - Start/Stop/Command con diagnóstico
+5. **Gestión de Jugadores** - List, kick, ban, op, whitelist
+6. **Gestión de Plugins** - Búsqueda (Modrinth + Hangar), instalación, updates
+7. **Gestión de Archivos** - Navegador, editor, upload/download, delete
+8. **RCON Client** - Comunicación nativa con socket/struct
+9. **Google Colab** - Celda se mantiene activa indefinidamente
+10. **Túnel Cloudflare** - URL pública automática
+11. **Túnel Minekube** - minecolab.play.minekube.net
+12. **Seguridad** - Autenticación JWT real, contraseña verificada, debug desactivado por defecto
 
 ---
 
 ## 🎯 Próximo Paso a Implementar
 
-**panel/rcon.py** - Cliente RCON para enviar comandos al servidor
+**Instaladores de Forge / NeoForge** - Completar los instaladores de servidores modded
 
 ### Especificación:
 
 ```python
-"""
-Cliente RCON para comunicación con servidor Minecraft.
-Permite enviar comandos y recibir respuestas en tiempo real.
-"""
+# En panel/routes/servers.py, dentro de _install_server()
 
-import socket
-import struct
-
-class RCONClient:
-    def __init__(self, host='localhost', port=25575, password='minecolab_panel'):
-        self.host = host
-        self.port = port
-        self.password = password
-        self.socket = None
-        self.request_id = 0
+def install_forge(server_name: str, version: str) -> dict:
+    """Instala Forge usando el installer oficial."""
+    # 1. Descargar installer desde https://files.minecraftforge.net/
+    # 2. Ejecutar: java -jar forge-installer.jar --installServer
+    # 3. Renombrar el jar generado a server.jar
     
-    def connect(self) -> bool:
-        """Establece conexión con el servidor RCON."""
-    
-    def disconnect(self):
-        """Cierra la conexión."""
-    
-    def send_command(self, command: str) -> str:
-        """Envía un comando y retorna la respuesta."""
-    
-    def is_connected(self) -> bool:
-        """Verifica si hay conexión activa."""
+def install_neoforge(server_name: str, version: str) -> dict:
+    """Instala NeoForge usando su installer."""
+    # Similar a Forge pero con URLs de Neoforge
 ```
 
-### Rutas a Agregar:
-
-```python
-# En panel/app.py o panel/routes/console.py
-
-GET /api/console/output
-  → Retorna las últimas líneas de la consola de Minecraft
-  
-POST /api/console/command
-  → Envía comando al servidor via RCON
-  → Body: {"command": "say hola"}
-  
-GET /api/console/players
-  → Lista de jugadores conectados
-  → Retorna: [{name, uuid}, ...]
-```
+### Frontend Auth (Pendiente):
+El panel web necesita un login flow que:
+1. Obtenga token via `POST /api/auth/login`
+2. Almacene en localStorage
+3. Envíe `Authorization: Bearer <token>` en cada request a rutas protegidas
 
 ---
 
@@ -90,11 +80,9 @@ GET /api/console/players
 
 | Archivo | Prioridad | Descripción |
 |---------|-----------|-------------|
-| `panel/rcon.py` | 🔴 ALTA | Cliente RCON |
-| `panel/routes/console.py` | 🔴 ALTA | Rutas de consola |
-| `panel/tunnel.py` | 🟡 MEDIA | ngrok, zrok, playit |
-| `panel/socketio_events.py` | 🟡 MEDIA | WebSocket events |
-| `panel/routes/dashboard.py` | 🟢 BAJA | Dashboard específico |
+| `Instaladores Forge/NeoForge` | 🟡 MEDIA | Servidores modded |
+| `Frontend auth` | 🟡 MEDIA | Login flow en index.html |
+| `Rate limiting` | 🟢 BAJA | Proteger login contra brute force |
 
 ---
 
@@ -104,7 +92,7 @@ GET /api/console/players
 2. Instalar automáticamente el JAR
 3. Iniciar el servidor
 4. Ver output en el panel
-5. Enviar comandos (stop, op, gamemode)
+5. Enviar comandos via RCON (stop, op, gamemode)
 6. Ver lista de jugadores
 7. Detener servidor limpiamente
 
@@ -117,6 +105,9 @@ GET /api/console/players
 - El túnel Cloudflare es temporal (dura mientras Colab esté activo)
 - Los servidores se guardan en `/content/drive/MyDrive/minecraft/`
 - El panel usa `server_list.txt` para configuración global
+- Autenticación requerida para endpoints POST/PUT/DELETE y settings
+- JWT Secret configurable via env var `MINECOLAB_JWT_SECRET`
+- Debug mode desactivado por defecto (activar con `FLASK_DEBUG=true`)
 
 ---
 
@@ -130,22 +121,20 @@ Mojang:         https://launchermeta.mojang.com/mc/game/version_manifest.json
 Forge:          https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json
 NeoForge Maven: https://maven.neoforged.net/releases/net/neoforged/neoforge/maven-metadata.xml
 Mohist:         https://mohistmc.com/api/v2/projects/mohist/versions
+Modrinth:       https://api.modrinth.com/v2
+Hangar:         https://hangar.papermc.io/api/v1
 ```
 
 ---
 
 ## 🚀 Para Continuar
 
-1. Abrir nueva sesión de Claude Code
-2. Clonar el repositorio actualizado:
-   ```bash
-   git clone https://github.com/Danko3104/Minecraft_Server.git minecolab-panel
-   cd minecolab-panel
-   ```
-3. Leer `contexto/README.md` para entender el estado
-4. Continuar con `panel/rcon.py`
+1. Abrir nueva sesión
+2. Trabajar en local en `C:\Users\Daniel\Desktop\Minecraft_Server`
+3. Leer `contexto/README.md` para el estado completo
+4. Continuar con instaladores de Forge/NeoForge
 
 ---
 
-**Fecha:** 2026-05-30
-**Último Commit:** `ca6824d`
+**Fecha:** 2026-06-12
+**Último Commit:** `b89b092`
