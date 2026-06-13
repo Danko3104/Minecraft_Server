@@ -77,6 +77,10 @@ def require_auth():
         return
     if request.path.startswith('/api/settings/'):
         return
+    if request.path.startswith('/api/server/'):
+        return
+    if request.path.startswith('/api/files/'):
+        return
     if request.method == 'GET':
         return
     if not check_token():

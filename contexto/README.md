@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `19ab467 feat: lista completa de jugadores con estados y acciones`
+**Último commit:** `56b4265 fix: toda /api/settings/ publica para evitar 401 en propiedades`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `19ab467 feat: lista completa de jugadores con estados y acciones`
+**2026-06-12 · Último commit:** `56b4265 fix: toda /api/settings/ publica para evitar 401 en propiedades`
