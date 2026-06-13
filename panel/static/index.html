@@ -885,15 +885,6 @@
                     btnRestart.disabled = true;
                 }
 
-                const addrEl = document.getElementById('server-address');
-                if (data.tunnel_addr) {
-                    addrEl.innerHTML = data.tunnel_addr + ' <i class="fas fa-copy" style="font-size:12px;color:#484f58;margin-left:6px;"></i>';
-                } else if (data.active_server && data.minecraft_running) {
-                    addrEl.innerHTML = 'localhost:25565 <i class="fas fa-copy" style="font-size:12px;color:#484f58;margin-left:6px;"></i>';
-                } else if (!data.minecraft_running) {
-                    addrEl.innerHTML = 'minecolab03-free.play.minekube.net <i class="fas fa-copy" style="font-size:12px;color:#484f58;margin-left:6px;"></i>';
-                }
-
                 if (data.active_server) {
                     if (data.minecraft_running) {
                         fetch('/api/players').then(r => r.json()).then(pd => {

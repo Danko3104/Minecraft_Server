@@ -53,8 +53,6 @@ class ServerManager:
         self.rcon_password = "minecolab_panel"
         self.rcon_port = 25575
         self.last_output_lines: List[str] = []
-        self.tunnel_addr: Optional[str] = None
-        self._tunnel_proc: Optional[subprocess.Popen] = None
         self._lock = threading.Lock()
 
     def get_server_path(self, server_name: str) -> str:
@@ -376,43 +374,17 @@ class ServerManager:
                 "error": str(e)
             }
 
-    def _setup_tunnel(self) -> Optional[str]:
-        """Inicia tunel Ngrok para Minecraft (puerto 25565)."""
-        try:
-            import subprocess, json, threading
-            self._tunnel_proc = subprocess.Popen(
-                ['ngrok', 'tcp', '25565', '--log', 'stdout', '--log-format', 'json'],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-            )
-            addr = None
-            def reader():
-                nonlocal addr
-                for line in self._tunnel_proc.stdout:
-                    try:
-                        data = json.loads(line)
-                        if data.get('msg') == 'started tunnel':
-                            u = data.get('url', '')
-                            if u:
-                                addr = u.replace('tcp://', '')
-                    except: pass
-            t = threading.Thread(target=reader, daemon=True)
-            t.start()
-            import time
-            for _ in range(10):
-                if addr: break
-                time.sleep(1)
-            if addr:
-                print(f"[INFO] Tunel Minecraft: {addr}")
-                self.tunnel_addr = addr
-                return addr
-            print("[WARNING] No se pudo obtener URL del tunel Ngrok")
-            return None
-        except FileNotFoundError:
-            print("[WARNING] Ngrok no instalado, no hay tunel")
-            return None
-        except Exception as e:
-            print(f"[WARNING] Tunel falló: {e}")
-            return None
+    def _cleanup_plugins(self, server_path: str) -> None:
+        """Elimina plugins problematicos (Minekube)."""
+        for f in ['connect-spigot.jar', 'connect-spigot-old.jar']:
+            p = os.path.join(server_path, 'plugins', f)
+            if os.path.exists(p):
+                os.remove(p)
+        for d in ['connect']:
+            p = os.path.join(server_path, 'plugins', d)
+            if os.path.exists(p):
+                import shutil
+                shutil.rmtree(p)
 
     def diagnose(self, server_name: str) -> dict:
         """
@@ -576,8 +548,8 @@ class ServerManager:
                     # Sigue vivo — éxito
                     pass
 
-            # Iniciar túnel Ngrok para Minecraft
-            self._setup_tunnel()
+            # Limpiar plugins problematicos
+            self._cleanup_plugins(server_path)
 
             print(f"[INFO] Servidor '{server_name}' iniciado (PID: {self.process.pid})")
 
@@ -664,12 +636,6 @@ class ServerManager:
                     print("[ERROR] Forzando terminación...")
                     self.process.kill()
 
-            # Limpiar túnel Ngrok
-            if self._tunnel_proc:
-                self._tunnel_proc.terminate()
-                self._tunnel_proc = None
-            self.tunnel_addr = None
-
             # Limpiar
             self.process = None
             self.start_time = None
@@ -732,8 +698,7 @@ class ServerManager:
             "players": players,
             "tps": tps,
             "uptime_seconds": uptime,
-            "pid": self.process.pid if self.process else None,
-            "tunnel_addr": self.tunnel_addr
+            "pid": self.process.pid if self.process else None
         }
     def get_last_output(self) -> List[str]:
         """
