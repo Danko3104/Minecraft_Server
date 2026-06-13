@@ -151,11 +151,22 @@ class ServerManager:
             server_type = config.get('server_type', 'Vanilla').lower()
             server_path = self.get_server_path(server_name)
 
+            # Detectar memoria disponible (Colab suele tener ~2-3G libres)
+            try:
+                import psutil
+                available_gb = psutil.virtual_memory().available / (1024**3)
+            except ImportError:
+                available_gb = 0
+            xmx = "1G" if 0 < available_gb < 2.5 else "2G"
+            xms = "256M" if 0 < available_gb < 2.5 else "512M"
+            if available_gb > 0:
+                print(f"[INFO] Memoria disponible: {available_gb:.1f}G, usando -Xmx{xmx} -Xms{xms}")
+
             # Comandos base para Java
             java_cmd = [
                 "java",
-                "-Xms512M",
-                "-Xmx2G",
+                f"-Xms{xms}",
+                f"-Xmx{xmx}",
                 "-XX:+UseG1GC",
                 "-XX:+ParallelRefProcEnabled",
                 "-XX:MaxGCPauseMillis=200"

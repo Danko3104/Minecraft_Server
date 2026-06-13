@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `60b308f fix: race condition start/stop - remove sleep(5), add threading lock, isStarting frontend`
+**Último commit:** `64b6640 fix: usar wait(timeout=5) con lock en start() para detectar muerte temprana sin race condition`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `60b308f fix: race condition start/stop - remove sleep(5), add threading lock, isStarting frontend`
+**2026-06-12 · Último commit:** `64b6640 fix: usar wait(timeout=5) con lock en start() para detectar muerte temprana sin race condition`
