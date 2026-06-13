@@ -374,17 +374,50 @@ class ServerManager:
                 "error": str(e)
             }
 
-    def _cleanup_plugins(self, server_path: str) -> None:
-        """Elimina plugins problematicos (Minekube)."""
-        for f in ['connect-spigot.jar', 'connect-spigot-old.jar']:
-            p = os.path.join(server_path, 'plugins', f)
-            if os.path.exists(p):
-                os.remove(p)
-        for d in ['connect']:
-            p = os.path.join(server_path, 'plugins', d)
-            if os.path.exists(p):
-                import shutil
-                shutil.rmtree(p)
+    def _setup_minekube(self, server_path: str) -> bool:
+        """Descarga y configura Minekube Connect plugin si no existe."""
+        try:
+            plugins_dir = os.path.join(server_path, 'plugins')
+            os.makedirs(plugins_dir, exist_ok=True)
+
+            jar_path = os.path.join(plugins_dir, 'connect-spigot.jar')
+            if not os.path.exists(jar_path):
+                print(f"[INFO] Descargando Minekube Connect plugin...")
+                import urllib.request
+                url = 'https://github.com/minekube/connect-java/releases/download/latest/connect-spigot.jar'
+                urllib.request.urlretrieve(url, jar_path)
+                print(f"[OK] Minekube Connect plugin descargado")
+            else:
+                print(f"[OK] Minekube Connect plugin ya existe")
+
+            connect_config_dir = os.path.join(plugins_dir, 'connect')
+            os.makedirs(connect_config_dir, exist_ok=True)
+
+            # Solo crear config si no existe (para no sobrescribir config manual)
+            config_path = os.path.join(connect_config_dir, 'config.yml')
+            if not os.path.exists(config_path):
+                with open(config_path, 'w') as f:
+                    f.write('endpoint: "minecolab03-free"\n')
+                    f.write('allow-offline-mode-players: true\n')
+                print(f"[OK] config.yml creado")
+            else:
+                print(f"[OK] config.yml ya existe (preservado)")
+
+            token_path = os.path.join(connect_config_dir, 'token.json')
+            if not os.path.exists(token_path):
+                import secrets
+                minekube_token = secrets.token_urlsafe(16)
+                with open(token_path, 'w') as f:
+                    import json
+                    json.dump({"token": minekube_token}, f)
+                print(f"[OK] token.json creado")
+            else:
+                print(f"[OK] token.json ya existe (preservado)")
+
+            return True
+        except Exception as e:
+            print(f"[WARNING] Minekube setup falló: {e}")
+            return False
 
     def diagnose(self, server_name: str) -> dict:
         """
@@ -548,8 +581,8 @@ class ServerManager:
                     # Sigue vivo — éxito
                     pass
 
-            # Limpiar plugins problematicos
-            self._cleanup_plugins(server_path)
+            # Minekube Connect plugin (solo descarga/config si no existe)
+            self._setup_minekube(server_path)
 
             print(f"[INFO] Servidor '{server_name}' iniciado (PID: {self.process.pid})")
 
