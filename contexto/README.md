@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `c56dccd fix: memoria adaptativa -Xmx segun RAM disponible en Colab`
+**Último commit:** `cfee173 fix: -XX:-UseContainerSupport para evitar que Java se cuelgue en Colab con cgroup no estandar`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `c56dccd fix: memoria adaptativa -Xmx segun RAM disponible en Colab`
+**2026-06-12 · Último commit:** `cfee173 fix: -XX:-UseContainerSupport para evitar que Java se cuelgue en Colab con cgroup no estandar`

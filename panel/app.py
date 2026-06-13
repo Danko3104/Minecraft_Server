@@ -140,13 +140,19 @@ def api_status():
         colab_max_time = 43200  # 12 horas en segundos (límite Colab)
         colab_time_remaining = max(0, colab_max_time - session_uptime)
 
+        status = server_manager.get_status()
         return jsonify({
             "flask": True,
-            "minecraft_running": server_manager.is_running(),
+            "minecraft_running": status["running"],
             "active_server": get_active_server(),
             "servers": list_servers(),
             "session_uptime_seconds": int(session_uptime),
-            "colab_time_remaining": int(colab_time_remaining)
+            "colab_time_remaining": int(colab_time_remaining),
+            "tunnel_addr": status.get("tunnel_addr"),
+            "uptime_seconds": status.get("uptime_seconds", 0),
+            "players": status.get("players", []),
+            "tps": status.get("tps", 20.0),
+            "pid": status.get("pid")
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
