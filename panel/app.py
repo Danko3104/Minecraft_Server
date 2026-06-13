@@ -75,6 +75,8 @@ def require_auth():
         return
     if request.path.startswith('/api/players/'):
         return
+    if request.path.startswith('/api/settings/'):
+        return
     if request.method == 'GET':
         return
     if not check_token():
