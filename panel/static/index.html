@@ -765,6 +765,7 @@
         // ============ STATE ============
         let state = {
             running: false,
+            isStarting: false,
             serverName: '',
             players: [],
             allPlayers: [],
@@ -871,15 +872,15 @@
                 const btnStop = document.getElementById('btn-stop');
                 const btnRestart = document.getElementById('btn-restart');
                 if (data.minecraft_running) {
+                    state.running = true;
                     btnStart.disabled = true;
                     btnStart.innerHTML = '<i class="fas fa-check-circle"></i> En ejecución';
-                    btnStart.className = 'btn btn-secondary';
-                    btnStop.disabled = false;
-                    btnRestart.disabled = false;
+                    btnStop.disabled = state.isStarting;
+                    btnRestart.disabled = state.isStarting;
                 } else {
-                    btnStart.disabled = false;
-                    btnStart.innerHTML = '<i class="fas fa-play"></i> Iniciar';
-                    btnStart.className = 'btn btn-primary';
+                    state.running = false;
+                    btnStart.disabled = state.isStarting;
+                    btnStart.innerHTML = state.isStarting ? '<i class="fas fa-spinner fa-spin"></i> Iniciando...' : '<i class="fas fa-play"></i> Iniciar';
                     btnStop.disabled = true;
                     btnRestart.disabled = true;
                 }
@@ -970,16 +971,19 @@
         // ============ SERVER CONTROL ============
         async function startServer() {
             const btn = document.getElementById('btn-start');
+            state.isStarting = true;
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
             try {
                 const res = await fetch('/api/server/start', {method:'POST'});
                 const data = await res.json();
+                state.isStarting = false;
                 if (data.success) {
                     toast('Servidor iniciando...', 'success');
                     state.running = true;
                     state.uptimeSeconds = 0;
                     await waitForStatus(true, 30);
                 } else {
+                    state.isStarting = false;
                     let msg = data.error || 'Error al iniciar';
                     if (data.output) msg += '\n\n' + data.output.join('\n').slice(-500);
                     if (data.diagnosis) msg += '\n\nDiagnóstico:\n' + JSON.stringify(data.diagnosis, null, 2);
@@ -989,6 +993,7 @@
                     btn.className = 'btn btn-primary';
                 }
             } catch(e) {
+                state.isStarting = false;
                 showErrorDetail('Error de conexión: ' + e.message);
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-play"></i> Iniciar';

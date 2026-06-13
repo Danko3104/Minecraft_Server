@@ -52,7 +52,8 @@ class ServerManager:
         self.intentional_stop = False
         self.rcon_password = "minecolab_panel"
         self.rcon_port = 25575
-        self.last_output_lines: List[str] = []  # Últimas líneas de salida del proceso
+        self.last_output_lines: List[str] = []
+        self._lock = threading.Lock()
 
     def get_server_path(self, server_name: str) -> str:
         """
@@ -523,45 +524,27 @@ class ServerManager:
             # Limpiar output anterior
             self.last_output_lines = []
 
-            # Cambiar al directorio del servidor
-            os.chdir(server_path)
+            with self._lock:
+                # Cambiar al directorio del servidor
+                os.chdir(server_path)
 
-            # Iniciar proceso
-            self.process = subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                stdin=subprocess.PIPE,
-                text=True,
-                bufsize=1
-            )
+                # Iniciar proceso
+                self.process = subprocess.Popen(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    stdin=subprocess.PIPE,
+                    text=True,
+                    bufsize=1
+                )
 
-            # Iniciar hilo para leer output
-            self._start_output_reader()
+                # Iniciar hilo para leer output
+                self._start_output_reader()
 
-            # Guardar tiempos y nombre del servidor (para backup automático)
-            self.start_time = datetime.now()
-            self._current_server = server_name
-            self.intentional_stop = False
-
-            # Esperar 5 segundos y verificar que sigue vivo
-            time.sleep(5)
-
-            if self.process.poll() is not None:
-                # El proceso murió - retornar output capturado
-                error_output = self.last_output_lines[-50:] if self.last_output_lines else ["No hay output capturado"]
-                return {
-                    "success": False,
-                    "error": f"El servidor falló al iniciar. Código: {self.process.returncode}",
-                    "output": error_output,
-                    "diagnosis": {
-                        "command": command,
-                        "server_path": server_path,
-                        "java": java_info,
-                        "jar": jar_info,
-                        "eula": eula_info
-                    }
-                }
+                # Guardar tiempos y nombre del servidor
+                self.start_time = datetime.now()
+                self._current_server = server_name
+                self.intentional_stop = False
 
             print(f"[INFO] Servidor '{server_name}' iniciado (PID: {self.process.pid})")
 
@@ -588,6 +571,10 @@ class ServerManager:
         Detiene el servidor de Minecraft.
         Antes de detener, guarda el mundo y hace backup automático.
         """
+        with self._lock:
+            return self._stop_locked()
+
+    def _stop_locked(self) -> dict:
         try:
             # Verificar si hay proceso
             if self.process is None:
