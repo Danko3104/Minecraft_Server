@@ -7,9 +7,11 @@ from datetime import datetime
 import os
 import re
 import psutil
+import os
 from flask import Flask, jsonify, request, send_from_directory, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
+from panel.routes.auth import check_token
 
 from panel.drive import (
     get_active_server,
@@ -24,13 +26,15 @@ from panel.routes.servers import servers_bp
 from panel.routes.players import players_bp
 from panel.routes.plugins import plugins_bp
 from panel.routes.files import files_bp
+from panel.routes.console import console_bp
+from panel.routes.dashboard import dashboard_bp
 
 # =============================================================================
 # CONFIGURACIÓN
 # =============================================================================
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'minecolab-secret-key-change-in-production'
+app.config['SECRET_KEY'] = os.environ.get('MINECOLAB_JWT_SECRET', 'minecolab-secret-key-change-in-production')
 
 # CORS habilitado para todos los orígenes (necesario para Colab)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -43,6 +47,34 @@ app.register_blueprint(servers_bp)
 app.register_blueprint(players_bp)
 app.register_blueprint(plugins_bp)
 app.register_blueprint(files_bp)
+app.register_blueprint(console_bp)
+app.register_blueprint(dashboard_bp)
+
+# =============================================================================
+# MIDDLEWARE DE AUTENTICACIÓN
+# =============================================================================
+
+PUBLIC_API_PATHS = [
+    '/api/ping',
+    '/api/auth/login',
+    '/api/auth/check',
+    '/api/auth/logout',
+    '/api/software/types',
+    '/api/software/versions',
+]
+
+
+@app.before_request
+def require_auth():
+    if not request.path.startswith('/api/'):
+        return
+    if request.path in PUBLIC_API_PATHS:
+        return
+    if request.method == 'GET' and not request.path.startswith('/api/settings/'):
+        return
+    if not check_token():
+        return jsonify({"success": False, "error": "No autorizado"}), 401
+
 
 # =============================================================================
 # VARIABLES GLOBALES
@@ -570,36 +602,8 @@ def api_server_diagnose():
 # WEBSOCKET / SOCKETIO EVENTS
 # =============================================================================
 
-# =============================================================================
-# WEBSOCKET / SOCKETIO EVENTS
-# =============================================================================
-
-@socketio.on('connect')
-def handle_connect():
-    """Maneja conexión de cliente WebSocket."""
-    try:
-        print(f"[SOCKETIO] Cliente conectado: {request.sid}")
-        emit('connected', {'message': 'Conectado al MineColab Panel'})
-    except Exception as e:
-        print(f"[SOCKETIO] Error en connect: {e}")
-
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Maneja desconexión de cliente WebSocket."""
-    try:
-        print(f"[SOCKETIO] Cliente desconectado: {request.sid}")
-    except Exception as e:
-        print(f"[SOCKETIO] Error en disconnect: {e}")
-
-
-@socketio.on('ping')
-def handle_ping(data):
-    """Maneja ping desde el cliente."""
-    try:
-        emit('pong', {'ok': True, 'message': 'Pong desde servidor'})
-    except Exception as e:
-        print(f"[SOCKETIO] Error en ping: {e}")
+from panel.socketio_events import register_socketio_events
+register_socketio_events(socketio)
 
 
 # =============================================================================
@@ -629,4 +633,5 @@ if __name__ == '__main__':
     print(f"Iniciando MineColab Panel en puerto 5000...")
     print(f"Session start time: {session_start_time}")
     print("=" * 60)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    socketio.run(app, host='0.0.0.0', port=5000, debug=debug_mode, allow_unsafe_werkzeug=debug_mode)

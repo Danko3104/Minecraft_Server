@@ -385,9 +385,12 @@ class ServerManager:
             print(f"[OK] config.yml actualizado")
 
             token_path = os.path.join(connect_config_dir, 'token.json')
+            import secrets
+            minekube_token = secrets.token_urlsafe(16)
             with open(token_path, 'w') as f:
-                f.write('{"token": "uwq3t20xoge7cv81o4kyyhrr"}\n')
-            print(f"[OK] token.json creado")
+                import json
+                json.dump({"token": minekube_token}, f)
+            print(f"[OK] token.json creado con token aleatorio")
 
             return True
         except Exception as e:
