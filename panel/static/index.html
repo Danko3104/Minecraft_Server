@@ -1878,8 +1878,9 @@
                 let html = '<table class="data-table"><thead><tr><th>Nombre</th><th>Tamaño</th><th>Modificado</th><th style="text-align:center;">Acciones</th></tr></thead><tbody>';
 
                 // Subir nivel
-                if (data.parent !== null && data.parent !== '') {
-                    html += `<tr class="file-row" onclick="loadFiles('${data.parent}')">
+                if (data.parent !== null) {
+                    const parentPath = data.parent === '' ? '' : data.parent;
+                    html += `<tr class="file-row" onclick="loadFiles('${parentPath}')">
                         <td colspan="4"><i class="fas fa-level-up-alt" style="color:#8b949e;margin-right:8px;"></i> <span style="color:#8b949e;">..</span></td>
                     </tr>`;
                 }

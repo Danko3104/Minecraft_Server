@@ -1,28 +1,22 @@
 import os
-from flask import Blueprint, jsonify, request, send_file, Response
+from flask import Blueprint, jsonify, request, send_file
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
-SAFE_BASES = {}
 
-
-def _get_bases(server_name: str) -> list:
+def _get_base(server_name: str) -> str:
     from panel.drive import DRIVE_PATH
     base = os.path.normpath(os.path.join(DRIVE_PATH, server_name))
     os.makedirs(base, exist_ok=True)
-    world = os.path.normpath(os.path.join(base, 'world'))
-    SAFE_BASES[server_name] = [base]
-    if os.path.isdir(world):
-        SAFE_BASES[server_name].append(world)
-    return SAFE_BASES[server_name]
+    return base
 
 
 def _resolve(server_name: str, rel_path: str) -> str:
-    bases = _get_bases(server_name)
-    full = os.path.normpath(os.path.join(bases[0], rel_path))
-    for b in bases:
-        if full.startswith(b):
-            return full
+    base = _get_base(server_name)
+    rel_path = rel_path.strip('/')
+    full = os.path.normpath(os.path.join(base, rel_path))
+    if full.startswith(base):
+        return full
     return None
 
 
@@ -35,10 +29,6 @@ def list_files():
             return jsonify({"success": False, "error": "No hay servidor activo"}), 400
 
         rel_path = request.args.get('path', '')
-        if not rel_path:
-            world = os.path.join(DRIVE_PATH, server_name, 'world')
-            if os.path.isdir(world):
-                rel_path = 'world'
         full = _resolve(server_name, rel_path)
         if not full:
             return jsonify({"success": False, "error": "Acceso denegado"}), 403
@@ -144,6 +134,7 @@ def write_file():
         if not full:
             return jsonify({"success": False, "error": "Acceso denegado"}), 403
 
+        os.makedirs(os.path.dirname(full), exist_ok=True)
         with open(full, 'w', encoding='utf-8') as f:
             f.write(data['content'])
 
