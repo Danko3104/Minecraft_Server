@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `bd74eab fix: /api/servers suelto (POST crear server) en PUBLIC_API_PATHS`
+**Último commit:** `60b308f fix: race condition start/stop - remove sleep(5), add threading lock, isStarting frontend`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `bd74eab fix: /api/servers suelto (POST crear server) en PUBLIC_API_PATHS`
+**2026-06-12 · Último commit:** `60b308f fix: race condition start/stop - remove sleep(5), add threading lock, isStarting frontend`

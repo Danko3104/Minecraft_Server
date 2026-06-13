@@ -546,6 +546,23 @@ class ServerManager:
                 self._current_server = server_name
                 self.intentional_stop = False
 
+                # Esperar hasta 5s (retorna early si el proceso muere)
+                try:
+                    retcode = self.process.wait(timeout=5)
+                    # Murió temprano
+                    error_output = self.last_output_lines[-50:] if self.last_output_lines else ["No hay output"]
+                    self.process = None
+                    self.start_time = None
+                    print(f"[ERROR] Servidor '{server_name}' falló al iniciar (código: {retcode})")
+                    return {
+                        "success": False,
+                        "error": f"El servidor falló al iniciar. Código: {retcode}",
+                        "output": error_output
+                    }
+                except subprocess.TimeoutExpired:
+                    # Sigue vivo — éxito
+                    pass
+
             print(f"[INFO] Servidor '{server_name}' iniciado (PID: {self.process.pid})")
 
             return {
