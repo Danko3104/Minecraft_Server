@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `14ab3db fix: /api/server/ y /api/files/ publicas para iniciar servidor y editar archivos`
+**Último commit:** `ced3cfa fix: tambien /api/plugins/, /api/servers/, /api/console/ publicas`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `14ab3db fix: /api/server/ y /api/files/ publicas para iniciar servidor y editar archivos`
+**2026-06-12 · Último commit:** `ced3cfa fix: tambien /api/plugins/, /api/servers/, /api/console/ publicas`
