@@ -431,7 +431,11 @@ def api_settings_server_icon():
 
         if request.method == 'GET':
             if os.path.exists(icon_path):
-                return send_file(icon_path, mimetype='image/png')
+                resp = send_file(icon_path, mimetype='image/png')
+                resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                resp.headers['Pragma'] = 'no-cache'
+                resp.headers['Expires'] = '0'
+                return resp
             return jsonify({"success": False, "error": "No hay icono"}), 404
 
         elif request.method == 'POST':
@@ -442,6 +446,7 @@ def api_settings_server_icon():
             if not f.filename.lower().endswith('.png'):
                 return jsonify({"success": False, "error": "Solo archivos .png"}), 400
 
+            os.makedirs(os.path.dirname(icon_path), exist_ok=True)
             f.save(icon_path)
             return jsonify({"success": True, "message": "Icono del servidor actualizado. Se requiere reinicio."})
 

@@ -1682,7 +1682,7 @@
         async function loadServerIcon() {
             const preview = document.getElementById('server-icon-preview');
             try {
-                const res = await fetch('/api/settings/server-icon');
+                const res = await fetch('/api/settings/server-icon?_=' + Date.now());
                 if (res.ok) {
                     const blob = await res.blob();
                     const url = URL.createObjectURL(blob);

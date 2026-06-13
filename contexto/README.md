@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `6825f4b docs: unificar contexto en README.md, eliminar ULTIMO_ESTADO.md`
+**Último commit:** `2c0ed0d feat: scripts para hook pre-commit que actualiza contexto automaticamente`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `6825f4b docs: unificar contexto en README.md, eliminar ULTIMO_ESTADO.md`
+**2026-06-12 · Último commit:** `2c0ed0d feat: scripts para hook pre-commit que actualiza contexto automaticamente`
