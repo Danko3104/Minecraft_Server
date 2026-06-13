@@ -8,11 +8,12 @@ SAFE_BASES = {}
 
 def _get_bases(server_name: str) -> list:
     from panel.drive import DRIVE_PATH
-    base = os.path.join(DRIVE_PATH, server_name)
-    world = os.path.join(base, 'world')
-    SAFE_BASES[server_name] = [os.path.normpath(base)]
+    base = os.path.normpath(os.path.join(DRIVE_PATH, server_name))
+    os.makedirs(base, exist_ok=True)
+    world = os.path.normpath(os.path.join(base, 'world'))
+    SAFE_BASES[server_name] = [base]
     if os.path.isdir(world):
-        SAFE_BASES[server_name].append(os.path.normpath(world))
+        SAFE_BASES[server_name].append(world)
     return SAFE_BASES[server_name]
 
 

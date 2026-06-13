@@ -56,10 +56,10 @@ class ServerManager:
 
     def get_server_path(self, server_name: str) -> str:
         """
-        Retorna la ruta del servidor en Drive.
+        Retorna la ruta del servidor.
         """
-        base = '/content/drive/MyDrive/minecraft'
-        return os.path.join(base, server_name)
+        from panel.drive import DRIVE_PATH
+        return os.path.join(DRIVE_PATH, server_name)
 
     def prepare_server_properties(self, server_name: str) -> bool:
         try:
@@ -743,8 +743,11 @@ class ServerManager:
     # =========================================================================
 
     def get_backups_dir(self) -> str:
-        """Retorna la ruta de la carpeta de backups en Drive."""
-        return '/content/drive/MyDrive/Copias de mundo de Minecraft'
+        """Retorna la ruta de la carpeta de backups."""
+        if os.path.isdir('/content/drive/MyDrive'):
+            return '/content/drive/MyDrive/Copias de mundo de Minecraft'
+        from panel.drive import DRIVE_PATH
+        return os.path.join(os.path.dirname(DRIVE_PATH), 'Backups')
 
     def _backup_world(self, server_name: str) -> Optional[str]:
         """

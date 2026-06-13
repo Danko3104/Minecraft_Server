@@ -10,10 +10,14 @@ from typing import Dict, List
 from jproperties import Properties
 
 # =============================================================================
-# CONSTANTE
+# CONSTANTE — detecta Colab vs local
 # =============================================================================
 
-DRIVE_PATH = '/content/drive/MyDrive/minecraft'
+if os.path.isdir('/content/drive/MyDrive'):
+    DRIVE_PATH = '/content/drive/MyDrive/minecraft'
+else:
+    DRIVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'servers')
+    DRIVE_PATH = os.path.normpath(DRIVE_PATH)
 
 
 # =============================================================================

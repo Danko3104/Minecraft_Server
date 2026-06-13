@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `5e87205 fix: cache icono servidor y crear directorio si no existe`
+**Último commit:** `5e1c346 fix: separar propiedades en pestaÃ±a propia, arreglar 401 en icono y check-updates`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `5e87205 fix: cache icono servidor y crear directorio si no existe`
+**2026-06-12 · Último commit:** `5e1c346 fix: separar propiedades en pestaÃ±a propia, arreglar 401 en icono y check-updates`
