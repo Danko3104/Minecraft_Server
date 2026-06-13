@@ -18,41 +18,106 @@ def _get_active_server_path() -> str:
 @players_bp.route('', methods=['GET'])
 def api_players():
     try:
+        server_path = _get_active_server_path()
+
+        # Read usercache.json - all players who have ever joined
+        usercache = {}
+        if server_path:
+            uc_path = os.path.join(server_path, 'usercache.json')
+            if os.path.exists(uc_path):
+                with open(uc_path, 'r') as f:
+                    for entry in json.load(f):
+                        if isinstance(entry, dict) and 'name' in entry:
+                            usercache[entry['name']] = entry.get('uuid', '')
+
+        # Read ops.json
+        ops = set()
+        if server_path:
+            ops_path = os.path.join(server_path, 'ops.json')
+            if os.path.exists(ops_path):
+                with open(ops_path, 'r') as f:
+                    for entry in json.load(f):
+                        if isinstance(entry, dict) and 'name' in entry:
+                            ops.add(entry['name'])
+
+        # Read banned-players.json
+        banned = set()
+        if server_path:
+            ban_path = os.path.join(server_path, 'banned-players.json')
+            if os.path.exists(ban_path):
+                with open(ban_path, 'r') as f:
+                    for entry in json.load(f):
+                        if isinstance(entry, dict) and 'name' in entry:
+                            banned.add(entry['name'])
+
+        # Read whitelist.json
+        whitelisted = set()
+        if server_path:
+            wl_path = os.path.join(server_path, 'whitelist.json')
+            if os.path.exists(wl_path):
+                with open(wl_path, 'r') as f:
+                    for entry in json.load(f):
+                        if isinstance(entry, dict) and 'name' in entry:
+                            whitelisted.add(entry['name'])
+
+        # Get online players from /list
         resp = _get_command('list')
-        players = []
+        online_players = []
         max_players = 20
 
         def _parse_player_list(text):
             import re
             m = re.search(r'There are (\d+) of .*? (\d+) players? online:\s*(.*)', text)
             if m:
-                count = int(m.group(1))
-                mx = int(m.group(2))
                 names = m.group(3).strip()
                 lst = []
-                if names and names != 'There are no':
+                if names and 'no' not in names.split()[:2]:
                     lst = [n.strip() for n in names.split(',') if n.strip()]
-                return lst, mx
+                return lst, int(m.group(2))
             return None, None
 
         parsed, mx = _parse_player_list(resp)
         if parsed is not None:
-            players = parsed
+            online_players = parsed
             max_players = mx
         else:
             from panel.server_manager import server_manager
             import time
-            # Esperar hasta 2s a que aparezca el output del comando 'list' en stdout
             for _ in range(10):
                 for line in reversed(server_manager.get_last_output()):
                     parsed, mx = _parse_player_list(line)
                     if parsed is not None:
-                        players = parsed
+                        online_players = parsed
                         max_players = mx
-                        return jsonify({"players": players, "max": max_players, "raw": resp})
+                        break
+                if parsed is not None:
+                    break
                 time.sleep(0.2)
 
-        return jsonify({"players": players, "max": max_players, "raw": resp})
+        online_set = set(online_players)
+
+        # Build combined player list
+        all_players = []
+        for name, uuid in usercache.items():
+            all_players.append({
+                "name": name,
+                "uuid": uuid,
+                "online": name in online_set,
+                "op": name in ops,
+                "banned": name in banned,
+                "whitelisted": name in whitelisted
+            })
+
+        # Sort: online first, then alphabetically
+        all_players.sort(key=lambda p: (not p['online'], p['name'].lower()))
+
+        return jsonify({
+            "success": True,
+            "players": all_players,
+            "online_count": len(online_set),
+            "max": max_players,
+            "total": len(all_players)
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -97,6 +162,16 @@ def api_player_op():
         player = data.get('player', '')
         resp = _get_command(f'op {player}')
         return jsonify({"success": True, "message": f"Jugador {player} ahora es OP", "response": resp})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@players_bp.route('/deop', methods=['POST'])
+def api_player_deop():
+    try:
+        data = request.get_json()
+        player = data.get('player', '')
+        resp = _get_command(f'deop {player}')
+        return jsonify({"success": True, "message": f"OP retirado de {player}", "response": resp})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

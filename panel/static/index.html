@@ -150,6 +150,34 @@
         .player-empty i { font-size: 48px; margin-bottom: 12px; color: #30363d; }
         .player-empty p { font-size: 14px; }
 
+        .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; white-space:nowrap; }
+        .badge-online { background:#3fb95022; color:#3fb950; }
+        .badge-offline { background:#484f5822; color:#8b949e; }
+        .badge-op { background:#d2992222; color:#d29922; }
+        .badge-wl { background:#58a6ff22; color:#58a6ff; }
+        .badge-ban { background:#f8514922; color:#f85149; }
+        .badge-muted { color:#484f58; font-size:12px; }
+
+        .player-cell { display:flex; align-items:center; gap:8px; }
+        .player-cell img { width:24px; height:24px; border-radius:4px; flex-shrink:0; }
+
+        .actions-cell { display:flex; gap:4px; flex-wrap:wrap; justify-content:center; }
+        .act-btn { padding:4px 7px; border:none; border-radius:4px; cursor:pointer; font-size:12px; transition:all 0.15s; }
+        .act-kick { background:#d29922; color:#0f1117; }
+        .act-kick:hover { background:#e3b341; }
+        .act-ban { background:#f85149; color:#fff; }
+        .act-ban:hover { background:#da3633; }
+        .act-unban { background:#3fb950; color:#0f1117; }
+        .act-unban:hover { background:#4ade80; }
+        .act-op { background:#d29922; color:#0f1117; }
+        .act-op:hover { background:#e3b341; }
+        .act-deop { background:#484f58; color:#e6edf3; }
+        .act-deop:hover { background:#8b949e; }
+        .act-wl-add { background:#58a6ff; color:#0f1117; }
+        .act-wl-add:hover { background:#79c0ff; }
+        .act-wl-remove { background:#f85149; color:#fff; }
+        .act-wl-remove:hover { background:#da3633; }
+
         .subsection { background: #1c2128; border: 1px solid #21262d; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
         .subsection h3 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
@@ -388,12 +416,17 @@
                 <!-- ===== PLAYERS ===== -->
                 <section id="section-players" class="section">
                     <div class="subsection">
-                        <h3><i class="fas fa-users"></i> Jugadores Conectados</h3>
-                        <div class="players-grid" id="players-grid">
-                            <div class="player-empty">
-                                <i class="fas fa-user-slash"></i>
-                                <p>Nadie conectado todavía</p>
-                            </div>
+                        <h3><i class="fas fa-users"></i> Jugadores <span id="players-summary" style="font-weight:400;font-size:13px;color:#8b949e;margin-left:8px;"></span></h3>
+                        <div style="margin-bottom:10px;">
+                            <input type="text" id="players-filter" placeholder="Filtrar jugadores..." style="padding:8px 12px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#e6edf3;width:100%;max-width:300px;">
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table" id="players-table">
+                                <thead><tr><th>Jugador</th><th>Estado</th><th>OP</th><th>WL</th><th>Baneado</th><th style="text-align:center;">Acciones</th></tr></thead>
+                                <tbody id="players-tbody">
+                                    <tr><td colspan="6" style="text-align:center;color:#484f58;padding:20px;">Cargando...</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                         <div class="input-group" style="margin-top:12px;">
                             <input type="text" id="broadcast-input" placeholder="Mensaje para todos..." maxlength="256">
@@ -734,6 +767,7 @@
             running: false,
             serverName: '',
             players: [],
+            allPlayers: [],
             uptimeSeconds: 0,
             colabRemaining: 43200,
             sessionStart: Date.now(),
@@ -853,12 +887,12 @@
                 if (data.active_server) {
                     if (data.minecraft_running) {
                         fetch('/api/players').then(r => r.json()).then(pd => {
-                            const count = (pd.players && pd.players.length) || 0;
+                            const online = pd.online_count || 0;
                             const mx = pd.max || 20;
                             state.maxPlayers = mx;
-                            document.getElementById('card-players').textContent = count + ' / ' + mx;
+                            document.getElementById('card-players').textContent = online + ' / ' + mx;
                             document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
-                            document.getElementById('sidebar-player-count').textContent = count;
+                            document.getElementById('sidebar-player-count').textContent = online;
                         }).catch(() => {});
                     } else {
                         const mx = state.maxPlayers || 20;
@@ -1208,56 +1242,102 @@
             if (playersInterval) { clearInterval(playersInterval); playersInterval = null; }
         }
 
+        function renderPlayers(data) {
+            state.allPlayers = data.players || [];
+            const mx = data.max || state.maxPlayers || 20;
+            state.maxPlayers = mx;
+            const online = data.online_count || 0;
+            const total = data.total || 0;
+
+            document.getElementById('sidebar-player-count').textContent = online;
+            document.getElementById('card-players').textContent = online + ' / ' + mx;
+            document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
+
+            const filter = (document.getElementById('players-filter').value || '').toLowerCase();
+            const tbody = document.getElementById('players-tbody');
+            const summary = document.getElementById('players-summary');
+            summary.textContent = online + ' conectado' + (online !== 1 ? 's' : '') + ' | ' + total + ' total';
+
+            let filtered = state.allPlayers;
+            if (filter) filtered = filtered.filter(p => p.name.toLowerCase().includes(filter));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#484f58;padding:20px;">' + (filter ? 'Sin resultados' : 'Aún no ha entrado ningún jugador') + '</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(p => {
+                const avatarUrl = 'https://mc-heads.net/avatar/' + p.name + '/24';
+                const avatarFallback = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Crect fill=%22%2321262d%22 width=%2224%22 height=%2224%22/%3E%3Ctext x=%2212%22 y=%2216%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2212%22%3E' + p.name[0].toUpperCase() + '%3C/text%3E%3C/svg%3E';
+
+                const onlineBadge = p.online ? '<span class="badge badge-online">Conectado</span>' : '<span class="badge badge-offline">Desconectado</span>';
+                const opBadge = p.op ? '<span class="badge badge-op"><i class="fas fa-crown"></i> OP</span>' : '<span class="badge badge-muted">—</span>';
+                const wlBadge = p.whitelisted ? '<span class="badge badge-wl"><i class="fas fa-check"></i> Sí</span>' : '<span class="badge badge-muted">No</span>';
+                const banBadge = p.banned ? '<span class="badge badge-ban"><i class="fas fa-ban"></i> Baneado</span>' : '<span class="badge badge-muted">—</span>';
+
+                let actions = '';
+                if (p.online) {
+                    actions += '<button class="act-btn act-kick" onclick="playerAction(\'kick\',\'' + p.name + '\')" title="Expulsar"><i class="fas fa-user-slash"></i></button>';
+                    actions += '<button class="act-btn act-ban" onclick="playerAction(\'ban\',\'' + p.name + '\')" title="Banear"><i class="fas fa-ban"></i></button>';
+                } else if (!p.banned) {
+                    actions += '<button class="act-btn act-ban" onclick="playerAction(\'ban\',\'' + p.name + '\')" title="Banear"><i class="fas fa-ban"></i></button>';
+                }
+                if (p.banned) {
+                    actions += '<button class="act-btn act-unban" onclick="playerAction(\'unban\',\'' + p.name + '\')" title="Desbanear"><i class="fas fa-undo"></i></button>';
+                }
+                if (p.op) {
+                    actions += '<button class="act-btn act-deop" onclick="playerAction(\'deop\',\'' + p.name + '\')" title="Quitar OP"><i class="fas fa-crown"></i></button>';
+                } else {
+                    actions += '<button class="act-btn act-op" onclick="playerAction(\'op\',\'' + p.name + '\')" title="Hacer OP"><i class="fas fa-crown"></i></button>';
+                }
+                if (p.whitelisted) {
+                    actions += '<button class="act-btn act-wl-remove" onclick="playerAction(\'wl-remove\',\'' + p.name + '\')" title="Quitar de whitelist"><i class="fas fa-user-minus"></i></button>';
+                } else {
+                    actions += '<button class="act-btn act-wl-add" onclick="playerAction(\'wl-add\',\'' + p.name + '\')" title="Agregar a whitelist"><i class="fas fa-user-plus"></i></button>';
+                }
+
+                return '<tr>' +
+                    '<td><div class="player-cell"><img src="' + avatarUrl + '" onerror="this.src=\'' + avatarFallback + '\'"> ' + p.name + '</div></td>' +
+                    '<td>' + onlineBadge + '</td>' +
+                    '<td>' + opBadge + '</td>' +
+                    '<td>' + wlBadge + '</td>' +
+                    '<td>' + banBadge + '</td>' +
+                    '<td class="actions-cell">' + actions + '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
         async function loadPlayers() {
             try {
                 const res = await fetch('/api/players');
                 const data = await res.json();
-                const mx = data.max || state.maxPlayers || 20;
-                state.maxPlayers = mx;
-                const grid = document.getElementById('players-grid');
-                if (data.players && data.players.length > 0) {
-                    state.players = data.players;
-                    document.getElementById('sidebar-player-count').textContent = data.players.length;
-                    document.getElementById('card-players').textContent = data.players.length + ' / ' + mx;
-                    document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
-                    grid.innerHTML = data.players.map(p => `
-                        <div class="player-card">
-                            <img class="avatar" src="https://mc-heads.net/avatar/${p}/32" alt="${p}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Crect fill=%22%2321262d%22 width=%2232%22 height=%2232%22/%3E%3Ctext x=%2216%22 y=%2221%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2214%22%3E${p[0].toUpperCase()}%3C/text%3E%3C/svg%3E'">
-                            <div class="player-info">
-                                <div class="player-name">${p}</div>
-                                <div class="player-time">Conectado</div>
-                            </div>
-                            <div class="player-actions">
-                                <button style="background:#d29922;color:#0f1117;" onclick="playerAction('kick','${p}')" title="Expulsar"><i class="fas fa-user-slash"></i></button>
-                                <button style="background:#f85149;color:#fff;" onclick="playerAction('ban','${p}')" title="Banear"><i class="fas fa-ban"></i></button>
-                                <button style="background:#3fb950;color:#0f1117;" onclick="playerAction('op','${p}')" title="OP"><i class="fas fa-crown"></i></button>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    state.players = [];
-                    const mx = state.maxPlayers || 20;
-                    document.getElementById('sidebar-player-count').textContent = '0';
-                    document.getElementById('card-players').textContent = '0 / ' + mx;
-                    document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
-                    grid.innerHTML = '<div class="player-empty"><i class="fas fa-user-slash"></i><p>Nadie conectado todavía</p></div>';
-                }
+                if (data.success && data.players) renderPlayers(data);
             } catch(e) { console.error('loadPlayers error:', e); }
         }
+
+        document.getElementById('players-filter')?.addEventListener('input', function() {
+            if (state.allPlayers) renderPlayers({players: state.allPlayers, online_count: state.allPlayers.filter(p=>p.online).length, max: state.maxPlayers, total: state.allPlayers.length});
+        });
+
+        const ACTION_MAP = {
+            'wl-add': 'whitelist/add',
+            'wl-remove': 'whitelist/remove'
+        };
 
         async function playerAction(action, player) {
             let reason = '';
             if (action === 'kick') reason = prompt('Motivo de expulsión para ' + player + ':', '');
             if (action === 'ban') reason = prompt('Motivo de baneo para ' + player + ':', '');
+            const endpoint = ACTION_MAP[action] || action;
             try {
-                const res = await fetch('/api/players/' + action, {
+                const res = await fetch('/api/players/' + endpoint, {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
                     body: JSON.stringify({player, reason: reason || ''})
                 });
                 const data = await res.json();
                 toast(data.message || data.error || 'OK', data.success ? 'success' : 'error');
-                loadPlayers(); loadBanned();
+                loadPlayers(); loadBanned(); loadWhitelist();
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 

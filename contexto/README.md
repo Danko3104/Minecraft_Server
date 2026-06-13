@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `14b137d fix: layout propiedades ocupando todo el ancho sin espacio en blanco`
+**Último commit:** `3244835 fix: PUT server-properties publico para guardar sin auth`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `14b137d fix: layout propiedades ocupando todo el ancho sin espacio en blanco`
+**2026-06-12 · Último commit:** `3244835 fix: PUT server-properties publico para guardar sin auth`
