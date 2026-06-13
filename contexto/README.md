@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `b7a0e04 fix: respaldar icono al subirlo y restaurarlo tras Minekube`
+**Último commit:** `71461e0 feat: favicon con icono del servidor + fallback SVG`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `b7a0e04 fix: respaldar icono al subirlo y restaurarlo tras Minekube`
+**2026-06-12 · Último commit:** `71461e0 feat: favicon con icono del servidor + fallback SVG`

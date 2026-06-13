@@ -267,7 +267,13 @@ def api_server_command():
                 "error": "Falta 'command' en el body"
             }), 400
 
-        command = data['command']
+        command = data['command'].strip().lower()
+
+        # Si es "stop", redirigir al método oficial que guarda/backupea
+        if command == 'stop':
+            result = server_manager.stop()
+            return jsonify(result)
+
         response = server_manager.send_command(command)
 
         return jsonify({
