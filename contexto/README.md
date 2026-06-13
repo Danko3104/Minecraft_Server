@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `eb00c22 revert: Ngrok eliminado, solo limpieza de Minekube, direccion manual`
+**Último commit:** `61943d7 fix: restaurar Minekube preservando config manual, no sobrescribe`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `eb00c22 revert: Ngrok eliminado, solo limpieza de Minekube, direccion manual`
+**2026-06-12 · Último commit:** `61943d7 fix: restaurar Minekube preservando config manual, no sobrescribe`
