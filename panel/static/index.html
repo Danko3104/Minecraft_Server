@@ -969,13 +969,15 @@
                     state.running = true;
                     btnStart.disabled = true;
                     btnStart.innerHTML = '<i class="fas fa-check-circle"></i> En ejecución';
-                    btnStop.disabled = state.isStarting;
-                    btnRestart.disabled = state.isStarting;
+                    btnStop.disabled = false;
+                    btnStop.innerHTML = '<i class="fas fa-stop"></i> Detener';
+                    btnRestart.disabled = false;
                 } else {
                     state.running = false;
-                    btnStart.disabled = state.isStarting;
-                    btnStart.innerHTML = state.isStarting ? '<i class="fas fa-spinner fa-spin"></i> Iniciando...' : '<i class="fas fa-play"></i> Iniciar';
+                    btnStart.disabled = false;
+                    btnStart.innerHTML = '<i class="fas fa-play"></i> Iniciar';
                     btnStop.disabled = true;
+                    btnStop.innerHTML = '<i class="fas fa-stop"></i> Detener';
                     btnRestart.disabled = true;
                 }
 
@@ -1140,22 +1142,27 @@
                 const res = await fetch('/api/server/stop', {method:'POST'});
                 const data = await res.json();
                 if (data.success) {
-                    toast('Servidor detenido', 'success');
                     state.running = false;
                     sendNotification('MineColab', 'Servidor detenido', 'server_stop');
                     await waitForStatus(false, 15);
+                    toast('Servidor detenido', 'success');
                 } else {
-                    toast(data.error || 'Error al detener', 'error');
-                    sendNotification('MineColab', 'Error al detener servidor: ' + (data.error || 'desconocido'), 'server_error');
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
+                    if (data.error === 'El servidor no está corriendo') {
+                        state.running = false;
+                        sendNotification('MineColab', 'Servidor detenido', 'server_stop');
+                        await loadStatus();
+                        toast('Servidor detenido', 'success');
+                    } else {
+                        toast(data.error || 'Error al detener', 'error');
+                        sendNotification('MineColab', 'Error al detener servidor: ' + (data.error || 'desconocido'), 'server_error');
+                    }
                 }
             } catch(e) {
                 toast('Error de conexión', 'error');
                 sendNotification('MineColab', 'Error de conexión al detener servidor', 'server_error');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
             }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
         }
 
         function openRestartModal() {

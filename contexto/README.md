@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `5016b0c fix: add missing import tempfile in server_manager.py`
+**Último commit:** `02d4ce4 fix: start console polling on page load so server_ready notif works globally`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `5016b0c fix: add missing import tempfile in server_manager.py`
+**2026-06-15 · Último commit:** `02d4ce4 fix: start console polling on page load so server_ready notif works globally`
