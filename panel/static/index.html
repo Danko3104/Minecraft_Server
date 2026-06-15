@@ -608,6 +608,19 @@
                             </div>
                         </div>
                     </div>
+                    <div class="update-card">
+                        <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-bell"></i> Notificaciones del Navegador</h3>
+                        <p style="font-size:13px;color:#8b949e;margin-bottom:12px;">Recibe notificaciones en tu escritorio cuando el servidor inicia, se detiene, se sube un mundo o se crea un backup.</p>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+                                <input type="checkbox" id="toggle-notifications" onchange="toggleNotifications(this.checked)" style="opacity:0;width:0;height:0;">
+                                <span style="position:absolute;inset:0;background:#30363d;border-radius:12px;transition:0.3s;" id="toggle-notif-slider"></span>
+                                <span style="position:absolute;left:2px;top:2px;width:20px;height:20px;background:#8b949e;border-radius:50%;transition:0.3s;" id="toggle-notif-knob"></span>
+                            </label>
+                            <span id="notif-status-text" style="font-size:13px;color:#8b949e;">No activadas</span>
+                            <button class="btn btn-secondary btn-sm" onclick="requestNotifPermission()" id="btn-notif-perm" style="display:none;"><i class="fas fa-key"></i> Activar</button>
+                        </div>
+                    </div>
                     <div class="update-card" style="margin-top:20px;">
                         <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-history"></i> Copias de mundo de Minecraft</h3>
                         <p style="font-size:13px;color:#8b949e;margin-bottom:16px;">Se hace un backup automático cada vez que se detiene el servidor. También puedes crear backups manualmente.</p>
@@ -1011,6 +1024,7 @@
                     toast('Servidor iniciando...', 'success');
                     state.running = true;
                     state.uptimeSeconds = 0;
+                    sendNotification('MineColab', 'Servidor iniciándose');
                     await waitForStatus(true, 30);
                 } else {
                     state.isStarting = false;
@@ -1056,6 +1070,7 @@
                 if (data.success) {
                     toast('Servidor detenido', 'success');
                     state.running = false;
+                    sendNotification('MineColab', 'Servidor detenido');
                     await waitForStatus(false, 15);
                 } else {
                     toast(data.error || 'Error al detener', 'error');
@@ -1439,7 +1454,10 @@
                 });
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
-                if (data.success) { input.value = ''; loadWhitelist(); }
+                if (data.success) {
+                    sendNotification('MineColab', 'Backup restaurado: ' + name);
+                    loadBackups();
+                }
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 
@@ -1853,19 +1871,38 @@
             document.getElementById('upload-progress-bar').style.width = '0%';
             document.getElementById('upload-progress-percent').textContent = '0%';
             document.getElementById('upload-progress-files').textContent = '0 / ' + files.length + ' archivos';
-            document.getElementById('upload-progress-size').textContent = '0 MB / ? MB';
+            document.getElementById('upload-progress-size').textContent = 'Comprimiendo...';
             document.getElementById('upload-progress-filename').textContent = 'Preparando...';
 
             // 1. Comprimir todo en ZIP localmente con JSZip
             const zip = new JSZip();
             let processed = 0;
 
+            function updateCompressProgress() {
+                const pct = files.length > 0 ? Math.round((processed / files.length) * 100) : 0;
+                document.getElementById('upload-progress-bar').style.width = pct + '%';
+                document.getElementById('upload-progress-percent').textContent = 'Comp: ' + pct + '%';
+                document.getElementById('upload-progress-files').textContent = processed + ' / ' + files.length + ' archivos';
+            }
+
             function addNextFile(index) {
                 if (index >= files.length) {
+                    updateCompressProgress();
                     document.getElementById('upload-progress-filename').textContent = 'Generando ZIP...';
-                    zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } })
+                    document.getElementById('upload-progress-size').textContent = 'Comprimiendo...';
+                    zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } },
+                        function updateMetadata(metadata) {
+                            if (metadata.percent) {
+                                const totalPct = Math.round(metadata.percent);
+                                document.getElementById('upload-progress-bar').style.width = Math.min(95, totalPct) + '%';
+                                document.getElementById('upload-progress-percent').textContent = 'ZIP: ' + totalPct + '%';
+                            }
+                        }
+                    )
                     .then(function(blob) {
                         const totalMB = (blob.size / 1048576).toFixed(1);
+                        document.getElementById('upload-progress-bar').style.width = '100%';
+                        document.getElementById('upload-progress-percent').textContent = '100%';
                         document.getElementById('upload-progress-files').textContent = files.length + ' / ' + files.length + ' archivos';
                         document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
                         document.getElementById('upload-progress-filename').textContent = 'Subiendo ZIP (' + totalMB + ' MB)...';
@@ -1892,21 +1929,22 @@
                         xhr.addEventListener('load', function() {
                             uploadXhr = null;
                             const status = document.getElementById('upload-status');
-                            console.log('[Upload] Respuesta ZIP (status ' + xhr.status + '):', xhr.responseText ? xhr.responseText.substring(0, 200) : '(vacia)');
                             try {
                                 const data = JSON.parse(xhr.responseText);
                                 if (data.success) {
                                     document.getElementById('modal-upload-progress').style.display = 'none';
                                     toast('Mundo subido correctamente (' + files.length + ' archivos comprimidos)', 'success');
+                                    sendNotification('MineColab', 'Mundo subido correctamente (' + files.length + ' archivos)');
                                     status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                                 } else {
                                     showUploadError(data.error || 'Error al subir mundo', 'status HTTP: ' + xhr.status);
                                     toast(data.error || 'Error al subir mundo', 'error');
+                                    sendNotification('MineColab', 'Error al subir mundo: ' + (data.error || 'desconocido'));
                                 }
                             } catch(e) {
-                                console.error('[Upload] Error al parsear respuesta:', e, 'Texto:', xhr.responseText ? xhr.responseText.substring(0, 300) : '(vacia)');
                                 showUploadError('Error al procesar respuesta del servidor', 'status HTTP: ' + xhr.status);
                                 toast('Error al procesar respuesta del servidor', 'error');
+                                sendNotification('MineColab', 'Error al subir mundo: respuesta inválida del servidor');
                             }
                             setTimeout(function() { status.innerHTML = ''; }, 5000);
                             input.value = '';
@@ -1914,9 +1952,9 @@
 
                         xhr.addEventListener('error', function() {
                             uploadXhr = null;
-                            console.error('[Upload] Error de conexion');
                             showUploadError('Error de conexión al subir ZIP', 'revisa que el servidor Flask esté corriendo');
                             toast('Error de conexión al subir ZIP', 'error');
+                            sendNotification('MineColab', 'Error de conexión al subir el mundo');
                             input.value = '';
                         });
 
@@ -1931,9 +1969,9 @@
                         xhr.send(formData);
                     })
                     .catch(function(err) {
-                        console.error('[Upload] Error al generar ZIP:', err);
                         showUploadError('Error al comprimir la carpeta', err.message);
                         toast('Error al comprimir la carpeta', 'error');
+                        sendNotification('MineColab', 'Error al comprimir: ' + err.message);
                         input.value = '';
                     });
                     return;
@@ -1942,8 +1980,8 @@
                 const file = files[index];
                 const path = file.webkitRelativePath || file.name;
                 processed++;
-                document.getElementById('upload-progress-files').textContent = processed + ' / ' + files.length + ' archivos';
                 document.getElementById('upload-progress-filename').textContent = 'Comprimiendo: ' + path;
+                updateCompressProgress();
 
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -1951,7 +1989,6 @@
                     setTimeout(function() { addNextFile(index + 1); }, 0);
                 };
                 reader.onerror = function() {
-                    console.error('[Upload] Error leyendo archivo:', path);
                     setTimeout(function() { addNextFile(index + 1); }, 0);
                 };
                 reader.readAsArrayBuffer(file);
@@ -2012,6 +2049,7 @@
                 const data = await res.json();
                 if (data.success) {
                     toast(data.message || 'Backup creado', 'success');
+                    sendNotification('MineColab', 'Backup creado: ' + (data.message || ''));
                     loadBackups();
                 } else {
                     toast(data.error || 'Error al crear backup', 'error');
@@ -2478,6 +2516,96 @@
             setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
         }
 
+        // ============ NOTIFICACIONES DEL NAVEGADOR ============
+        function notifEnabled() {
+            return localStorage.getItem('minecolab_notif') === 'true' && Notification.permission === 'granted';
+        }
+
+        async function requestNotifPermission() {
+            if (!('Notification' in window)) { toast('Este navegador no soporta notificaciones', 'error'); return; }
+            const perm = await Notification.requestPermission();
+            if (perm === 'granted') {
+                localStorage.setItem('minecolab_notif', 'true');
+                updateNotifUI();
+                toast('Notificaciones activadas', 'success');
+                sendNotification('MineColab', 'Notificaciones activadas correctamente');
+            } else {
+                toast('Permiso denegado para notificaciones', 'error');
+            }
+        }
+
+        function sendNotification(title, body, icon) {
+            if (!notifEnabled()) return;
+            try {
+                const n = new Notification(title, {
+                    body: body,
+                    icon: icon || '/api/settings/server-icon?_=' + Date.now(),
+                    tag: 'minecolab-' + Date.now()
+                });
+                setTimeout(() => n.close(), 6000);
+            } catch(e) { console.warn('[Notif] Error:', e); }
+        }
+
+        function updateNotifUI() {
+            const enabled = localStorage.getItem('minecolab_notif') === 'true';
+            document.getElementById('toggle-notifications').checked = enabled;
+            const slider = document.getElementById('toggle-notif-slider');
+            const knob = document.getElementById('toggle-notif-knob');
+            const statusText = document.getElementById('notif-status-text');
+            const btn = document.getElementById('btn-notif-perm');
+            if (!('Notification' in window)) {
+                statusText.textContent = 'No soportado';
+                btn.style.display = 'none';
+                return;
+            }
+            if (enabled && Notification.permission === 'granted') {
+                slider.style.background = '#3fb950';
+                knob.style.background = '#fff';
+                knob.style.left = '22px';
+                statusText.textContent = 'Activadas';
+                btn.style.display = 'none';
+            } else if (Notification.permission === 'denied') {
+                slider.style.background = '#f8514940';
+                knob.style.background = '#f85149';
+                knob.style.left = '2px';
+                statusText.textContent = 'Bloqueadas (configura el navegador)';
+                btn.style.display = 'none';
+            } else {
+                slider.style.background = '#30363d';
+                knob.style.background = '#8b949e';
+                knob.style.left = '2px';
+                statusText.textContent = 'No activadas';
+                btn.style.display = 'inline-flex';
+            }
+        }
+
+        function toggleNotifications(checked) {
+            if (checked) {
+                if (!('Notification' in window)) { toast('No soportado', 'error'); updateNotifUI(); return; }
+                if (Notification.permission === 'granted') {
+                    localStorage.setItem('minecolab_notif', 'true');
+                    updateNotifUI();
+                    sendNotification('MineColab', 'Notificaciones activadas');
+                } else if (Notification.permission === 'denied') {
+                    toast('Permiso denegado permanentemente. Actívalo en la configuración del navegador.', 'error');
+                    updateNotifUI();
+                } else {
+                    requestNotifPermission();
+                }
+            } else {
+                localStorage.setItem('minecolab_notif', 'false');
+                updateNotifUI();
+            }
+        }
+
+        // ============ INIT NOTIFICATIONS ============
+        if ('Notification' in window && Notification.permission === 'granted' && localStorage.getItem('minecolab_notif') === null) {
+            localStorage.setItem('minecolab_notif', 'true');
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            updateNotifUI();
+        });
+
         // Expose to window for onclick handlers
         window.startServer = startServer; window.stopServer = stopServer; window.openRestartModal = openRestartModal;
         window.closeRestartModal = closeRestartModal; window.restartServer = restartServer; window.copyAddress = copyAddress;
@@ -2494,6 +2622,7 @@
         window.uninstallPlugin = uninstallPlugin;
         window.loadSettings = loadSettings; window.showErrorDetail = showErrorDetail; window.closeErrorDetailModal = closeErrorDetailModal;
         window.hideModalError = hideModalError; window.selectServer = selectServer;
+        window.requestNotifPermission = requestNotifPermission; window.toggleNotifications = toggleNotifications;
     </script>
 </body>
 </html>

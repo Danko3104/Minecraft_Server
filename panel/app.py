@@ -35,6 +35,7 @@ from panel.routes.dashboard import dashboard_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('MINECOLAB_JWT_SECRET', 'minecolab-secret-key-change-in-production')
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB para mundos grandes
 
 # CORS habilitado para todos los orígenes (necesario para Colab)
 CORS(app, resources={r"/api/*": {"origins": "*"}})

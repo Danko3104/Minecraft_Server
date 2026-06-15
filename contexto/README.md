@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `5e3b32f fix: modal de progreso ahora muestra error detallado sin cerrarse + console.log para debug`
+**Último commit:** `1516008 fix: subida por carpeta ahora comprime en ZIP local con JSZip y usa endpoint existente, evita timeout del tunel`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `5e3b32f fix: modal de progreso ahora muestra error detallado sin cerrarse + console.log para debug`
+**2026-06-14 · Último commit:** `1516008 fix: subida por carpeta ahora comprime en ZIP local con JSZip y usa endpoint existente, evita timeout del tunel`
