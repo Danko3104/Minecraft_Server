@@ -1001,6 +1001,15 @@ class ServerManager:
                         else:
                             os.remove(dim_path)
 
+                # Limpiar carpetas del level-name por defecto (world/) si quedaron del primer inicio
+                for suffix in ['', '_nether', '_end']:
+                    default_path = os.path.join(server_path, 'world' + suffix)
+                    if os.path.exists(default_path):
+                        if os.path.isdir(default_path):
+                            shutil.rmtree(default_path)
+                        else:
+                            os.remove(default_path)
+
                 # Mover los archivos según el caso
                 if main_world_dir and len(items) > 1:
                     # Multi-dimensión: limpiar y mover carpetas enteras al nivel del servidor
