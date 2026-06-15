@@ -1811,17 +1811,44 @@
             document.getElementById('upload-status').innerHTML = '';
         }
 
+        function showUploadError(msg, detail) {
+            document.getElementById('btn-cancel-upload').style.display = 'none';
+            document.getElementById('upload-progress-filename').textContent = 'Error';
+            document.getElementById('upload-progress-filename').style.color = '#f85149';
+            document.getElementById('upload-progress-bar').style.background = '#f85149';
+            const errEl = document.createElement('div');
+            errEl.id = 'upload-error-msg';
+            errEl.style.cssText = 'margin-top:12px;padding:10px;background:#f8514915;border:1px solid #f8514940;border-radius:6px;color:#f85149;font-size:13px;word-break:break-all;';
+            errEl.textContent = msg;
+            if (detail) {
+                const detEl = document.createElement('div');
+                detEl.style.cssText = 'margin-top:6px;font-size:11px;color:#8b949e;font-family:monospace;';
+                detEl.textContent = detail;
+                errEl.appendChild(detEl);
+            }
+            const container = document.querySelector('#modal-upload-progress .modal > div');
+            const oldErr = document.getElementById('upload-error-msg');
+            if (oldErr) oldErr.remove();
+            container.appendChild(errEl);
+            document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+        }
+
         function uploadWorldFolder(input) {
             const files = input.files;
             if (!files || files.length === 0) return;
 
-            // Calcular tamaño total
+            const oldErr = document.getElementById('upload-error-msg');
+            if (oldErr) oldErr.remove();
+            document.getElementById('upload-progress-filename').style.color = '#8b949e';
+            document.getElementById('upload-progress-bar').style.background = 'linear-gradient(90deg,#58a6ff,#3fb950)';
+
             let totalBytes = 0;
             for (let i = 0; i < files.length; i++) {
                 totalBytes += files[i].size;
             }
 
-            // Mostrar modal
+            console.log('[Upload] Iniciando subida de ' + files.length + ' archivos (' + (totalBytes / 1048576).toFixed(1) + ' MB)');
+
             document.getElementById('modal-upload-progress').style.display = 'flex';
             document.getElementById('upload-progress-bar').style.width = '0%';
             document.getElementById('upload-progress-percent').textContent = '0%';
@@ -1850,7 +1877,6 @@
                     document.getElementById('upload-progress-percent').textContent = percent + '%';
                     document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
 
-                    // Estimar archivo actual basado en progreso
                     let accumulated = 0;
                     let currentFileIndex = 0;
                     let currentFileName = '';
@@ -1871,20 +1897,22 @@
             xhr.addEventListener('load', function() {
                 uploadXhr = null;
                 document.getElementById('btn-cancel-upload').style.display = 'none';
-                document.getElementById('modal-upload-progress').style.display = 'none';
                 const status = document.getElementById('upload-status');
+                console.log('[Upload] Respuesta recibida (status ' + xhr.status + '):', xhr.responseText ? xhr.responseText.substring(0, 200) : '(vacia)');
                 try {
                     const data = JSON.parse(xhr.responseText);
                     if (data.success) {
+                        document.getElementById('modal-upload-progress').style.display = 'none';
                         toast('Mundo subido por carpeta correctamente (' + files.length + ' archivos)', 'success');
                         status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                     } else {
+                        showUploadError(data.error || 'Error al subir carpeta', 'status HTTP: ' + xhr.status);
                         toast(data.error || 'Error al subir carpeta', 'error');
-                        status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
                     }
                 } catch(e) {
+                    console.error('[Upload] Error al parsear respuesta:', e, 'Texto:', xhr.responseText ? xhr.responseText.substring(0, 300) : '(vacia)');
+                    showUploadError('Error al procesar respuesta del servidor', 'status HTTP: ' + xhr.status + ' | respuesta no es JSON valido');
                     toast('Error al procesar respuesta del servidor', 'error');
-                    status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
                 }
                 setTimeout(() => { status.innerHTML = ''; }, 5000);
                 input.value = '';
@@ -1892,15 +1920,15 @@
 
             xhr.addEventListener('error', function() {
                 uploadXhr = null;
-                document.getElementById('btn-cancel-upload').style.display = 'none';
-                document.getElementById('modal-upload-progress').style.display = 'none';
+                console.error('[Upload] Error de conexion (network error)');
+                showUploadError('Error de conexión al subir carpeta', 'revisa que el servidor Flask esté corriendo');
                 toast('Error de conexión al subir carpeta', 'error');
-                document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
                 input.value = '';
             });
 
             xhr.addEventListener('abort', function() {
                 uploadXhr = null;
+                document.getElementById('modal-upload-progress').style.display = 'none';
                 toast('Subida cancelada', 'warning');
                 document.getElementById('upload-status').innerHTML = '';
                 input.value = '';
