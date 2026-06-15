@@ -799,6 +799,18 @@ class ServerManager:
 
             shutil.copytree(world_path, backup_path)
             print(f"[INFO] Backup creado: {backup_path}")
+
+            # Prune: mantener solo los últimos 3 backups de mundo
+            world_backups = [
+                e for e in os.listdir(backups_dir)
+                if e.startswith(server_name + '_world_') and os.path.isdir(os.path.join(backups_dir, e))
+            ]
+            world_backups.sort(reverse=True)  # más reciente primero
+            for old in world_backups[3:]:
+                old_path = os.path.join(backups_dir, old)
+                shutil.rmtree(old_path, ignore_errors=True)
+                print(f"[INFO] Backup antiguo eliminado: {old}")
+
             return backup_name
         except Exception as e:
             print(f"[ERROR] _backup_world: {e}")
@@ -949,29 +961,78 @@ class ServerManager:
                     zf.extractall(temp_dir)
 
                 items = os.listdir(temp_dir)
-                if len(items) == 1 and os.path.isdir(os.path.join(temp_dir, items[0])):
-                    # El zip contiene un solo directorio -> usar su nombre como level-name
+
+                # Detectar si el zip contiene múltiples dimensiones (e.g. sapos/, sapos_nether/, sapos_the_end/)
+                main_world_dir = None
+                for item in items:
+                    item_path = os.path.join(temp_dir, item)
+                    if os.path.isdir(item_path) and os.path.exists(os.path.join(item_path, 'level.dat')):
+                        main_world_dir = item
+                        break
+
+                if main_world_dir and len(items) > 1:
+                    # Caso multi-dimensión: zip contiene la carpeta principal + dimensiones hermanas
+                    new_level_name = main_world_dir
+                elif len(items) == 1 and os.path.isdir(os.path.join(temp_dir, items[0])):
+                    # Zip contiene un solo directorio -> usar su nombre como level-name
                     new_level_name = items[0]
-                    source_dir = os.path.join(temp_dir, new_level_name)
                 else:
-                    # Múltiples archivos/carpetas raíz -> mantener el level-name actual
+                    # Contenido del mundo directamente en la raíz (region/, playerdata/, level.dat)
                     props = self.read_server_properties(server_name)
                     new_level_name = props.get('level-name', 'world')
+
+                # Limpiar el mundo ANTERIOR (por si cambió el level-name, ej: world → Sapos)
+                old_props = self.read_server_properties(server_name)
+                old_level_name = old_props.get('level-name', 'world')
+                for suffix in ['', '_nether', '_the_end']:
+                    old_dim_path = os.path.join(server_path, old_level_name + suffix)
+                    if os.path.exists(old_dim_path):
+                        if os.path.isdir(old_dim_path):
+                            shutil.rmtree(old_dim_path)
+                        else:
+                            os.remove(old_dim_path)
+
+                # Limpiar también las carpetas del NUEVO level-name (por si coincide con el viejo)
+                for suffix in ['', '_nether', '_the_end']:
+                    dim_path = os.path.join(server_path, new_level_name + suffix)
+                    if os.path.exists(dim_path):
+                        if os.path.isdir(dim_path):
+                            shutil.rmtree(dim_path)
+                        else:
+                            os.remove(dim_path)
+
+                # Mover los archivos según el caso
+                if main_world_dir and len(items) > 1:
+                    # Multi-dimensión: limpiar y mover carpetas enteras al nivel del servidor
+                    for item in items:
+                        dest = os.path.join(server_path, item)
+                        if os.path.exists(dest):
+                            if os.path.isdir(dest):
+                                shutil.rmtree(dest)
+                            else:
+                                os.remove(dest)
+                    for item in items:
+                        shutil.move(os.path.join(temp_dir, item), os.path.join(server_path, item))
+                    world_path = os.path.join(server_path, new_level_name)
+                elif len(items) == 1 and os.path.isdir(os.path.join(temp_dir, items[0])):
+                    # Un solo directorio: mover su contenido a la carpeta del mundo
+                    source_dir = os.path.join(temp_dir, new_level_name)
+                    world_path = os.path.join(server_path, new_level_name)
+                    os.makedirs(world_path, exist_ok=True)
+                    for item in os.listdir(source_dir):
+                        shutil.move(os.path.join(source_dir, item), os.path.join(world_path, item))
+                else:
+                    # Contenido en raíz: mover todo a la carpeta del mundo
                     source_dir = temp_dir
+                    world_path = os.path.join(server_path, new_level_name)
+                    os.makedirs(world_path, exist_ok=True)
+                    for item in items:
+                        shutil.move(os.path.join(source_dir, item), os.path.join(world_path, item))
 
                 # Actualizar server.properties con el nuevo level-name
                 props = self.read_server_properties(server_name)
                 props['level-name'] = new_level_name
                 self.write_server_properties(server_name, props)
-
-                # Mover al directorio definitivo
-                world_path = os.path.join(server_path, new_level_name)
-                if os.path.exists(world_path):
-                    shutil.rmtree(world_path)
-
-                os.makedirs(world_path, exist_ok=True)
-                for item in os.listdir(source_dir):
-                    shutil.move(os.path.join(source_dir, item), os.path.join(world_path, item))
             finally:
                 shutil.rmtree(temp_dir, ignore_errors=True)
 

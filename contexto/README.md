@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `07fee22 fix: stop button stuck on 'Deteniendo...' and missing stop notification`
+**Último commit:** `c24b819 feat: add optional Oracle Cloud SSH reverse tunnel as alternative to Minekube`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `07fee22 fix: stop button stuck on 'Deteniendo...' and missing stop notification`
+**2026-06-15 · Último commit:** `c24b819 feat: add optional Oracle Cloud SSH reverse tunnel as alternative to Minekube`

@@ -27,6 +27,14 @@ cloudflared_process = None  # Proceso de cloudflared (global para poder detenerl
 flask_thread = None         # Hilo de Flask
 panel_url = None            # URL del panel Cloudflare
 
+# Paths
+DRIVE_MOUNT = '/content/drive/MyDrive'
+MINECRAFT_DIR = os.path.join(DRIVE_MOUNT, 'minecraft')
+BACKUP_DIR = os.path.join(MINECRAFT_DIR, 'backup')
+BACKUP_WORLD_DIR = os.path.join(BACKUP_DIR, 'world')
+BACKUP_SERVER_DIR = os.path.join(BACKUP_DIR, 'server')
+LOGS_DIR = os.path.join(MINECRAFT_DIR, 'logs')
+
 # Oracle Cloud SSH reverse tunnel
 USE_ORACLE_TUNNEL = True
 ORACLE_HOST = "64.181.171.17"
@@ -35,14 +43,6 @@ ORACLE_KEY_PATH = os.path.join(DRIVE_MOUNT, 'minecraft', 'oracle_key.pem')
 ORACLE_REMOTE_PORT = 25565
 ORACLE_LOCAL_PORT = 25565
 oracle_tunnel_process = None
-
-# Paths
-DRIVE_MOUNT = '/content/drive/MyDrive'
-MINECRAFT_DIR = os.path.join(DRIVE_MOUNT, 'minecraft')
-BACKUP_DIR = os.path.join(MINECRAFT_DIR, 'backup')
-BACKUP_WORLD_DIR = os.path.join(BACKUP_DIR, 'world')
-BACKUP_SERVER_DIR = os.path.join(BACKUP_DIR, 'server')
-LOGS_DIR = os.path.join(MINECRAFT_DIR, 'logs')
 
 
 # =============================================================================
