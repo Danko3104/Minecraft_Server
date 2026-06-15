@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `d6b87a2 Add rename server, server_ready notif, remove seed/level fields`
+**Último commit:** `c20b0b6 Fix world path: use level-name from server.properties instead of hardcoded 'world'`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `d6b87a2 Add rename server, server_ready notif, remove seed/level fields`
+**2026-06-15 · Último commit:** `c20b0b6 Fix world path: use level-name from server.properties instead of hardcoded 'world'`

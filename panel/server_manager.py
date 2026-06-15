@@ -922,10 +922,10 @@ class ServerManager:
         """
         Reemplaza el mundo actual con el contenido de un .zip.
         Antes hace backup del mundo actual.
+        Si el zip contiene un solo subdirectorio, usa su nombre como level-name.
         """
         try:
             server_path = self.get_server_path(server_name)
-            world_path = self._get_world_path(server_name)
 
             was_running = self.is_running()
             if was_running:
@@ -941,30 +941,44 @@ class ServerManager:
             # Backup automático del mundo actual (después de stop, estado consistente)
             self._backup_world(server_name)
 
-            # Eliminar mundo actual
-            if os.path.exists(world_path):
-                shutil.rmtree(world_path)
+            # Extraer a temp para inspeccionar estructura
+            temp_dir = tempfile.mkdtemp()
+            try:
+                with zipfile.ZipFile(zip_path, 'r') as zf:
+                    zf.extractall(temp_dir)
 
-            # Extraer zip
-            os.makedirs(world_path, exist_ok=True)
-            with zipfile.ZipFile(zip_path, 'r') as zf:
-                zf.extractall(world_path)
+                items = os.listdir(temp_dir)
+                if len(items) == 1 and os.path.isdir(os.path.join(temp_dir, items[0])):
+                    # El zip contiene un solo directorio -> usar su nombre como level-name
+                    new_level_name = items[0]
+                    source_dir = os.path.join(temp_dir, new_level_name)
+                else:
+                    # Múltiples archivos/carpetas raíz -> mantener el level-name actual
+                    props = self.read_server_properties(server_name)
+                    new_level_name = props.get('level-name', 'world')
+                    source_dir = temp_dir
 
-            # Si hay un solo subdirectorio dentro de world/, subir su contenido
-            items = os.listdir(world_path)
-            if len(items) == 1:
-                single = os.path.join(world_path, items[0])
-                if os.path.isdir(single):
-                    for item in os.listdir(single):
-                        shutil.move(os.path.join(single, item), os.path.join(world_path, item))
-                    shutil.rmtree(single)
+                # Actualizar server.properties con el nuevo level-name
+                props = self.read_server_properties(server_name)
+                props['level-name'] = new_level_name
+                self.write_server_properties(server_name, props)
+
+                # Mover al directorio definitivo
+                world_path = os.path.join(server_path, new_level_name)
+                if os.path.exists(world_path):
+                    shutil.rmtree(world_path)
+
+                os.makedirs(world_path, exist_ok=True)
+                for item in os.listdir(source_dir):
+                    shutil.move(os.path.join(source_dir, item), os.path.join(world_path, item))
+            finally:
+                shutil.rmtree(temp_dir, ignore_errors=True)
 
             # Validar que el mundo extraído tenga level.dat
             if not os.path.exists(os.path.join(world_path, 'level.dat')):
                 print(f"[WARNING] No se encontró level.dat en el zip subido para '{server_name}'")
-                # No es error fatal, Minecraft generará un level.dat nuevo
 
-            print(f"[INFO] Mundo subido para '{server_name}'")
+            print(f"[INFO] Mundo subido para '{server_name}' → '{new_level_name}'")
 
             if was_running:
                 self.start(server_name)
