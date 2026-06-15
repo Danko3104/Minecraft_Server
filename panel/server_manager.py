@@ -76,7 +76,6 @@ class ServerManager:
                 'server-port': '25565',
                 'enforce-secure-profile': 'false',
                 'online-mode': 'false',
-                'white-list': 'true',
             }
 
             # Propiedades por defecto — solo se escriben si el archivo no existe
@@ -1059,7 +1058,6 @@ class ServerManager:
             current['server-port'] = '25565'
             current['online-mode'] = 'false'
             current['enforce-secure-profile'] = 'false'
-            current['white-list'] = 'true'
 
             lines = []
             seen = set()

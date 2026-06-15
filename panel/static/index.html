@@ -589,6 +589,14 @@
                             </div>
                             <input type="hidden" id="prop-command-blocks" value="false">
                         </div>
+                        <div class="setting-field">
+                            <label>Whitelist</label>
+                            <div class="toggle-group">
+                                <button class="toggle-btn active" data-target="prop-white-list" data-value="true">Activada</button>
+                                <button class="toggle-btn" data-target="prop-white-list" data-value="false">Desactivada</button>
+                            </div>
+                            <input type="hidden" id="prop-white-list" value="true">
+                        </div>
                         <div style="display:flex;gap:8px;margin-top:8px;">
                             <button class="btn btn-primary" onclick="saveServerProperties()"><i class="fas fa-save"></i> Guardar cambios</button>
                             <button class="btn btn-secondary" onclick="reloadServer()" title="Recarga config sin reiniciar (no recomendado en producción)"><i class="fas fa-sync-alt"></i> Reload</button>
@@ -1742,6 +1750,7 @@
                     document.getElementById('prop-view-distance').value = data.properties['view-distance'] || '10';
                     document.getElementById('prop-spawn-protection').value = data.properties['spawn-protection'] || '16';
                     setToggle('prop-command-blocks', data.properties['enable-command-block'] === 'true');
+                    setToggle('prop-white-list', data.properties['white-list'] === 'true');
                 }
             } catch(e) { console.error('load settings error:', e); }
 
@@ -1792,6 +1801,7 @@
                 'view-distance': document.getElementById('prop-view-distance').value || '10',
                 'spawn-protection': document.getElementById('prop-spawn-protection').value || '16',
                 'enable-command-block': document.getElementById('prop-command-blocks').value,
+                'white-list': document.getElementById('prop-white-list').value,
             };
             try {
                 const res = await fetch('/api/settings/server-properties', {

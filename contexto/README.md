@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `4b3d4ea fix: auto-detect SSH key by .key or .pem extension instead of hardcoded filename`
+**Último commit:** `967824a fix: whitelist add now also writes directly to whitelist.json with offline UUID + fix frontend refresh`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `4b3d4ea fix: auto-detect SSH key by .key or .pem extension instead of hardcoded filename`
+**2026-06-15 · Último commit:** `967824a fix: whitelist add now also writes directly to whitelist.json with offline UUID + fix frontend refresh`
