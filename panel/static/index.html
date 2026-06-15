@@ -1944,9 +1944,9 @@
                         sendNotification('MineColab', 'Compresión completada (' + files.length + ' archivos, ' + totalMB + ' MB). Subiendo...');
 
                         // 2. Subir ZIP — directo si es pequeño, por partes si es grande
-                        const CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB
+                        const CHUNK_SIZE = 25 * 1024 * 1024; // 25 MB para evitar timeout del túnel Cloudflare (~100s)
                         const uploadId = 'up_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-                        if (blob.size > 85 * 1024 * 1024) {
+                        if (blob.size > 45 * 1024 * 1024) {
                             // === CHUNKED UPLOAD ===
                             const totalChunks = Math.ceil(blob.size / CHUNK_SIZE);
                             console.log('[UPLOAD] Subida por partes: ' + totalChunks + ' chunks de 50MB');
