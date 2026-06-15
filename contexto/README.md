@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `1902f38 fix: clean old level-name folders on world upload + restore per-item cleanup for multi-dimension zips`
+**Último commit:** `a566d52 fix: also remove default world/ world_nether/ world_end/ folders left from first server start`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `1902f38 fix: clean old level-name folders on world upload + restore per-item cleanup for multi-dimension zips`
+**2026-06-15 · Último commit:** `a566d52 fix: also remove default world/ world_nether/ world_end/ folders left from first server start`

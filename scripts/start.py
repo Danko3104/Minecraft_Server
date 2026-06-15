@@ -35,8 +35,7 @@ BACKUP_WORLD_DIR = os.path.join(BACKUP_DIR, 'world')
 BACKUP_SERVER_DIR = os.path.join(BACKUP_DIR, 'server')
 LOGS_DIR = os.path.join(MINECRAFT_DIR, 'logs')
 
-# Oracle Cloud SSH reverse tunnel
-USE_ORACLE_TUNNEL = True
+# Oracle Cloud SSH reverse tunnel (único túnel para Minecraft)
 ORACLE_HOST = "64.181.171.17"
 ORACLE_USER = "ubuntu"
 ORACLE_KEY_PATH = os.path.join(DRIVE_MOUNT, 'minecraft', 'oracle_key.pem')
@@ -631,17 +630,16 @@ def launch():
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
-    # Paso 8: Iniciar túnel SSH Oracle
-    if USE_ORACLE_TUNNEL:
-        print("\n" + "=" * 60)
-        print("PASO 8: Iniciando túnel SSH hacia Oracle")
-        print("=" * 60)
-        oracle_proc = start_oracle_tunnel()
-        if oracle_proc:
-            threading.Thread(target=keep_oracle_tunnel_alive, daemon=True).start()
-            print(f"[OK] Jugadores pueden conectarse a: {ORACLE_HOST}:{ORACLE_REMOTE_PORT}")
-        else:
-            print("[WARN] Túnel Oracle no disponible. Verifica que oracle_key.pem esté en Drive.")
+    # Paso 8: Iniciar túnel SSH Oracle (única conexión para Minecraft)
+    print("\n" + "=" * 60)
+    print("PASO 8: Iniciando túnel SSH hacia Oracle")
+    print("=" * 60)
+    oracle_proc = start_oracle_tunnel()
+    if oracle_proc:
+        threading.Thread(target=keep_oracle_tunnel_alive, daemon=True).start()
+        print(f"[OK] Jugadores pueden conectarse a: {ORACLE_HOST}:{ORACLE_REMOTE_PORT}")
+    else:
+        print("[WARN] Túnel Oracle no disponible. Verifica que oracle_key.pem esté en Drive.")
 
     # Paso 9: Mostrar resultado final
     print("\n" + "=" * 60)
@@ -689,7 +687,7 @@ def launch():
                 pass
 
             # Verificar estado del túnel Oracle
-            if USE_ORACLE_TUNNEL and oracle_tunnel_process is not None:
+            if oracle_tunnel_process is not None:
                 if oracle_tunnel_process.poll() is None:
                     print("[OK] Túnel Oracle activo")
                 else:
