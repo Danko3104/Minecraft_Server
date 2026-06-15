@@ -596,10 +596,12 @@
                             </div>
                             <div style="margin-top:16px;border:1px solid #30363d;border-radius:8px;padding:16px;">
                                 <h4 style="font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;"><i class="fas fa-upload"></i> Subir mundo</h4>
-                                <p style="font-size:13px;color:#8b949e;margin-bottom:12px;">Sube un archivo .zip con el mundo. Se hará backup automático del mundo actual antes de reemplazarlo.</p>
+                                <p style="font-size:13px;color:#8b949e;margin-bottom:12px;">Sube un archivo .zip o una carpeta completa con el mundo. Se hará backup automático del mundo actual antes de reemplazarlo.</p>
                                 <input type="file" id="world-upload-input" accept=".zip" style="display:none;" onchange="uploadWorld(this)">
-                                <div style="display:flex;gap:8px;">
+                                <input type="file" id="world-folder-input" webkitdirectory directory multiple style="display:none;" onchange="uploadWorldFolder(this)">
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;">
                                     <button class="btn btn-primary" onclick="document.getElementById('world-upload-input').click()"><i class="fas fa-file-archive"></i> Seleccionar .zip</button>
+                                    <button class="btn btn-secondary" onclick="document.getElementById('world-folder-input').click()"><i class="fas fa-folder-open"></i> Seleccionar Carpeta</button>
                                     <span id="upload-status" style="font-size:13px;color:#8b949e;display:flex;align-items:center;"></span>
                                 </div>
                             </div>
@@ -1775,6 +1777,40 @@
             input.value = '';
         }
 
+        // ============ UPLOAD MUNDO POR CARPETA ============
+        function uploadWorldFolder(input) {
+            const files = input.files;
+            if (!files || files.length === 0) return;
+            const status = document.getElementById('upload-status');
+            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo carpeta (' + files.length + ' archivos)...';
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                formData.append('files', file);
+                formData.append('paths', file.webkitRelativePath || file.name);
+            }
+            fetch('/api/settings/upload-world-folder', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    toast('Mundo subido por carpeta correctamente', 'success');
+                    status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                } else {
+                    toast(data.error || 'Error al subir carpeta', 'error');
+                    status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                }
+                setTimeout(() => { status.innerHTML = ''; }, 3000);
+            })
+            .catch(e => {
+                toast('Error de conexión', 'error');
+                status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+            });
+            input.value = '';
+        }
+
         // ============ SERVER ICON ============
         async function loadServerIcon() {
             const preview = document.getElementById('server-icon-preview');
@@ -2303,7 +2339,7 @@
         window.executeBan = executeBan; window.openNewServerModal = openNewServerModal; window.closeNewServerModal = closeNewServerModal;
         window.createAndInstallServer = createAndInstallServer; window.onServerTypeChange = onServerTypeChange;
         window.checkUpdates = checkUpdates; window.performUpdate = performUpdate; window.saveServerProperties = saveServerProperties;
-        window.uploadWorld = uploadWorld; window.createBackup = createBackup; window.loadBackups = loadBackups;
+        window.uploadWorld = uploadWorld; window.uploadWorldFolder = uploadWorldFolder; window.createBackup = createBackup; window.loadBackups = loadBackups;
         window.restoreBackup = restoreBackup; window.deleteBackup = deleteBackup;
         window.searchPlugins = searchPlugins; window.installPlugin = installPlugin; window.loadInstalledPlugins = loadInstalledPlugins;
         window.uninstallPlugin = uninstallPlugin;

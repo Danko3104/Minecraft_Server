@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `71461e0 feat: favicon con icono del servidor + fallback SVG`
+**Último commit:** `f4b31f4 fix: comando 'stop' desde consola ahora guarda mundo y hace backup`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-12 · Último commit:** `71461e0 feat: favicon con icono del servidor + fallback SVG`
+**2026-06-14 · Último commit:** `f4b31f4 fix: comando 'stop' desde consola ahora guarda mundo y hace backup`

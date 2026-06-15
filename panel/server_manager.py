@@ -960,6 +960,71 @@ class ServerManager:
             print(f"[ERROR] upload_world: {e}")
             return {"success": False, "error": str(e)}
 
+    def _strip_common_prefix(self, paths: list) -> list:
+        if not paths:
+            return paths
+        split_paths = []
+        for p in paths:
+            p_clean = p.replace('\\', '/').strip('/')
+            parts = [x for x in p_clean.split('/') if x]
+            split_paths.append(parts)
+        if all(len(parts) > 1 for parts in split_paths):
+            first_part = split_paths[0][0]
+            if all(parts[0] == first_part for parts in split_paths):
+                return ['/'.join(parts[1:]) for parts in split_paths]
+        return [p.replace('\\', '/').strip('/') for p in paths]
+
+    def upload_world_folder(self, server_name: str, files_list: list, paths_list: list) -> Dict:
+        """
+        Reemplaza el mundo actual con el contenido de una carpeta subida por partes.
+        Antes hace backup del mundo actual.
+        """
+        try:
+            server_path = self.get_server_path(server_name)
+            world_path = os.path.join(server_path, 'world')
+
+            # Backup automático del mundo actual
+            self._backup_world(server_name)
+
+            was_running = self.is_running()
+            if was_running:
+                if MCRCON_AVAILABLE:
+                    try:
+                        with RCon("localhost", self.rcon_port, self.rcon_password) as rcon:
+                            rcon.command("save-all")
+                    except Exception:
+                        pass
+                self.stop()
+                time.sleep(2)
+
+            # Eliminar mundo actual para evitar mezclas corruptas
+            if os.path.exists(world_path):
+                shutil.rmtree(world_path)
+
+            os.makedirs(world_path, exist_ok=True)
+
+            # Normalizar y quitar carpetas raíz redundantes
+            cleaned_paths = self._strip_common_prefix(paths_list)
+
+            # Guardar cada archivo en su ruta correspondiente
+            for file_item, rel_path in zip(files_list, cleaned_paths):
+                file_dest = os.path.normpath(os.path.join(world_path, rel_path))
+                # Asegurar que no se escape de la carpeta world (por seguridad contra path traversal)
+                if not file_dest.startswith(os.path.normpath(world_path)):
+                    continue
+                os.makedirs(os.path.dirname(file_dest), exist_ok=True)
+                file_item.save(file_dest)
+
+            print(f"[INFO] Carpeta de mundo subida para '{server_name}'")
+
+            if was_running:
+                self.start(server_name)
+
+            return {"success": True, "message": "Mundo subido por carpeta correctamente"}
+        except Exception as e:
+            print(f"[ERROR] upload_world_folder: {e}")
+            return {"success": False, "error": str(e)}
+
     # =========================================================================
     # MÉTODOS DE CONFIGURACIÓN (SETTINGS)
     # =========================================================================
