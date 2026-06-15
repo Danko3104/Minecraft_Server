@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `e05b4d1 feat: notificaciones navegador, progreso compresion, MAX_CONTENT_LENGTH 1GB`
+**Último commit:** `bd4ab83 feat: notificaciones para todos los eventos del panel (restart, plugin install/update, file save, icon, backup errors, colab time warnings, server select)`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `e05b4d1 feat: notificaciones navegador, progreso compresion, MAX_CONTENT_LENGTH 1GB`
+**2026-06-14 · Último commit:** `bd4ab83 feat: notificaciones para todos los eventos del panel (restart, plugin install/update, file save, icon, backup errors, colab time warnings, server select)`

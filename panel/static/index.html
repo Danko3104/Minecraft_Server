@@ -1932,11 +1932,12 @@
                         const totalMB = (blob.size / 1048576).toFixed(1);
                         document.getElementById('upload-progress-bar').style.width = '100%';
                         document.getElementById('upload-progress-percent').textContent = '100%';
-                        document.getElementById('upload-progress-files').textContent = files.length + ' / ' + files.length + ' archivos';
+                        document.getElementById('upload-progress-files').textContent = files.length + ' / ' + files.length + ' archivos (comprimidos)';
                         document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
                         document.getElementById('upload-progress-filename').textContent = 'Subiendo ZIP (' + totalMB + ' MB)...';
                         document.getElementById('upload-progress-bar').style.width = '0%';
                         document.getElementById('upload-progress-percent').textContent = '0%';
+                        sendNotification('MineColab', 'Compresión completada (' + files.length + ' archivos, ' + totalMB + ' MB). Subiendo...');
 
                         // 2. Subir ZIP al endpoint existente
                         const formData = new FormData();
@@ -1952,6 +1953,7 @@
                                 document.getElementById('upload-progress-bar').style.width = pct + '%';
                                 document.getElementById('upload-progress-percent').textContent = pct + '%';
                                 document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
+                                document.getElementById('upload-progress-files').textContent = 'Subiendo... ' + pct + '%';
                             }
                         });
 
