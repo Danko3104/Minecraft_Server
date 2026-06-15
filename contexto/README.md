@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `c20b0b6 Fix world path: use level-name from server.properties instead of hardcoded 'world'`
+**Último commit:** `23b43e3 upload_world: detect world folder name from zip and update level-name`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `c20b0b6 Fix world path: use level-name from server.properties instead of hardcoded 'world'`
+**2026-06-15 · Último commit:** `23b43e3 upload_world: detect world folder name from zip and update level-name`

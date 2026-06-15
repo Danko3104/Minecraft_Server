@@ -12,6 +12,7 @@ import threading
 import shutil
 import re
 import zipfile
+import tempfile
 from datetime import datetime
 from typing import Optional, Dict, List
 
