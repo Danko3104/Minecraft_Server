@@ -920,9 +920,6 @@ class ServerManager:
             server_path = self.get_server_path(server_name)
             world_path = os.path.join(server_path, 'world')
 
-            # Backup automático del mundo actual
-            self._backup_world(server_name)
-
             was_running = self.is_running()
             if was_running:
                 if MCRCON_AVAILABLE:
@@ -934,6 +931,9 @@ class ServerManager:
                 self.stop()
                 time.sleep(2)
 
+            # Backup automático del mundo actual (después de stop, estado consistente)
+            self._backup_world(server_name)
+
             # Eliminar mundo actual
             if os.path.exists(world_path):
                 shutil.rmtree(world_path)
@@ -943,12 +943,19 @@ class ServerManager:
             with zipfile.ZipFile(zip_path, 'r') as zf:
                 zf.extractall(world_path)
 
-            # Si el zip contenía una carpeta interna 'world/', subir un nivel
-            inner_world = os.path.join(world_path, 'world')
-            if os.path.isdir(inner_world):
-                for item in os.listdir(inner_world):
-                    shutil.move(os.path.join(inner_world, item), os.path.join(world_path, item))
-                shutil.rmtree(inner_world)
+            # Si hay un solo subdirectorio dentro de world/, subir su contenido
+            items = os.listdir(world_path)
+            if len(items) == 1:
+                single = os.path.join(world_path, items[0])
+                if os.path.isdir(single):
+                    for item in os.listdir(single):
+                        shutil.move(os.path.join(single, item), os.path.join(world_path, item))
+                    shutil.rmtree(single)
+
+            # Validar que el mundo extraído tenga level.dat
+            if not os.path.exists(os.path.join(world_path, 'level.dat')):
+                print(f"[WARNING] No se encontró level.dat en el zip subido para '{server_name}'")
+                # No es error fatal, Minecraft generará un level.dat nuevo
 
             print(f"[INFO] Mundo subido para '{server_name}'")
 

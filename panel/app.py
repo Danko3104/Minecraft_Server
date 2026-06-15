@@ -9,7 +9,7 @@ import re
 import shutil
 import tempfile
 import psutil
-import os
+import threading
 from flask import Flask, jsonify, request, send_from_directory, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
@@ -104,6 +104,10 @@ def require_auth():
 server_process = None        # Proceso de Minecraft (subprocess)
 server_start_time = None     # datetime cuando se inició Minecraft
 session_start_time = datetime.now()  # Cuando arrancó Flask
+
+# Estado de procesamiento de uploads (upload_id -> dict con status/progress/result/error)
+_upload_status: dict = {}
+_upload_lock = threading.Lock()
 
 # =============================================================================
 # RUTAS PRINCIPALES
@@ -589,6 +593,7 @@ def api_settings_upload_world():
         # Guardar temporalmente
         with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp:
             tmp_path = tmp.name
+        file.save(tmp_path)
 
         try:
             result = server_manager.upload_world(active_server, tmp_path)
@@ -608,7 +613,7 @@ def api_settings_upload_world():
 def api_settings_upload_world_chunked():
     """
     POST /api/settings/upload-world-chunked — Recibe un chunk de archivo.
-    Cuando llega el último, reensambla y llama a upload_world.
+    Cuando llega el último, reensambla y procesa en segundo plano.
     Body (multipart): chunk (file), index, total, upload_id, filename
     """
     try:
@@ -648,16 +653,70 @@ def api_settings_upload_world_chunked():
 
             shutil.rmtree(chunk_dir, ignore_errors=True)
 
-            try:
-                result = server_manager.upload_world(active_server, tmp_path)
-                return jsonify(result)
-            finally:
+            # Inicializar estado de procesamiento
+            with _upload_lock:
+                _upload_status[upload_id] = {"status": "processing", "progress": "Reensamblando mundo...", "result": None, "error": None}
+
+            # Procesar en segundo plano para evitar timeout
+            def _process_upload():
                 try:
-                    os.unlink(tmp_path)
-                except Exception:
-                    pass
+                    with _upload_lock:
+                        _upload_status[upload_id]["progress"] = "Procesando mundo..."
+                    result = server_manager.upload_world(active_server, tmp_path)
+                    with _upload_lock:
+                        if result.get("success"):
+                            _upload_status[upload_id]["status"] = "done"
+                            _upload_status[upload_id]["result"] = result
+                            _upload_status[upload_id]["progress"] = "Mundo subido correctamente"
+                        else:
+                            _upload_status[upload_id]["status"] = "error"
+                            _upload_status[upload_id]["error"] = result.get("error", "Error desconocido")
+                            _upload_status[upload_id]["progress"] = "Error"
+                except Exception as e:
+                    with _upload_lock:
+                        _upload_status[upload_id]["status"] = "error"
+                        _upload_status[upload_id]["error"] = str(e)
+                        _upload_status[upload_id]["progress"] = "Error"
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+
+            threading.Thread(target=_process_upload, daemon=True).start()
+
+            return jsonify({"success": True, "message": "Mundo recibido, procesando...", "upload_id": upload_id, "processing": True})
 
         return jsonify({"success": True, "message": f"Chunk {index+1}/{total} recibido"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/upload-world-status', methods=['GET'])
+def api_settings_upload_world_status():
+    """
+    GET /api/settings/upload-world-status?upload_id=xxx
+    Retorna el estado del procesamiento de un upload.
+    """
+    try:
+        upload_id = request.args.get('upload_id', '')
+        if not upload_id:
+            return jsonify({"success": False, "error": "Falta upload_id"}), 400
+
+        with _upload_lock:
+            status = _upload_status.get(upload_id)
+
+        if not status:
+            return jsonify({"success": False, "error": "upload_id no encontrado"}), 404
+
+        return jsonify({
+            "success": True,
+            "status": status["status"],
+            "progress": status.get("progress", ""),
+            "error": status.get("error"),
+            "result": status.get("result")
+        })
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

@@ -61,6 +61,31 @@
         .status-dot.pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
+        /* NOTIFICATION BELL */
+        .notif-bell { position: relative; cursor: pointer; padding: 6px 8px; border-radius: 8px; transition: background 0.15s; font-size: 16px; color: #8b949e; user-select: none; }
+        .notif-bell:hover { background: #1c2128; color: #e6edf3; }
+        .notif-bell.has-active { color: #58a6ff; }
+        .notif-bell .bell-dot { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: #3fb950; border-radius: 50%; border: 2px solid #0f1117; display: none; }
+        .notif-bell .bell-dot.show { display: block; }
+        .notif-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: #1c2128; border: 1px solid #30363d; border-radius: 12px; padding: 16px; width: 280px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 200; }
+        .notif-dropdown.open { display: block; }
+        .notif-dropdown h4 { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 8px; }
+        .notif-dropdown .notif-option { display: flex; align-items: center; gap: 10px; padding: 7px 4px; cursor: pointer; border-radius: 6px; transition: background 0.15s; }
+        .notif-dropdown .notif-option:hover { background: #21262d; }
+        .notif-dropdown .notif-option .n-icon { width: 20px; text-align: center; font-size: 13px; color: #8b949e; }
+        .notif-dropdown .notif-option .n-label { flex: 1; font-size: 13px; color: #e6edf3; }
+        .notif-dropdown .notif-toggle { position: relative; width: 32px; height: 18px; flex-shrink: 0; background: #30363d; border-radius: 9px; transition: background 0.2s; }
+        .notif-dropdown .notif-toggle.on { background: #3fb950; }
+        .notif-dropdown .notif-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #8b949e; border-radius: 50%; transition: all 0.2s; }
+        .notif-dropdown .notif-toggle.on::after { left: 16px; background: #fff; }
+        .notif-dropdown .notif-actions { margin-top: 12px; padding-top: 10px; border-top: 1px solid #21262d; display: flex; gap: 8px; }
+        .notif-dropdown .notif-actions button { flex: 1; padding: 6px; border: none; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.15s; }
+        .notif-dropdown .btn-enable-all { background: #3fb950; color: #0f1117; }
+        .notif-dropdown .btn-enable-all:hover { background: #4ade80; }
+        .notif-dropdown .btn-disable-all { background: #21262d; color: #8b949e; }
+        .notif-dropdown .btn-disable-all:hover { background: #30363d; color: #e6edf3; }
+        .notif-bell-wrapper { position: relative; }
+
         .content { padding: 24px 32px; flex: 1; }
 
         /* SECTIONS */
@@ -323,6 +348,20 @@
                     <button class="btn-new-server" onclick="openNewServerModal()"><i class="fas fa-plus"></i> Nuevo</button>
                 </div>
                 <div class="header-right">
+                    <div class="notif-bell-wrapper">
+                        <div class="notif-bell" id="notif-bell" ondblclick="toggleNotifDropdown()" onclick="notifBellClick()">
+                            <i class="fas fa-bell"></i>
+                            <span class="bell-dot" id="bell-dot"></span>
+                        </div>
+                        <div class="notif-dropdown" id="notif-dropdown">
+                            <h4><i class="fas fa-bell" style="color:#58a6ff;"></i> Notificaciones</h4>
+                            <div id="notif-options-list"></div>
+                            <div class="notif-actions">
+                                <button class="btn-enable-all" onclick="enableAllNotifs()"><i class="fas fa-check"></i> Todas</button>
+                                <button class="btn-disable-all" onclick="disableAllNotifs()"><i class="fas fa-times"></i> Ninguna</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="status-badge">
                         <div class="status-dot" id="status-dot"></div>
                         <span id="status-text">Cargando...</span>
@@ -976,21 +1015,21 @@
             }
             if (state.colabNotified && remaining < 300 && remaining > 0 && !state.colabNotified['5min']) {
                 state.colabNotified['5min'] = true;
-                sendNotification('⚠️ MineColab', '¡Quedan menos de 5 minutos de Colab! Guarda tu progreso.');
+                sendNotification('⚠️ MineColab', '¡Quedan menos de 5 minutos de Colab! Guarda tu progreso.', 'colab_warning');
             } else if (!state.colabNotified && remaining < 3600 && remaining > 0 && !state.colabNotified['60min']) {
                 state.colabNotified = state.colabNotified || {};
                 state.colabNotified['60min'] = true;
-                sendNotification('MineColab', 'Queda menos de 1 hora de tiempo de Colab (' + formatTime(remaining) + ')');
+                sendNotification('MineColab', 'Queda menos de 1 hora de tiempo de Colab (' + formatTime(remaining) + ')', 'colab_warning');
             } else if (state.colabNotified && remaining < 1800 && remaining > 0 && !state.colabNotified['30min']) {
                 state.colabNotified['30min'] = true;
-                sendNotification('⚠️ MineColab', 'Quedan menos de 30 minutos de Colab');
+                sendNotification('⚠️ MineColab', 'Quedan menos de 30 minutos de Colab', 'colab_warning');
             } else if (state.colabNotified && remaining < 600 && remaining > 0 && !state.colabNotified['10min']) {
                 state.colabNotified['10min'] = true;
-                sendNotification('⚠️ MineColab', '¡Quedan menos de 10 minutos de Colab!');
+                sendNotification('⚠️ MineColab', '¡Quedan menos de 10 minutos de Colab!', 'colab_warning');
             }
             if (remaining === 0 && state.colabNotified && !state.colabNotified['end']) {
                 state.colabNotified['end'] = true;
-                sendNotification('⛔ MineColab', 'El tiempo de Colab ha terminado.');
+                sendNotification('⛔ MineColab', 'El tiempo de Colab ha terminado.', 'colab_warning');
             }
         }
 
@@ -1017,7 +1056,7 @@
                 const data = await res.json();
                 if (data.success) {
                     toast('Servidor cambiado a ' + name, 'success');
-                    sendNotification('MineColab', 'Servidor activo: ' + name);
+                    sendNotification('MineColab', 'Servidor activo: ' + name, 'server_start');
                     document.querySelectorAll('.server-tab').forEach(t => {
                         t.classList.toggle('active', t.textContent.trim() === name);
                     });
@@ -1049,7 +1088,7 @@
                     toast('Servidor iniciando...', 'success');
                     state.running = true;
                     state.uptimeSeconds = 0;
-                    sendNotification('MineColab', 'Servidor iniciándose');
+                    sendNotification('MineColab', 'Servidor iniciándose', 'server_start');
                     await waitForStatus(true, 30);
                 } else {
                     state.isStarting = false;
@@ -1057,7 +1096,7 @@
                     if (data.output) msg += '\n\n' + data.output.join('\n').slice(-500);
                     if (data.diagnosis) msg += '\n\nDiagnóstico:\n' + JSON.stringify(data.diagnosis, null, 2);
                     showErrorDetail(msg);
-                    sendNotification('MineColab', 'Error al iniciar servidor: ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al iniciar servidor: ' + (data.error || 'desconocido'), 'server_error');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-play"></i> Iniciar';
                     btn.className = 'btn btn-primary';
@@ -1065,7 +1104,7 @@
             } catch(e) {
                 state.isStarting = false;
                 showErrorDetail('Error de conexión: ' + e.message);
-                sendNotification('MineColab', 'Error de conexión al iniciar servidor');
+                sendNotification('MineColab', 'Error de conexión al iniciar servidor', 'server_error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-play"></i> Iniciar';
                 btn.className = 'btn btn-primary';
@@ -1097,17 +1136,17 @@
                 if (data.success) {
                     toast('Servidor detenido', 'success');
                     state.running = false;
-                    sendNotification('MineColab', 'Servidor detenido');
+                    sendNotification('MineColab', 'Servidor detenido', 'server_stop');
                     await waitForStatus(false, 15);
                 } else {
                     toast(data.error || 'Error al detener', 'error');
-                    sendNotification('MineColab', 'Error al detener servidor: ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al detener servidor: ' + (data.error || 'desconocido'), 'server_error');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
                 }
             } catch(e) {
                 toast('Error de conexión', 'error');
-                sendNotification('MineColab', 'Error de conexión al detener servidor');
+                sendNotification('MineColab', 'Error de conexión al detener servidor', 'server_error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
             }
@@ -1164,12 +1203,12 @@
         async function restartServer() {
             closeRestartModal();
             toast('Reiniciando servidor...', 'info');
-            sendNotification('MineColab', 'Reiniciando servidor...');
+            sendNotification('MineColab', 'Reiniciando servidor...', 'server_stop');
             const stopRes = await fetch('/api/server/stop', {method:'POST'});
             await waitForStatus(false, 15);
             const startRes = await fetch('/api/server/start', {method:'POST'});
             await waitForStatus(true, 30);
-            sendNotification('MineColab', 'Servidor reiniciado correctamente');
+            sendNotification('MineColab', 'Servidor reiniciado correctamente', 'server_stop');
         }
 
         // ============ IP COPY ============
@@ -1486,7 +1525,7 @@
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
                 if (data.success) {
-                    sendNotification('MineColab', 'Backup restaurado: ' + name);
+                    sendNotification('MineColab', 'Backup restaurado: ' + name, 'world_backup');
                     loadBackups();
                 }
             } catch(e) { toast('Error de conexión', 'error'); }
@@ -1838,18 +1877,18 @@
             .then(data => {
                 if (data.success) {
                     toast('Mundo subido correctamente', 'success');
-                    sendNotification('MineColab', 'Mundo subido correctamente (ZIP)');
+                    sendNotification('MineColab', 'Mundo subido correctamente (ZIP)', 'world_upload');
                     status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                 } else {
                     toast(data.error || 'Error al subir', 'error');
-                    sendNotification('MineColab', 'Error al subir mundo ZIP: ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al subir mundo ZIP: ' + (data.error || 'desconocido'), 'world_upload');
                     status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
                 }
                 setTimeout(() => { status.innerHTML = ''; }, 3000);
             })
             .catch(e => {
                 toast('Error de conexión', 'error');
-                sendNotification('MineColab', 'Error de conexión al subir mundo ZIP');
+                sendNotification('MineColab', 'Error de conexión al subir mundo ZIP', 'world_upload');
                 status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
             });
             input.value = '';
@@ -1928,6 +1967,59 @@
             }
             document.getElementById('modal-upload-progress').style.display = 'none';
             document.getElementById('upload-status').innerHTML = '';
+        }
+
+        function pollUploadStatus(uploadId, chunkId, input, totalChunks, totalMB, fileCount) {
+            var attempts = 0;
+            var maxAttempts = 300; // 10 minutos max (c/2s)
+            var poll = setInterval(function() {
+                attempts++;
+                if (attempts > maxAttempts) {
+                    clearInterval(poll);
+                    showUploadError('Tiempo de espera agotado procesando el mundo', 'el servidor tardó más de 10 minutos');
+                    toast('Timeout procesando el mundo', 'error');
+                    sendNotification('MineColab', 'Timeout al procesar el mundo subido', 'world_upload');
+                    return;
+                }
+                fetch('/api/settings/upload-world-status?upload_id=' + encodeURIComponent(uploadId))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (!data.success) {
+                            clearInterval(poll);
+                            showUploadError(data.error || 'Error al consultar estado', '');
+                            toast('Error al procesar mundo', 'error');
+                            return;
+                        }
+                        document.getElementById('upload-progress-filename').textContent = data.progress || 'Procesando...';
+                        if (data.status === 'done') {
+                            clearInterval(poll);
+                            document.getElementById('upload-progress-bar').style.width = '100%';
+                            document.getElementById('upload-progress-percent').textContent = '100%';
+                            document.getElementById('upload-progress-files').textContent = totalChunks + ' / ' + totalChunks + ' chunks';
+                            document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
+                            document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                            setTimeout(function() {
+                                document.getElementById('modal-upload-progress').style.display = 'none';
+                            }, 1000);
+                            var st = document.getElementById('upload-status');
+                            toast('Mundo subido correctamente (' + fileCount + ' archivos, ' + totalChunks + ' chunks)', 'success');
+                            sendNotification('MineColab', 'Mundo subido correctamente (' + fileCount + ' archivos)', 'world_upload');
+                            st.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                            setTimeout(function() { st.innerHTML = ''; }, 5000);
+                            input.value = '';
+                        } else if (data.status === 'error') {
+                            clearInterval(poll);
+                            showUploadError(data.error || 'Error al procesar el mundo', '');
+                            toast(data.error || 'Error al procesar mundo', 'error');
+                            sendNotification('MineColab', 'Error al procesar mundo: ' + (data.error || 'desconocido'), 'world_upload');
+                            input.value = '';
+                        }
+                    })
+                    .catch(function(e) {
+                        // Ignorar errores de conexión, reintentar
+                        console.warn('[UPLOAD] Poll error:', e);
+                    });
+            }, 2000);
         }
 
         function showUploadError(msg, detail) {
@@ -2013,7 +2105,7 @@
                         document.getElementById('upload-progress-filename').textContent = 'Subiendo ZIP (' + totalMB + ' MB)...';
                         document.getElementById('upload-progress-bar').style.width = '0%';
                         document.getElementById('upload-progress-percent').textContent = '0%';
-                        sendNotification('MineColab', 'Compresión completada (' + files.length + ' archivos, ' + totalMB + ' MB). Subiendo...');
+                        sendNotification('MineColab', 'Compresión completada (' + files.length + ' archivos, ' + totalMB + ' MB). Subiendo...', 'world_upload');
 
                         // 2. Subir ZIP — directo si es pequeño, por partes si es grande
                         const CHUNK_SIZE = 25 * 1024 * 1024; // 25 MB para evitar timeout del túnel Cloudflare (~100s)
@@ -2026,7 +2118,7 @@
                             document.getElementById('upload-progress-filename').textContent = 'Subiendo por partes (' + totalChunks + ' chunks)...';
                             document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
                             document.getElementById('upload-progress-files').textContent = 'Chunk 0 / ' + totalChunks;
-                            sendNotification('MineColab', 'Archivo grande (' + totalMB + ' MB). Subiendo en ' + totalChunks + ' partes...');
+                            sendNotification('MineColab', 'Archivo grande (' + totalMB + ' MB). Subiendo en ' + totalChunks + ' partes...', 'world_upload');
                             let chunkIndex = 0;
                             let aborted = false;
                             let totalLoaded = 0;
@@ -2071,14 +2163,15 @@
                                 xhr.addEventListener('load', function() {
                                     if (aborted) return;
                                     uploadXhr = null;
+                                    var _d;
                                     try {
-                                        const d = JSON.parse(xhr.responseText);
-                                        if (!d.success) {
+                                        _d = JSON.parse(xhr.responseText);
+                                        if (!_d.success) {
                                             updateChunkDetail(chunkIndex, 'error');
                                             aborted = true;
-                                            showUploadError(d.error || 'Error en chunk ' + (chunkIndex + 1), 'status HTTP: ' + xhr.status);
-                                            toast(d.error || 'Error en chunk', 'error');
-                                            sendNotification('MineColab', 'Error al subir chunk ' + (chunkIndex + 1) + ': ' + (d.error || 'desconocido'));
+                                            showUploadError(_d.error || 'Error en chunk ' + (chunkIndex + 1), 'status HTTP: ' + xhr.status);
+                                            toast(_d.error || 'Error en chunk', 'error');
+                                            sendNotification('MineColab', 'Error al subir chunk ' + (chunkIndex + 1) + ': ' + (_d.error || 'desconocido'), 'world_upload');
                                             input.value = '';
                                             return;
                                         }
@@ -2088,7 +2181,7 @@
                                         aborted = true;
                                         showUploadError('Error al procesar respuesta del chunk', 'status HTTP: ' + xhr.status + ' | ' + preview);
                                         toast('Error al procesar respuesta', 'error');
-                                        sendNotification('MineColab', 'Error al subir chunk: respuesta inválida');
+                                        sendNotification('MineColab', 'Error al subir chunk: respuesta inválida', 'world_upload');
                                         input.value = '';
                                         return;
                                     }
@@ -2096,21 +2189,30 @@
                                     updateChunkDetail(chunkIndex, 'done');
                                     chunkIndex++;
                                     if (chunkIndex >= totalChunks) {
-                                        // Último chunk: el servidor ya reensambló y procesó
-                                        document.getElementById('upload-progress-bar').style.width = '100%';
-                                        document.getElementById('upload-progress-percent').textContent = '100%';
-                                        document.getElementById('upload-progress-files').textContent = totalChunks + ' / ' + totalChunks + ' chunks';
-                                        document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
-                                        document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
-                                        setTimeout(function() {
-                                            document.getElementById('modal-upload-progress').style.display = 'none';
-                                        }, 1000);
-                                        const status = document.getElementById('upload-status');
-                                        toast('Mundo subido correctamente (' + files.length + ' archivos, ' + totalChunks + ' chunks)', 'success');
-                                        sendNotification('MineColab', 'Mundo subido correctamente (' + files.length + ' archivos)');
-                                        status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
-                                        setTimeout(function() { status.innerHTML = ''; }, 5000);
-                                        input.value = '';
+                                        // Último chunk: procesar en segundo plano o ya terminó
+                                        if (_d.processing) {
+                                            // Procesamiento en segundo plano — hacer polling
+                                            document.getElementById('upload-progress-filename').textContent = 'Procesando mundo...';
+                                            document.getElementById('upload-progress-percent').textContent = '---';
+                                            document.getElementById('btn-cancel-upload').style.display = 'none';
+                                            pollUploadStatus(_d.upload_id, uploadId, input, totalChunks, totalMB, files.length);
+                                        } else {
+                                            // Ya terminó (upload sincrónico para archivos chicos)
+                                            document.getElementById('upload-progress-bar').style.width = '100%';
+                                            document.getElementById('upload-progress-percent').textContent = '100%';
+                                            document.getElementById('upload-progress-files').textContent = totalChunks + ' / ' + totalChunks + ' chunks';
+                                            document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
+                                            document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                                            setTimeout(function() {
+                                                document.getElementById('modal-upload-progress').style.display = 'none';
+                                            }, 1000);
+                                            const status = document.getElementById('upload-status');
+                                            toast('Mundo subido correctamente (' + files.length + ' archivos, ' + totalChunks + ' chunks)', 'success');
+                                            sendNotification('MineColab', 'Mundo subido correctamente (' + files.length + ' archivos)', 'world_upload');
+                                            status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                                            setTimeout(function() { status.innerHTML = ''; }, 5000);
+                                            input.value = '';
+                                        }
                                     } else {
                                         uploadNextChunk();
                                     }
@@ -2124,7 +2226,7 @@
                                     console.error('[UPLOAD] Chunk error - status:', xhr.status);
                                     showUploadError('Error de conexión al subir chunk ' + (chunkIndex + 1), 'revisa el servidor Flask');
                                     toast('Error de conexión en chunk', 'error');
-                                    sendNotification('MineColab', 'Error de conexión al subir chunk');
+                                    sendNotification('MineColab', 'Error de conexión al subir chunk', 'world_upload');
                                     input.value = '';
                                 });
 
@@ -2135,7 +2237,7 @@
                                     uploadXhr = null;
                                     showUploadError('Timeout al subir chunk ' + (chunkIndex + 1), 'el chunk tardó demasiado');
                                     toast('Timeout en chunk', 'error');
-                                    sendNotification('MineColab', 'Timeout al subir chunk');
+                                    sendNotification('MineColab', 'Timeout al subir chunk', 'world_upload');
                                     input.value = '';
                                 });
 
@@ -2185,18 +2287,18 @@
                                     if (data.success) {
                                         document.getElementById('modal-upload-progress').style.display = 'none';
                                         toast('Mundo subido correctamente (' + files.length + ' archivos comprimidos)', 'success');
-                                        sendNotification('MineColab', 'Mundo subido correctamente (' + files.length + ' archivos)');
+                                        sendNotification('MineColab', 'Mundo subido correctamente (' + files.length + ' archivos)', 'world_upload');
                                         status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                                     } else {
                                         showUploadError(data.error || 'Error al subir mundo', 'status HTTP: ' + xhr.status);
                                         toast(data.error || 'Error al subir mundo', 'error');
-                                        sendNotification('MineColab', 'Error al subir mundo: ' + (data.error || 'desconocido'));
+                                        sendNotification('MineColab', 'Error al subir mundo: ' + (data.error || 'desconocido'), 'world_upload');
                                     }
                                 } catch(e) {
                                     const preview = xhr.responseText ? xhr.responseText.slice(0, 300) : '(sin respuesta)';
                                     showUploadError('Error al procesar respuesta del servidor', 'status HTTP: ' + xhr.status + ' | respuesta: ' + preview);
                                     toast('Error al procesar respuesta del servidor', 'error');
-                                    sendNotification('MineColab', 'Error al subir mundo: respuesta inválida del servidor');
+                                    sendNotification('MineColab', 'Error al subir mundo: respuesta inválida del servidor', 'world_upload');
                                 }
                                 setTimeout(function() { status.innerHTML = ''; }, 5000);
                                 input.value = '';
@@ -2211,7 +2313,7 @@
                                 if (xhr.responseText) detail += ' respuesta: ' + xhr.responseText.slice(0, 200);
                                 showUploadError('Error de conexión al subir ZIP', detail);
                                 toast('Error de conexión al subir ZIP', 'error');
-                                sendNotification('MineColab', 'Error de conexión al subir el mundo');
+                                sendNotification('MineColab', 'Error de conexión al subir el mundo', 'world_upload');
                                 input.value = '';
                             });
 
@@ -2219,7 +2321,7 @@
                                 uploadXhr = null;
                                 showUploadError('Tiempo de espera agotado al subir ZIP', 'la subida tomó demasiado tiempo. Cloudflare túnel tiene un límite de ~100s.');
                                 toast('Tiempo de espera agotado', 'error');
-                                sendNotification('MineColab', 'Tiempo de espera agotado al subir el mundo');
+                                sendNotification('MineColab', 'Tiempo de espera agotado al subir el mundo', 'world_upload');
                                 input.value = '';
                             });
 
@@ -2237,7 +2339,7 @@
                     .catch(function(err) {
                         showUploadError('Error al comprimir la carpeta', err.message);
                         toast('Error al comprimir la carpeta', 'error');
-                        sendNotification('MineColab', 'Error al comprimir: ' + err.message);
+                        sendNotification('MineColab', 'Error al comprimir: ' + err.message, 'world_upload');
                         input.value = '';
                     });
                     return;
@@ -2316,13 +2418,13 @@
                 const data = await res.json();
                 if (data.success) {
                     toast(data.message || 'Backup creado', 'success');
-                    sendNotification('MineColab', 'Backup creado: ' + (data.message || ''));
+                    sendNotification('MineColab', 'Backup creado: ' + (data.message || ''), 'world_backup');
                     loadBackups();
                 } else {
                     toast(data.error || 'Error al crear backup', 'error');
-                    sendNotification('MineColab', 'Error al crear backup: ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al crear backup: ' + (data.error || 'desconocido'), 'world_backup');
                 }
-            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al crear backup'); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al crear backup', 'world_backup'); }
         }
 
         async function loadBackups() {
@@ -2363,12 +2465,12 @@
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
                 if (data.success) {
-                    sendNotification('MineColab', 'Backup restaurado: ' + name);
+                    sendNotification('MineColab', 'Backup restaurado: ' + name, 'world_backup');
                     loadBackups();
                 } else {
-                    sendNotification('MineColab', 'Error al restaurar backup: ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al restaurar backup: ' + (data.error || 'desconocido'), 'world_backup');
                 }
-            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al restaurar backup'); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al restaurar backup', 'world_backup'); }
         }
 
         async function deleteBackup(name) {
@@ -2382,12 +2484,12 @@
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
                 if (data.success) {
-                    sendNotification('MineColab', 'Backup eliminado: ' + name);
+                    sendNotification('MineColab', 'Backup eliminado: ' + name, 'world_backup');
                     loadBackups();
                 } else {
-                    sendNotification('MineColab', 'Error al eliminar backup: ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al eliminar backup: ' + (data.error || 'desconocido'), 'world_backup');
                 }
-            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al eliminar backup'); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al eliminar backup', 'world_backup'); }
         }
 
         // ============ FILE BROWSER ============
@@ -2669,13 +2771,13 @@
                         msg += ' | Advertencias: ' + data.warnings.join('; ');
                     }
                     toast(msg, 'success');
-                    sendNotification('MineColab', 'Plugin instalado: ' + (data.plugin_name || name));
+                    sendNotification('MineColab', 'Plugin instalado: ' + (data.plugin_name || name), 'plugin');
                     loadInstalledPlugins();
                 } else {
                     toast((data.server_version ? data.error + ' (servidor: ' + data.server_version + ')' : data.error) || 'Error', 'error');
-                    sendNotification('MineColab', 'Error al instalar ' + name + ': ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al instalar ' + name + ': ' + (data.error || 'desconocido'), 'plugin');
                 }
-            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al instalar ' + name); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al instalar ' + name, 'plugin'); }
         }
 
         async function loadInstalledPlugins() {
@@ -2748,7 +2850,7 @@
                 }
                 const names = data.updates.map(p => p.name).join(', ');
                 toast(data.updates.length + ' plugin(s) con actualizaciones: ' + names + '. ¿Actualizar todos?', 'info');
-                sendNotification('MineColab', data.updates.length + ' plugin(s) con actualizaciones: ' + names);
+                sendNotification('MineColab', data.updates.length + ' plugin(s) con actualizaciones: ' + names, 'plugin');
                 if (confirm(data.updates.length + ' plugin(s) tienen actualizaciones disponibles:\n' + names + '\n\n¿Actualizar todos?')) {
                     await updateAllPlugins();
                 }
@@ -2763,14 +2865,14 @@
                 if (data.success) {
                     toast((data.updated.length > 0 ? 'Actualizados: ' + data.updated.join(', ') : 'Nada que actualizar') +
                         (data.errors.length > 0 ? ' | Errores: ' + data.errors.join(', ') : ''), data.updated.length > 0 ? 'success' : 'info');
-                    if (data.updated.length > 0) sendNotification('MineColab', 'Plugins actualizados: ' + data.updated.join(', '));
-                    if (data.errors.length > 0) sendNotification('MineColab', 'Errores al actualizar plugins: ' + data.errors.join(', '));
+                    if (data.updated.length > 0) sendNotification('MineColab', 'Plugins actualizados: ' + data.updated.join(', '), 'plugin');
+                    if (data.errors.length > 0) sendNotification('MineColab', 'Errores al actualizar plugins: ' + data.errors.join(', '), 'plugin');
                     loadInstalledPlugins();
                 } else {
                     toast(data.error, 'error');
-                    sendNotification('MineColab', 'Error al actualizar plugins: ' + (data.error || 'desconocido'));
+                    sendNotification('MineColab', 'Error al actualizar plugins: ' + (data.error || 'desconocido'), 'plugin');
                 }
-            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al actualizar plugins'); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al actualizar plugins', 'plugin'); }
         }
 
         // ============ ERROR DETAIL MODAL ============
@@ -2817,18 +2919,6 @@
             } else {
                 toast('Permiso denegado para notificaciones', 'error');
             }
-        }
-
-        function sendNotification(title, body, icon) {
-            if (!notifEnabled()) return;
-            try {
-                const n = new Notification(title, {
-                    body: body,
-                    icon: icon || '/api/settings/server-icon?_=' + Date.now(),
-                    tag: 'minecolab-' + Date.now()
-                });
-                setTimeout(() => n.close(), 6000);
-            } catch(e) { console.warn('[Notif] Error:', e); }
         }
 
         function updateNotifUI() {
@@ -2883,12 +2973,129 @@
             }
         }
 
+        // ============ NOTIFICATION TYPES ============
+        const NOTIF_TYPES = [
+            { id: 'server_start', icon: 'fa-play', label: 'Servidor iniciado', default: true },
+            { id: 'server_stop', icon: 'fa-stop', label: 'Servidor detenido', default: true },
+            { id: 'server_error', icon: 'fa-exclamation-triangle', label: 'Error del servidor', default: true },
+            { id: 'world_upload', icon: 'fa-cloud-upload-alt', label: 'Mundo subido', default: true },
+            { id: 'world_backup', icon: 'fa-archive', label: 'Backup creado/restaurado', default: true },
+            { id: 'colab_warning', icon: 'fa-hourglass-half', label: 'Advertencia de tiempo Colab', default: true },
+            { id: 'plugin', icon: 'fa-puzzle-piece', label: 'Plugins', default: false },
+        ];
+
+        function getNotifPrefs() {
+            var raw = localStorage.getItem('minecolab_notif_prefs');
+            if (raw) {
+                try { return JSON.parse(raw); } catch(e) {}
+            }
+            var prefs = {};
+            NOTIF_TYPES.forEach(function(t) { prefs[t.id] = t.default; });
+            localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
+            return prefs;
+        }
+
+        function setNotifPref(type, enabled) {
+            var prefs = getNotifPrefs();
+            prefs[type] = enabled;
+            localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
+            renderNotifDropdown();
+            updateBellDot();
+        }
+
+        function renderNotifDropdown() {
+            var prefs = getNotifPrefs();
+            var list = document.getElementById('notif-options-list');
+            list.innerHTML = NOTIF_TYPES.map(function(t) {
+                var on = prefs[t.id] !== false;
+                return '<div class="notif-option" onclick="setNotifPref(\'' + t.id + '\', ' + (!on) + ')">' +
+                    '<span class="n-icon"><i class="fas ' + t.icon + '"></i></span>' +
+                    '<span class="n-label">' + t.label + '</span>' +
+                    '<span class="notif-toggle' + (on ? ' on' : '') + '"></span>' +
+                '</div>';
+            }).join('');
+        }
+
+        function toggleNotifDropdown() {
+            var dd = document.getElementById('notif-dropdown');
+            var isOpen = dd.classList.contains('open');
+            if (!isOpen) renderNotifDropdown();
+            dd.classList.toggle('open');
+        }
+
+        function notifBellClick() {
+            var dd = document.getElementById('notif-dropdown');
+            if (dd.classList.contains('open')) dd.classList.remove('open');
+        }
+
+        function enableAllNotifs() {
+            var prefs = {};
+            NOTIF_TYPES.forEach(function(t) { prefs[t.id] = true; });
+            localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
+            renderNotifDropdown();
+            updateBellDot();
+            toast('Todas las notificaciones activadas', 'info');
+        }
+
+        function disableAllNotifs() {
+            var prefs = {};
+            NOTIF_TYPES.forEach(function(t) { prefs[t.id] = false; });
+            localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
+            renderNotifDropdown();
+            updateBellDot();
+            toast('Todas las notificaciones desactivadas', 'info');
+        }
+
+        function updateBellDot() {
+            var prefs = getNotifPrefs();
+            var anyOn = Object.values(prefs).some(function(v) { return v; });
+            var dot = document.getElementById('bell-dot');
+            var bell = document.getElementById('notif-bell');
+            if (anyOn) {
+                dot.classList.add('show');
+                bell.classList.add('has-active');
+            } else {
+                dot.classList.remove('show');
+                bell.classList.remove('has-active');
+            }
+        }
+
+        // Cerrar dropdown al hacer click fuera
+        document.addEventListener('click', function(e) {
+            var dd = document.getElementById('notif-dropdown');
+            var bell = document.getElementById('notif-bell');
+            if (dd.classList.contains('open') && !bell.contains(e.target) && !dd.contains(e.target)) {
+                dd.classList.remove('open');
+            }
+        });
+
+        // ============ SEND NOTIFICATION (con tipo) ============
+        function sendNotification(title, body, type, icon) {
+            if (!notifEnabled()) return;
+            if (type) {
+                var prefs = getNotifPrefs();
+                if (prefs[type] === false) return;
+            }
+            try {
+                var n = new Notification(title, {
+                    body: body,
+                    icon: icon || '/api/settings/server-icon?_=' + Date.now(),
+                    tag: 'minecolab-' + Date.now()
+                });
+                setTimeout(function() { n.close(); }, 6000);
+            } catch(e) { console.warn('[Notif] Error:', e); }
+        }
+
+        // Sobrescribir llamadas existentes para incluir tipo — no hace falta,
+        // sendNotification sigue siendo compatible hacia atrás (type opcional)
+
         // ============ INIT NOTIFICATIONS ============
         if ('Notification' in window && Notification.permission === 'granted' && localStorage.getItem('minecolab_notif') === null) {
             localStorage.setItem('minecolab_notif', 'true');
         }
         document.addEventListener('DOMContentLoaded', function() {
             updateNotifUI();
+            updateBellDot();
         });
 
         // Expose to window for onclick handlers
