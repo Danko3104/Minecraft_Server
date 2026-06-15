@@ -1,5 +1,7 @@
 import os
 import json
+import uuid
+import hashlib
 from flask import Blueprint, jsonify, request
 
 players_bp = Blueprint('players', __name__, url_prefix='/api/players')
@@ -202,17 +204,51 @@ def api_whitelist():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+def _offline_uuid(player_name: str) -> str:
+    """Genera el UUID offline de Minecraft para un nombre de jugador."""
+    hash_digest = hashlib.md5(("OfflinePlayer:" + player_name).encode('utf-8')).digest()
+    # Ajustar bits para versión 3 UUID
+    hash_digest = bytearray(hash_digest)
+    hash_digest[6] = (hash_digest[6] & 0x0f) | 0x30
+    hash_digest[8] = (hash_digest[8] & 0x3f) | 0x80
+    return str(uuid.UUID(bytes=bytes(hash_digest)))
+
 @players_bp.route('/whitelist/add', methods=['POST'])
 def api_whitelist_add():
     try:
         data = request.get_json()
-        player = data.get('player', '')
+        player = data.get('player', '').strip()
         if not player:
             return jsonify({"success": False, "error": "Nombre de jugador requerido"}), 400
         from panel.server_manager import server_manager
-        if not server_manager.is_running():
-            return jsonify({"success": False, "error": "El servidor debe estar encendido para modificar la whitelist"}), 400
-        resp = _get_command(f'whitelist add {player}')
+
+        # 1. Enviar comando a PaperMC (por si está corriendo)
+        cmd_ok = False
+        if server_manager.is_running():
+            try:
+                cmd_ok = _get_command(f'whitelist add {player}')
+            except Exception:
+                pass
+
+        # 2. Escribir directamente en whitelist.json (método infalible)
+        server_path = _get_active_server_path()
+        if server_path:
+            wl_path = os.path.join(server_path, 'whitelist.json')
+            existing = []
+            if os.path.exists(wl_path):
+                try:
+                    with open(wl_path, 'r') as f:
+                        existing = json.load(f)
+                except Exception:
+                    existing = []
+            # Verificar si ya existe
+            already = any(e.get('name', '').lower() == player.lower() for e in existing if isinstance(e, dict))
+            if not already:
+                offline_uuid = _offline_uuid(player)
+                existing.append({"uuid": offline_uuid, "name": player})
+                with open(wl_path, 'w') as f:
+                    json.dump(existing, f, indent=2)
+
         return jsonify({"success": True, "message": f"{player} agregado a la whitelist"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

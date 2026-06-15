@@ -1549,8 +1549,8 @@
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
                 if (data.success) {
-                    sendNotification('MineColab', 'Backup restaurado: ' + name, 'world_backup');
-                    loadBackups();
+                    input.value = '';
+                    loadWhitelist();
                 }
             } catch(e) { toast('Error de conexión', 'error'); }
         }

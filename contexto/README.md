@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `3f09ebd fix: replace remaining Minekube references with Oracle IP and tunnel_service`
+**Último commit:** `4b3d4ea fix: auto-detect SSH key by .key or .pem extension instead of hardcoded filename`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `3f09ebd fix: replace remaining Minekube references with Oracle IP and tunnel_service`
+**2026-06-15 · Último commit:** `4b3d4ea fix: auto-detect SSH key by .key or .pem extension instead of hardcoded filename`
