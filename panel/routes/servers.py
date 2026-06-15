@@ -23,7 +23,8 @@ from panel.drive import (
     list_servers,
     get_active_server,
     set_active_server,
-    server_exists
+    server_exists,
+    rename_server
 )
 
 # =============================================================================
@@ -800,3 +801,35 @@ def list_servers_route():
             "success": False,
             "error": str(e)
         }), 500
+
+
+@servers_bp.route('/servers/<server_name>/rename', methods=['PUT'])
+def rename_server_route(server_name):
+    """
+    PUT /api/servers/<server_name>/rename
+    Renombra un servidor.
+    Body: {"new_name": "nuevo-nombre"}
+    """
+    try:
+        from panel.server_manager import server_manager
+
+        data = request.get_json()
+        if not data or 'new_name' not in data:
+            return jsonify({"success": False, "error": "Falta new_name"}), 400
+
+        new_name = data['new_name'].strip()
+
+        if not re.match(r'^[a-zA-Z0-9_-]+$', new_name):
+            return jsonify({"success": False, "error": "El nombre solo puede contener letras, números, guiones y guiones bajos"}), 400
+
+        if server_manager.is_running() and get_active_server() == server_name:
+            return jsonify({"success": False, "error": "Detén el servidor antes de renombrarlo"}), 400
+
+        result = rename_server(server_name, new_name)
+        if result.get("success"):
+            return jsonify({"success": True, "message": f"Servidor renombrado a '{new_name}'"})
+        else:
+            return jsonify({"success": False, "error": result.get("error", "Error al renombrar")}), 400
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

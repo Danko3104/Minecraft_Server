@@ -5,6 +5,7 @@ Maneja todo el almacenamiento del servidor Minecraft.
 
 import os
 import json
+import re
 import shutil
 from typing import Dict, List
 from jproperties import Properties
@@ -215,6 +216,44 @@ def set_active_server(server_name: str) -> bool:
     except Exception as e:
         print(f"[ERROR] set_active_server: {e}")
         return False
+
+
+def rename_server(old_name: str, new_name: str) -> dict:
+    """
+    Renombra un servidor: renombra la carpeta y actualiza config global.
+    Retorna {"success": True/False, "error": "..."}
+    """
+    try:
+        if not server_exists(old_name):
+            return {"success": False, "error": f"El servidor '{old_name}' no existe"}
+
+        if server_exists(new_name):
+            return {"success": False, "error": f"Ya existe un servidor llamado '{new_name}'"}
+
+        if not re.match(r'^[a-zA-Z0-9_-]+$', new_name):
+            return {"success": False, "error": "El nombre solo puede contener letras, números, guiones y guiones bajos"}
+
+        old_path = os.path.join(DRIVE_PATH, old_name)
+        new_path = os.path.join(DRIVE_PATH, new_name)
+
+        os.rename(old_path, new_path)
+
+        config = get_global_config()
+        server_list = config.get('server_list', [])
+        if old_name in server_list:
+            server_list[server_list.index(old_name)] = new_name
+            config['server_list'] = server_list
+
+        if config.get('server_in_use') == old_name:
+            config['server_in_use'] = new_name
+
+        save_global_config(config)
+
+        print(f"[INFO] Servidor renombrado de '{old_name}' a '{new_name}'")
+        return {"success": True}
+    except Exception as e:
+        print(f"[ERROR] rename_server: {e}")
+        return {"success": False, "error": str(e)}
 
 
 def server_exists(server_name: str) -> bool:

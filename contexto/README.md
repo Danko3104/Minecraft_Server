@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `e91b422 feat: vista detalle colapsable de chunks con estado (pending/uploading/done/error)`
+**Último commit:** `3518d60 Fix world upload hang and missing file.save`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `e91b422 feat: vista detalle colapsable de chunks con estado (pending/uploading/done/error)`
+**2026-06-15 · Último commit:** `3518d60 Fix world upload hang and missing file.save`

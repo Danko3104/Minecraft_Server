@@ -48,7 +48,7 @@
         .btn-new-server { padding: 8px 16px; background: #3fb950; color: #0f1117; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .btn-new-server:hover { background: #4ade80; }
         .server-tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
-        .server-tab { padding: 8px 16px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+        .server-tab { padding: 8px 12px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif; display:inline-flex; align-items:center; gap:4px; }
         .server-tab:hover { color: #e6edf3; background: #1c2128; border-radius: 6px 6px 0 0; }
         .server-tab.active { color: #3fb950; border-bottom-color: #3fb950; }
         .server-tab .tab-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
@@ -60,6 +60,10 @@
         .status-dot.online { background: #3fb950; box-shadow: 0 0 8px rgba(63, 185, 80, 0.5); }
         .status-dot.pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .tab-rename { margin-left:auto; padding:2px 6px; font-size:10px; color:#484f58; cursor:pointer; border-radius:4px; display:none; }
+        .server-tab:hover .tab-rename { display:inline-flex; }
+        .tab-rename:hover { color:#58a6ff; background:#1c2128; }
 
         /* NOTIFICATION BELL */
         .notif-bell { position: relative; cursor: pointer; padding: 6px 8px; border-radius: 8px; transition: background 0.15s; font-size: 16px; color: #8b949e; user-select: none; }
@@ -625,16 +629,8 @@
                         </div>
 
                         <div class="update-card">
-                            <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-map"></i> Configuración del Mundo</h3>
-                            <div class="setting-field">
-                                <label>Seed del mundo</label>
-                                <input type="text" id="world-seed" readonly style="color:#8b949e;" value="Cargando...">
-                            </div>
-                            <div class="setting-field">
-                                <label>Nivel</label>
-                                <input type="text" id="world-level" readonly style="color:#8b949e;" value="Cargando...">
-                            </div>
-                            <div style="margin-top:16px;border:1px solid #30363d;border-radius:8px;padding:16px;">
+                            <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-map"></i> Subir Mundo</h3>
+                            <div style="border:1px solid #30363d;border-radius:8px;padding:16px;">
                                 <h4 style="font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;"><i class="fas fa-upload"></i> Subir mundo</h4>
                                 <p style="font-size:13px;color:#8b949e;margin-bottom:12px;">Sube un archivo .zip o una carpeta completa con el mundo. Se hará backup automático del mundo actual antes de reemplazarlo.</p>
                                 <input type="file" id="world-upload-input" accept=".zip" style="display:none;" onchange="uploadWorld(this)">
@@ -936,8 +932,16 @@
                         const dot = document.createElement('span');
                         dot.className = 'tab-dot ' + (data.minecraft_running && s === data.active_server ? 'online' : 'offline');
                         tab.appendChild(dot);
-                        tab.appendChild(document.createTextNode(s));
-                        tab.onclick = () => { if (s !== data.active_server) selectServer(s); };
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = s;
+                        tab.appendChild(nameSpan);
+                        const renameBtn = document.createElement('span');
+                        renameBtn.className = 'tab-rename';
+                        renameBtn.innerHTML = '<i class="fas fa-pen"></i>';
+                        renameBtn.title = 'Renombrar servidor';
+                        renameBtn.onclick = function(e) { e.stopPropagation(); promptRenameServer(s); };
+                        tab.appendChild(renameBtn);
+                        tab.onclick = function() { if (s !== data.active_server) selectServer(s); };
                         tabsContainer.appendChild(tab);
                     });
                 } else {
@@ -1088,6 +1092,7 @@
                     toast('Servidor iniciando...', 'success');
                     state.running = true;
                     state.uptimeSeconds = 0;
+                    _notifiedServerReady = false;
                     sendNotification('MineColab', 'Servidor iniciándose', 'server_start');
                     await waitForStatus(true, 30);
                 } else {
@@ -1273,11 +1278,22 @@
             if (consoleInterval) { clearInterval(consoleInterval); consoleInterval = null; }
         }
 
+        var _notifiedServerReady = false;
+
         async function loadConsoleOutput() {
             try {
                 const res = await fetch('/api/server/last-output');
                 const data = await res.json();
                 if (data.lines) {
+                    if (!_notifiedServerReady) {
+                        for (var i = 0; i < data.lines.length; i++) {
+                            if (/Done \(.*\)! For help, type/.test(data.lines[i])) {
+                                _notifiedServerReady = true;
+                                sendNotification('MineColab', 'Servidor listo para entrar', 'server_ready');
+                                break;
+                            }
+                        }
+                    }
                     const div = document.getElementById('console-output');
                     const wasAtBottom = div.scrollHeight - div.scrollTop - div.clientHeight < 50;
                     div.innerHTML = data.lines.map(line => formatLogLine(line)).join('');
@@ -1674,6 +1690,32 @@
             }
         }
 
+        // ============ RENAME SERVER ============
+        function promptRenameServer(oldName) {
+            var newName = prompt('Nuevo nombre para "' + oldName + '":', oldName);
+            if (!newName || newName.trim() === oldName) return;
+            newName = newName.trim();
+            if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+                toast('El nombre solo puede contener letras, números, guiones y guiones bajos', 'error');
+                return;
+            }
+            fetch('/api/servers/' + encodeURIComponent(oldName) + '/rename', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({new_name: newName})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) {
+                    toast(d.message || 'Servidor renombrado', 'success');
+                    loadStatus();
+                } else {
+                    toast(d.error || 'Error al renombrar', 'error');
+                }
+            })
+            .catch(function() { toast('Error de conexión', 'error'); });
+        }
+
         // ============ SETTINGS ============
         async function loadSettings() {
             try {
@@ -1692,8 +1734,6 @@
                     document.getElementById('prop-view-distance').value = data.properties['view-distance'] || '10';
                     document.getElementById('prop-spawn-protection').value = data.properties['spawn-protection'] || '16';
                     setToggle('prop-command-blocks', data.properties['enable-command-block'] === 'true');
-                    document.getElementById('world-level').value = data.properties['level-name'] || 'world';
-                    document.getElementById('world-seed').value = data.properties['level-seed'] || '(no configurada)';
                 }
             } catch(e) { console.error('load settings error:', e); }
 
@@ -2975,7 +3015,8 @@
 
         // ============ NOTIFICATION TYPES ============
         const NOTIF_TYPES = [
-            { id: 'server_start', icon: 'fa-play', label: 'Servidor iniciado', default: true },
+            { id: 'server_start', icon: 'fa-play', label: 'Servidor iniciando', default: true },
+            { id: 'server_ready', icon: 'fa-check-circle', label: 'Servidor listo para entrar', default: true },
             { id: 'server_stop', icon: 'fa-stop', label: 'Servidor detenido', default: true },
             { id: 'server_error', icon: 'fa-exclamation-triangle', label: 'Error del servidor', default: true },
             { id: 'world_upload', icon: 'fa-cloud-upload-alt', label: 'Mundo subido', default: true },
