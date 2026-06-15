@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `23b43e3 upload_world: detect world folder name from zip and update level-name`
+**Último commit:** `5016b0c fix: add missing import tempfile in server_manager.py`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `23b43e3 upload_world: detect world folder name from zip and update level-name`
+**2026-06-15 · Último commit:** `5016b0c fix: add missing import tempfile in server_manager.py`

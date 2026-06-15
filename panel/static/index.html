@@ -880,6 +880,7 @@
             document.getElementById('btn-start').disabled = true;
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('btn-restart').disabled = true;
+            startConsolePolling();
         });
 
         // ============ NAVIGATION ============
@@ -892,7 +893,7 @@
                 document.getElementById('section-' + section).classList.add('active');
                 const titles = { 'properties': 'Propiedades' };
                 document.getElementById('section-title').textContent = titles[section] || section.charAt(0).toUpperCase() + section.slice(1);
-                if (section === 'console') { startConsolePolling(); } else { stopConsolePolling(); }
+                if (section !== 'console') { stopConsolePolling(); }
                 if (section === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); startPlayersPolling(); } else { stopPlayersPolling(); }
                 if (section === 'settings') { loadSettings(); }
                 if (section === 'properties') { loadSettings(); }
