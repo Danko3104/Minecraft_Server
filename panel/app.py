@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import re
 import shutil
+import tempfile
 import psutil
 import os
 from flask import Flask, jsonify, request, send_from_directory, send_file
@@ -586,9 +587,7 @@ def api_settings_upload_world():
             return jsonify({"success": False, "error": "Solo se aceptan archivos .zip"}), 400
 
         # Guardar temporalmente
-        import tempfile
         with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp:
-            file.save(tmp.name)
             tmp_path = tmp.name
 
         try:
@@ -612,9 +611,9 @@ def api_settings_upload_world_chunked():
     Cuando llega el último, reensambla y llama a upload_world.
     Body (multipart): chunk (file), index, total, upload_id, filename
     """
-    CHUNK_DIR = os.path.join(tempfile.gettempdir(), 'minecolab_upload_chunks')
-    os.makedirs(CHUNK_DIR, exist_ok=True)
     try:
+        CHUNK_DIR = os.path.join(tempfile.gettempdir(), 'minecolab_upload_chunks')
+        os.makedirs(CHUNK_DIR, exist_ok=True)
         active_server = get_active_server()
         if not active_server:
             return jsonify({"success": False, "error": "No hay servidor activo"}), 400
@@ -640,7 +639,6 @@ def api_settings_upload_world_chunked():
                 if not os.path.exists(cp):
                     return jsonify({"success": False, "error": f"Falta el chunk {i}"}), 400
 
-            import tempfile
             with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp:
                 tmp_path = tmp.name
                 for i in range(total):
@@ -668,12 +666,15 @@ def api_settings_upload_world_chunked():
 @app.route('/api/settings/upload-world-cancel', methods=['POST'])
 def api_settings_upload_world_cancel():
     """Limpia los chunks de una subida cancelada."""
-    upload_id = request.json.get('upload_id', '') if request.is_json else ''
-    if upload_id:
-        chunk_dir = os.path.join(tempfile.gettempdir(), 'minecolab_upload_chunks', upload_id)
-        if os.path.isdir(chunk_dir):
-            shutil.rmtree(chunk_dir, ignore_errors=True)
-    return jsonify({"success": True})
+    try:
+        upload_id = request.json.get('upload_id', '') if request.is_json else ''
+        if upload_id:
+            chunk_dir = os.path.join(tempfile.gettempdir(), 'minecolab_upload_chunks', upload_id)
+            if os.path.isdir(chunk_dir):
+                shutil.rmtree(chunk_dir, ignore_errors=True)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 # =============================================================================

@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `7e50a92 fix: mejor manejo error upload - debug console.log, timeout 180s, detalle en error, advertencia >100MB`
+**Último commit:** `4c71e06 feat: chunked upload para mundos >85MB (parte en 50MB, esquiva limite Cloudflare 100MB)`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `7e50a92 fix: mejor manejo error upload - debug console.log, timeout 180s, detalle en error, advertencia >100MB`
+**2026-06-14 · Último commit:** `4c71e06 feat: chunked upload para mundos >85MB (parte en 50MB, esquiva limite Cloudflare 100MB)`
