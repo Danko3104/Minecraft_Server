@@ -1930,6 +1930,10 @@
                     )
                     .then(function(blob) {
                         const totalMB = (blob.size / 1048576).toFixed(1);
+                        console.log('[UPLOAD] ZIP generado: ' + totalMB + ' MB, ' + files.length + ' archivos');
+                        if (totalMB > 100) {
+                            console.warn('[UPLOAD] ZIP >100 MB, Cloudflare gratuito puede rechazarlo');
+                        }
                         document.getElementById('upload-progress-bar').style.width = '100%';
                         document.getElementById('upload-progress-percent').textContent = '100%';
                         document.getElementById('upload-progress-files').textContent = files.length + ' / ' + files.length + ' archivos (comprimidos)';
@@ -1945,6 +1949,7 @@
 
                         const xhr = new XMLHttpRequest();
                         uploadXhr = xhr;
+                        xhr.timeout = 180000; // 3 min timeout (Cloudflare tunel ~100s)
 
                         xhr.upload.addEventListener('progress', function(e) {
                             if (e.lengthComputable) {
@@ -1973,7 +1978,8 @@
                                     sendNotification('MineColab', 'Error al subir mundo: ' + (data.error || 'desconocido'));
                                 }
                             } catch(e) {
-                                showUploadError('Error al procesar respuesta del servidor', 'status HTTP: ' + xhr.status);
+                                const preview = xhr.responseText ? xhr.responseText.slice(0, 300) : '(sin respuesta)';
+                                showUploadError('Error al procesar respuesta del servidor', 'status HTTP: ' + xhr.status + ' | respuesta: ' + preview);
                                 toast('Error al procesar respuesta del servidor', 'error');
                                 sendNotification('MineColab', 'Error al subir mundo: respuesta inválida del servidor');
                             }
@@ -1983,9 +1989,23 @@
 
                         xhr.addEventListener('error', function() {
                             uploadXhr = null;
-                            showUploadError('Error de conexión al subir ZIP', 'revisa que el servidor Flask esté corriendo');
+                            console.error('[UPLOAD] XHR error - status:', xhr.status, 'response:', xhr.responseText ? xhr.responseText.slice(0, 300) : '(none)');
+                            let detail = 'revisa que el servidor Flask esté corriendo.';
+                            if (totalMB > 100) detail += ' El ZIP pesa ' + totalMB + ' MB (>100 MB). Cloudflare gratuito rechaza archivos >100 MB.';
+                            if (xhr.status > 0) detail += ' status HTTP: ' + xhr.status;
+                            if (xhr.responseText) detail += ' respuesta: ' + xhr.responseText.slice(0, 200);
+                            showUploadError('Error de conexión al subir ZIP', detail);
                             toast('Error de conexión al subir ZIP', 'error');
                             sendNotification('MineColab', 'Error de conexión al subir el mundo');
+                            input.value = '';
+                        });
+
+                        xhr.addEventListener('timeout', function() {
+                            uploadXhr = null;
+                            const detail = 'la subida tomó demasiado tiempo. Cloudflare túnel tiene un límite de ~100s.';
+                            showUploadError('Tiempo de espera agotado al subir ZIP', detail);
+                            toast('Tiempo de espera agotado', 'error');
+                            sendNotification('MineColab', 'Tiempo de espera agotado al subir el mundo');
                             input.value = '';
                         });
 

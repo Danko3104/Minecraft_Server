@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `b9ac8ea fix: progreso upload actualiza contador (Subiendo... X%) y notificacion compresion completa`
+**Último commit:** `a6f79f4 fix: upload muestra archivos comprimidos en vez de duplicar porcentaje`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `b9ac8ea fix: progreso upload actualiza contador (Subiendo... X%) y notificacion compresion completa`
+**2026-06-14 · Último commit:** `a6f79f4 fix: upload muestra archivos comprimidos en vez de duplicar porcentaje`
