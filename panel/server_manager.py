@@ -770,6 +770,13 @@ class ServerManager:
         from panel.drive import DRIVE_PATH
         return os.path.join(os.path.dirname(DRIVE_PATH), 'Backups')
 
+    def _get_world_path(self, server_name: str) -> str:
+        """Retorna la ruta del directorio del mundo según level-name en server.properties."""
+        server_path = self.get_server_path(server_name)
+        props = self.read_server_properties(server_name)
+        level_name = props.get('level-name', 'world')
+        return os.path.join(server_path, level_name)
+
     def _backup_world(self, server_name: str) -> Optional[str]:
         """
         Hace backup del mundo en Copias de mundo de Minecraft/.
@@ -777,7 +784,7 @@ class ServerManager:
         """
         try:
             server_path = self.get_server_path(server_name)
-            world_path = os.path.join(server_path, 'world')
+            world_path = self._get_world_path(server_name)
             if not os.path.exists(world_path):
                 print(f"[INFO] No hay mundo que respaldar para '{server_name}'")
                 return None
@@ -860,7 +867,7 @@ class ServerManager:
                 return {"success": False, "error": f"Backup '{backup_name}' no encontrado"}
 
             server_path = self.get_server_path(server_name)
-            world_path = os.path.join(server_path, 'world')
+            world_path = self._get_world_path(server_name)
 
             was_running = self.is_running()
             if was_running:
@@ -918,7 +925,7 @@ class ServerManager:
         """
         try:
             server_path = self.get_server_path(server_name)
-            world_path = os.path.join(server_path, 'world')
+            world_path = self._get_world_path(server_name)
 
             was_running = self.is_running()
             if was_running:
@@ -1219,7 +1226,7 @@ class ServerManager:
         """
         try:
             server_path = self.get_server_path(server_name)
-            world_path = os.path.join(server_path, 'world')
+            world_path = self._get_world_path(server_name)
 
             # Detener servidor si corre
             was_running = self.is_running()

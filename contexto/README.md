@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `3518d60 Fix world upload hang and missing file.save`
+**Último commit:** `d6b87a2 Add rename server, server_ready notif, remove seed/level fields`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `3518d60 Fix world upload hang and missing file.save`
+**2026-06-15 · Último commit:** `d6b87a2 Add rename server, server_ready notif, remove seed/level fields`
