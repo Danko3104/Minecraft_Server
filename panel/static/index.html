@@ -813,6 +813,7 @@
             allPlayers: [],
             uptimeSeconds: 0,
             colabRemaining: 43200,
+            colabNotified: null,
             sessionStart: Date.now(),
             minecraftStart: null,
             maxPlayers: 20
@@ -967,6 +968,24 @@
                 el.className = 'stat-value';
                 sub.textContent = 'Tiempo restante de Colab';
             }
+            if (state.colabNotified && remaining < 300 && remaining > 0 && !state.colabNotified['5min']) {
+                state.colabNotified['5min'] = true;
+                sendNotification('⚠️ MineColab', '¡Quedan menos de 5 minutos de Colab! Guarda tu progreso.');
+            } else if (!state.colabNotified && remaining < 3600 && remaining > 0 && !state.colabNotified['60min']) {
+                state.colabNotified = state.colabNotified || {};
+                state.colabNotified['60min'] = true;
+                sendNotification('MineColab', 'Queda menos de 1 hora de tiempo de Colab (' + formatTime(remaining) + ')');
+            } else if (state.colabNotified && remaining < 1800 && remaining > 0 && !state.colabNotified['30min']) {
+                state.colabNotified['30min'] = true;
+                sendNotification('⚠️ MineColab', 'Quedan menos de 30 minutos de Colab');
+            } else if (state.colabNotified && remaining < 600 && remaining > 0 && !state.colabNotified['10min']) {
+                state.colabNotified['10min'] = true;
+                sendNotification('⚠️ MineColab', '¡Quedan menos de 10 minutos de Colab!');
+            }
+            if (remaining === 0 && state.colabNotified && !state.colabNotified['end']) {
+                state.colabNotified['end'] = true;
+                sendNotification('⛔ MineColab', 'El tiempo de Colab ha terminado.');
+            }
         }
 
         setInterval(updateTimers, 1000);
@@ -992,7 +1011,7 @@
                 const data = await res.json();
                 if (data.success) {
                     toast('Servidor cambiado a ' + name, 'success');
-                    // Actualizar tabs visualmente
+                    sendNotification('MineColab', 'Servidor activo: ' + name);
                     document.querySelectorAll('.server-tab').forEach(t => {
                         t.classList.toggle('active', t.textContent.trim() === name);
                     });
@@ -1032,6 +1051,7 @@
                     if (data.output) msg += '\n\n' + data.output.join('\n').slice(-500);
                     if (data.diagnosis) msg += '\n\nDiagnóstico:\n' + JSON.stringify(data.diagnosis, null, 2);
                     showErrorDetail(msg);
+                    sendNotification('MineColab', 'Error al iniciar servidor: ' + (data.error || 'desconocido'));
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-play"></i> Iniciar';
                     btn.className = 'btn btn-primary';
@@ -1039,6 +1059,7 @@
             } catch(e) {
                 state.isStarting = false;
                 showErrorDetail('Error de conexión: ' + e.message);
+                sendNotification('MineColab', 'Error de conexión al iniciar servidor');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-play"></i> Iniciar';
                 btn.className = 'btn btn-primary';
@@ -1074,11 +1095,13 @@
                     await waitForStatus(false, 15);
                 } else {
                     toast(data.error || 'Error al detener', 'error');
+                    sendNotification('MineColab', 'Error al detener servidor: ' + (data.error || 'desconocido'));
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
                 }
             } catch(e) {
                 toast('Error de conexión', 'error');
+                sendNotification('MineColab', 'Error de conexión al detener servidor');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-stop"></i> Detener';
             }
@@ -1135,10 +1158,12 @@
         async function restartServer() {
             closeRestartModal();
             toast('Reiniciando servidor...', 'info');
+            sendNotification('MineColab', 'Reiniciando servidor...');
             const stopRes = await fetch('/api/server/stop', {method:'POST'});
             await waitForStatus(false, 15);
             const startRes = await fetch('/api/server/start', {method:'POST'});
             await waitForStatus(true, 30);
+            sendNotification('MineColab', 'Servidor reiniciado correctamente');
         }
 
         // ============ IP COPY ============
@@ -1687,6 +1712,7 @@
                     notice.style.display = 'flex';
                     setTimeout(() => { notice.style.display = 'none'; }, 8000);
                     toast('Propiedades guardadas. Reinicia el servidor para aplicar los cambios.', 'success');
+                    sendNotification('MineColab', 'Configuración guardada. Reinicia para aplicar.');
                 } else {
                     toast(data.error || 'Error al guardar', 'error');
                 }
@@ -1806,15 +1832,18 @@
             .then(data => {
                 if (data.success) {
                     toast('Mundo subido correctamente', 'success');
+                    sendNotification('MineColab', 'Mundo subido correctamente (ZIP)');
                     status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                 } else {
                     toast(data.error || 'Error al subir', 'error');
+                    sendNotification('MineColab', 'Error al subir mundo ZIP: ' + (data.error || 'desconocido'));
                     status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
                 }
                 setTimeout(() => { status.innerHTML = ''; }, 3000);
             })
             .catch(e => {
                 toast('Error de conexión', 'error');
+                sendNotification('MineColab', 'Error de conexión al subir mundo ZIP');
                 status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
             });
             input.value = '';
@@ -2027,6 +2056,7 @@
                 const data = await res.json();
                 if (data.success) {
                     toast('Icono actualizado. Requiere reinicio.', 'success');
+                    sendNotification('MineColab', 'Icono del servidor actualizado. Requiere reinicio.');
                     status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                     loadServerIcon();
                 } else {
@@ -2053,8 +2083,9 @@
                     loadBackups();
                 } else {
                     toast(data.error || 'Error al crear backup', 'error');
+                    sendNotification('MineColab', 'Error al crear backup: ' + (data.error || 'desconocido'));
                 }
-            } catch(e) { toast('Error de conexión', 'error'); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al crear backup'); }
         }
 
         async function loadBackups() {
@@ -2094,8 +2125,13 @@
                 });
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
-                if (data.success) loadBackups();
-            } catch(e) { toast('Error de conexión', 'error'); }
+                if (data.success) {
+                    sendNotification('MineColab', 'Backup restaurado: ' + name);
+                    loadBackups();
+                } else {
+                    sendNotification('MineColab', 'Error al restaurar backup: ' + (data.error || 'desconocido'));
+                }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al restaurar backup'); }
         }
 
         async function deleteBackup(name) {
@@ -2108,8 +2144,13 @@
                 });
                 const data = await res.json();
                 toast(data.message || data.error, data.success ? 'success' : 'error');
-                if (data.success) loadBackups();
-            } catch(e) { toast('Error de conexión', 'error'); }
+                if (data.success) {
+                    sendNotification('MineColab', 'Backup eliminado: ' + name);
+                    loadBackups();
+                } else {
+                    sendNotification('MineColab', 'Error al eliminar backup: ' + (data.error || 'desconocido'));
+                }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al eliminar backup'); }
         }
 
         // ============ FILE BROWSER ============
@@ -2320,6 +2361,7 @@
                 if (data.success) {
                     document.getElementById('file-editor-status').innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Guardado';
                     toast('Archivo guardado', 'success');
+                    sendNotification('MineColab', 'Archivo guardado: ' + fileEditorPath);
                     loadFiles();
                 } else {
                     document.getElementById('file-editor-status').innerHTML = '<span style="color:#f85149;">Error: ' + (data.error || '') + '</span>';
@@ -2390,11 +2432,13 @@
                         msg += ' | Advertencias: ' + data.warnings.join('; ');
                     }
                     toast(msg, 'success');
+                    sendNotification('MineColab', 'Plugin instalado: ' + (data.plugin_name || name));
                     loadInstalledPlugins();
                 } else {
                     toast((data.server_version ? data.error + ' (servidor: ' + data.server_version + ')' : data.error) || 'Error', 'error');
+                    sendNotification('MineColab', 'Error al instalar ' + name + ': ' + (data.error || 'desconocido'));
                 }
-            } catch(e) { toast('Error de conexión', 'error'); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al instalar ' + name); }
         }
 
         async function loadInstalledPlugins() {
@@ -2467,6 +2511,7 @@
                 }
                 const names = data.updates.map(p => p.name).join(', ');
                 toast(data.updates.length + ' plugin(s) con actualizaciones: ' + names + '. ¿Actualizar todos?', 'info');
+                sendNotification('MineColab', data.updates.length + ' plugin(s) con actualizaciones: ' + names);
                 if (confirm(data.updates.length + ' plugin(s) tienen actualizaciones disponibles:\n' + names + '\n\n¿Actualizar todos?')) {
                     await updateAllPlugins();
                 }
@@ -2481,11 +2526,14 @@
                 if (data.success) {
                     toast((data.updated.length > 0 ? 'Actualizados: ' + data.updated.join(', ') : 'Nada que actualizar') +
                         (data.errors.length > 0 ? ' | Errores: ' + data.errors.join(', ') : ''), data.updated.length > 0 ? 'success' : 'info');
+                    if (data.updated.length > 0) sendNotification('MineColab', 'Plugins actualizados: ' + data.updated.join(', '));
+                    if (data.errors.length > 0) sendNotification('MineColab', 'Errores al actualizar plugins: ' + data.errors.join(', '));
                     loadInstalledPlugins();
                 } else {
                     toast(data.error, 'error');
+                    sendNotification('MineColab', 'Error al actualizar plugins: ' + (data.error || 'desconocido'));
                 }
-            } catch(e) { toast('Error de conexión', 'error'); }
+            } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al actualizar plugins'); }
         }
 
         // ============ ERROR DETAIL MODAL ============

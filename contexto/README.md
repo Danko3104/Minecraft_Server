@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `1516008 fix: subida por carpeta ahora comprime en ZIP local con JSZip y usa endpoint existente, evita timeout del tunel`
+**Último commit:** `e05b4d1 feat: notificaciones navegador, progreso compresion, MAX_CONTENT_LENGTH 1GB`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `1516008 fix: subida por carpeta ahora comprime en ZIP local con JSZip y usa endpoint existente, evita timeout del tunel`
+**2026-06-14 · Último commit:** `e05b4d1 feat: notificaciones navegador, progreso compresion, MAX_CONTENT_LENGTH 1GB`
