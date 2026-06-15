@@ -27,6 +27,15 @@ cloudflared_process = None  # Proceso de cloudflared (global para poder detenerl
 flask_thread = None         # Hilo de Flask
 panel_url = None            # URL del panel Cloudflare
 
+# Oracle Cloud SSH reverse tunnel
+USE_ORACLE_TUNNEL = True
+ORACLE_HOST = "64.181.171.17"
+ORACLE_USER = "ubuntu"
+ORACLE_KEY_PATH = os.path.join(DRIVE_MOUNT, 'minecraft', 'oracle_key.pem')
+ORACLE_REMOTE_PORT = 25565
+ORACLE_LOCAL_PORT = 25565
+oracle_tunnel_process = None
+
 # Paths
 DRIVE_MOUNT = '/content/drive/MyDrive'
 MINECRAFT_DIR = os.path.join(DRIVE_MOUNT, 'minecraft')
@@ -449,6 +458,87 @@ def start_cloudflare_tunnel() -> Optional[str]:
 
 
 # =============================================================================
+# FUNCIONES DE TÚNEL SSH ORACLE
+# =============================================================================
+
+def start_oracle_tunnel():
+    """
+    Inicia túnel SSH reverso hacia Oracle Cloud VM.
+    Retorna el proceso Popen o None si falla.
+    """
+    global oracle_tunnel_process
+
+    try:
+        if not os.path.exists(ORACLE_KEY_PATH):
+            print(f"[ERROR] Llave SSH no encontrada en {ORACLE_KEY_PATH}")
+            print("[ERROR] Sube oracle_key.pem a Drive en minecraft/oracle_key.pem")
+            return None
+
+        # Fijar permisos de la llave
+        subprocess.run(['chmod', '600', ORACLE_KEY_PATH], capture_output=True)
+
+        print(f"[INFO] Iniciando túnel SSH hacia {ORACLE_HOST}...")
+
+        cmd = [
+            'ssh',
+            '-i', ORACLE_KEY_PATH,
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'ServerAliveInterval=30',
+            '-o', 'ServerAliveCountMax=3',
+            '-N',
+            '-R', f'{ORACLE_REMOTE_PORT}:localhost:{ORACLE_LOCAL_PORT}',
+            f'{ORACLE_USER}@{ORACLE_HOST}'
+        ]
+
+        oracle_tunnel_process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        time.sleep(3)
+
+        if oracle_tunnel_process.poll() is None:
+            print(f"[OK] Túnel SSH Oracle activo en {ORACLE_HOST}:{ORACLE_REMOTE_PORT}")
+            return oracle_tunnel_process
+        else:
+            stderr_out = oracle_tunnel_process.stderr.read().decode('utf-8', errors='ignore')
+            print(f"[ERROR] Túnel SSH Oracle falló al iniciar: {stderr_out[:200]}")
+            oracle_tunnel_process = None
+            return None
+
+    except Exception as e:
+        print(f"[ERROR] start_oracle_tunnel: {e}")
+        oracle_tunnel_process = None
+        return None
+
+
+def keep_oracle_tunnel_alive():
+    """
+    Hilo daemon que monitorea y reconecta el túnel Oracle cada 60s si se cae.
+    """
+    while True:
+        time.sleep(60)
+        global oracle_tunnel_process
+
+        if oracle_tunnel_process is None:
+            continue
+
+        if oracle_tunnel_process.poll() is not None:
+            print("[WARN] Túnel Oracle caído, intentando reconectar...")
+            for attempt in range(1, 4):
+                print(f"[INFO] Intento {attempt}/3...")
+                time.sleep(10)
+                proc = start_oracle_tunnel()
+                if proc is not None:
+                    print("[OK] Túnel Oracle reconectado")
+                    break
+                print(f"[WARN] Intento {attempt} fallido")
+            else:
+                print("[ERROR] No se pudo reconectar el túnel Oracle después de 3 intentos")
+
+
+# =============================================================================
 # FUNCIÓN PRINCIPAL DE LANZAMIENTO
 # =============================================================================
 
@@ -541,7 +631,19 @@ def launch():
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
-    # Paso 8: Mostrar resultado final
+    # Paso 8: Iniciar túnel SSH Oracle
+    if USE_ORACLE_TUNNEL:
+        print("\n" + "=" * 60)
+        print("PASO 8: Iniciando túnel SSH hacia Oracle")
+        print("=" * 60)
+        oracle_proc = start_oracle_tunnel()
+        if oracle_proc:
+            threading.Thread(target=keep_oracle_tunnel_alive, daemon=True).start()
+            print(f"[OK] Jugadores pueden conectarse a: {ORACLE_HOST}:{ORACLE_REMOTE_PORT}")
+        else:
+            print("[WARN] Túnel Oracle no disponible. Verifica que oracle_key.pem esté en Drive.")
+
+    # Paso 9: Mostrar resultado final
     print("\n" + "=" * 60)
     print("MINECOLAB PANEL LISTO")
     print("=" * 60)
@@ -586,6 +688,13 @@ def launch():
             except Exception:
                 pass
 
+            # Verificar estado del túnel Oracle
+            if USE_ORACLE_TUNNEL and oracle_tunnel_process is not None:
+                if oracle_tunnel_process.poll() is None:
+                    print("[OK] Túnel Oracle activo")
+                else:
+                    print("[WARN] Túnel Oracle caído, reconectando...")
+
     except KeyboardInterrupt:
         print("\n🛑  Deteniendo MineColab...")
         cleanup()
@@ -623,7 +732,16 @@ def cleanup():
         except Exception as e:
             print(f"⚠️  Error cerrando cloudflared: {e}")
 
-    # 3. Esperar un momento para que los procesos terminen
+    # 3. Cerrar túnel Oracle si existe
+    global oracle_tunnel_process
+    if oracle_tunnel_process is not None:
+        try:
+            oracle_tunnel_process.terminate()
+            print("✅ Túnel Oracle cerrado")
+        except Exception as e:
+            print(f"⚠️  Error cerrando túnel Oracle: {e}")
+
+    # 4. Esperar un momento para que los procesos terminen
     time.sleep(2)
 
     print("\n" + "=" * 60)

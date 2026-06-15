@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `02d4ce4 fix: start console polling on page load so server_ready notif works globally`
+**Último commit:** `07fee22 fix: stop button stuck on 'Deteniendo...' and missing stop notification`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `02d4ce4 fix: start console polling on page load so server_ready notif works globally`
+**2026-06-15 · Último commit:** `07fee22 fix: stop button stuck on 'Deteniendo...' and missing stop notification`
