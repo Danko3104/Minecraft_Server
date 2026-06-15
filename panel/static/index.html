@@ -793,6 +793,12 @@
                     <span id="upload-progress-files">0 / 0 archivos</span>
                     <span id="upload-progress-size">0 MB / 0 MB</span>
                 </div>
+                <div style="margin-top:12px;border-top:1px solid #30363d;padding-top:8px;">
+                    <button onclick="toggleChunkDetail()" style="background:none;border:none;color:#58a6ff;cursor:pointer;font-size:12px;padding:4px 0;width:100%;text-align:left;" id="btn-chunk-detail">
+                        <i class="fas fa-chevron-right" id="icon-chunk-detail" style="margin-right:4px;font-size:10px;"></i> Ver detalle de partes
+                    </button>
+                    <div id="chunk-detail-container" style="display:none;margin-top:8px;max-height:200px;overflow-y:auto;font-size:11px;font-family:monospace;"></div>
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="btn-cancel-upload" onclick="cancelUpload()" style="display:none;"><i class="fas fa-times"></i> Cancelar</button>
@@ -1849,6 +1855,71 @@
             input.value = '';
         }
 
+        // ============ CHUNK DETAIL VIEW ============
+        var chunkDetailData = null;
+
+        function toggleChunkDetail() {
+            var container = document.getElementById('chunk-detail-container');
+            var icon = document.getElementById('icon-chunk-detail');
+            var btn = document.getElementById('btn-chunk-detail');
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.className = 'fas fa-chevron-down';
+                btn.innerHTML = btn.innerHTML.replace('Ver detalle', 'Ocultar detalle');
+            } else {
+                container.style.display = 'none';
+                icon.className = 'fas fa-chevron-right';
+                btn.innerHTML = btn.innerHTML.replace('Ocultar detalle', 'Ver detalle');
+            }
+        }
+
+        function initChunkDetail(total) {
+            chunkDetailData = [];
+            for (var i = 0; i < total; i++) {
+                chunkDetailData.push({index: i, status: 'pending', size: 0});
+            }
+            renderChunkDetail();
+        }
+
+        function updateChunkDetail(index, status, size) {
+            if (!chunkDetailData) return;
+            if (index >= 0 && index < chunkDetailData.length) {
+                chunkDetailData[index].status = status;
+                if (size > 0) chunkDetailData[index].size = size;
+            }
+            renderChunkDetail();
+        }
+
+        function renderChunkDetail() {
+            if (!chunkDetailData) return;
+            var html = '<table style="width:100%;border-collapse:collapse;">';
+            html += '<tr style="color:#484f58;border-bottom:1px solid #30363d;">';
+            html += '<th style="padding:2px 6px;text-align:left;">#</th>';
+            html += '<th style="padding:2px 6px;text-align:right;">Tamaño</th>';
+            html += '<th style="padding:2px 6px;text-align:right;">Estado</th></tr>';
+            for (var i = 0; i < chunkDetailData.length; i++) {
+                var c = chunkDetailData[i];
+                var statusIcon = '';
+                var statusColor = '#484f58';
+                if (c.status === 'pending') { statusIcon = '<i class="fas fa-circle" style="color:#30363d;font-size:8px;"></i>'; }
+                else if (c.status === 'uploading') { statusIcon = '<i class="fas fa-spinner fa-spin" style="color:#58a6ff;"></i>'; statusColor = '#58a6ff'; }
+                else if (c.status === 'done') { statusIcon = '<i class="fas fa-check" style="color:#3fb950;"></i>'; statusColor = '#3fb950'; }
+                else if (c.status === 'error') { statusIcon = '<i class="fas fa-times" style="color:#f85149;"></i>'; statusColor = '#f85149'; }
+                var sizeStr = c.size > 0 ? (c.size / 1048576).toFixed(1) + ' MB' : '-';
+                html += '<tr style="border-bottom:1px solid #21262d;">';
+                html += '<td style="padding:3px 6px;color:' + statusColor + ';">' + statusIcon + ' ' + (c.index + 1) + '</td>';
+                html += '<td style="padding:3px 6px;text-align:right;color:#8b949e;">' + sizeStr + '</td>';
+                html += '<td style="padding:3px 6px;text-align:right;color:' + statusColor + ';">' + c.status + '</td></tr>';
+            }
+            html += '</table>';
+            document.getElementById('chunk-detail-container').innerHTML = html;
+        }
+
+        function clearChunkDetail() {
+            chunkDetailData = null;
+            document.getElementById('chunk-detail-container').innerHTML = '';
+        }
+
         // ============ UPLOAD MUNDO POR CARPETA ============
         function cancelUpload() {
             if (uploadXhr) {
@@ -1890,6 +1961,7 @@
             const files = input.files;
             if (!files || files.length === 0) return;
 
+            clearChunkDetail();
             const oldErr = document.getElementById('upload-error-msg');
             if (oldErr) oldErr.remove();
             document.getElementById('upload-progress-filename').style.color = '#8b949e';
@@ -1949,7 +2021,8 @@
                         if (blob.size > 45 * 1024 * 1024) {
                             // === CHUNKED UPLOAD ===
                             const totalChunks = Math.ceil(blob.size / CHUNK_SIZE);
-                            console.log('[UPLOAD] Subida por partes: ' + totalChunks + ' chunks de 50MB');
+                            console.log('[UPLOAD] Subida por partes: ' + totalChunks + ' chunks de 25MB');
+                            initChunkDetail(totalChunks);
                             document.getElementById('upload-progress-filename').textContent = 'Subiendo por partes (' + totalChunks + ' chunks)...';
                             document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
                             document.getElementById('upload-progress-files').textContent = 'Chunk 0 / ' + totalChunks;
@@ -1978,6 +2051,7 @@
                                 fd.append('upload_id', uploadId);
                                 fd.append('filename', 'world.zip');
 
+                                updateChunkDetail(chunkIndex, 'uploading', chunkBlob.size);
                                 const xhr = new XMLHttpRequest();
                                 uploadXhr = xhr;
                                 xhr.timeout = 120000;
@@ -2000,6 +2074,7 @@
                                     try {
                                         const d = JSON.parse(xhr.responseText);
                                         if (!d.success) {
+                                            updateChunkDetail(chunkIndex, 'error');
                                             aborted = true;
                                             showUploadError(d.error || 'Error en chunk ' + (chunkIndex + 1), 'status HTTP: ' + xhr.status);
                                             toast(d.error || 'Error en chunk', 'error');
@@ -2008,6 +2083,7 @@
                                             return;
                                         }
                                     } catch(e) {
+                                        updateChunkDetail(chunkIndex, 'error');
                                         const preview = xhr.responseText ? xhr.responseText.slice(0, 200) : '(sin respuesta)';
                                         aborted = true;
                                         showUploadError('Error al procesar respuesta del chunk', 'status HTTP: ' + xhr.status + ' | ' + preview);
@@ -2017,6 +2093,7 @@
                                         return;
                                     }
                                     totalLoaded += chunkBlob.size;
+                                    updateChunkDetail(chunkIndex, 'done');
                                     chunkIndex++;
                                     if (chunkIndex >= totalChunks) {
                                         // Último chunk: el servidor ya reensambló y procesó
@@ -2041,6 +2118,7 @@
 
                                 xhr.addEventListener('error', function() {
                                     if (aborted) return;
+                                    updateChunkDetail(chunkIndex, 'error');
                                     aborted = true;
                                     uploadXhr = null;
                                     console.error('[UPLOAD] Chunk error - status:', xhr.status);
@@ -2052,6 +2130,7 @@
 
                                 xhr.addEventListener('timeout', function() {
                                     if (aborted) return;
+                                    updateChunkDetail(chunkIndex, 'error');
                                     aborted = true;
                                     uploadXhr = null;
                                     showUploadError('Timeout al subir chunk ' + (chunkIndex + 1), 'el chunk tardó demasiado');

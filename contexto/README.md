@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `7d4bb56 fix: import tempfile global, evitar NameError en chunked upload endpoint`
+**Último commit:** `e3be5c9 fix: chunks de 25MB en vez de 50MB para evitar timeout Cloudflare 100s`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `7d4bb56 fix: import tempfile global, evitar NameError en chunked upload endpoint`
+**2026-06-14 · Último commit:** `e3be5c9 fix: chunks de 25MB en vez de 50MB para evitar timeout Cloudflare 100s`
