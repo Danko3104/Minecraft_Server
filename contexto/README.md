@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `a566d52 fix: also remove default world/ world_nether/ world_end/ folders left from first server start`
+**Último commit:** `73b5025 remove: Minekube Connect plugin â€” Oracle SSH tunnel is now the only connection method`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `a566d52 fix: also remove default world/ world_nether/ world_end/ folders left from first server start`
+**2026-06-15 · Último commit:** `73b5025 remove: Minekube Connect plugin â€” Oracle SSH tunnel is now the only connection method`

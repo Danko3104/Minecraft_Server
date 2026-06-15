@@ -680,7 +680,7 @@ def create_server():
         config = {
             "server_type": server_type,
             "server_version": version,
-            "tunnel_service": "minekube",
+            "tunnel_service": "oracle",
             "java": {
                 "CustomEnabled": "False",
                 "version": "",

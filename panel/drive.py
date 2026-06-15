@@ -45,7 +45,7 @@ DEFAULT_GLOBAL_CONFIG = {
 DEFAULT_SERVER_CONFIG = {
     "server_type": "",
     "server_version": "",
-    "tunnel_service": "minekube",
+    "tunnel_service": "oracle",
     "java": {
         "CustomEnabled": "False",
         "version": "",

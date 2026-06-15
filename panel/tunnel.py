@@ -1,5 +1,4 @@
 """
-Túnel manejado por Minekube Connect (plugin dentro del servidor).
-No se necesita lógica externa — el plugin se conecta automáticamente.
-Dominio: minecolab.play.minekube.net
+Túnel SSH reverso hacia Oracle Cloud.
+Conexión directa por IP: 64.181.171.17:25565
 """
