@@ -38,7 +38,10 @@ LOGS_DIR = os.path.join(MINECRAFT_DIR, 'logs')
 # Oracle Cloud SSH reverse tunnel (único túnel para Minecraft)
 ORACLE_HOST = "64.181.171.17"
 ORACLE_USER = "ubuntu"
-ORACLE_KEY_PATH = os.path.join(DRIVE_MOUNT, 'minecraft', 'oracle_key.pem')
+# Buscar cualquier llave (.key o .pem) en minecraft/ — no importa el nombre exacto
+_DRIVE_MC = os.path.join(DRIVE_MOUNT, 'minecraft')
+_KEYS = [f for f in os.listdir(_DRIVE_MC) if f.endswith('.key') or f.endswith('.pem')] if os.path.isdir(_DRIVE_MC) else []
+ORACLE_KEY_PATH = os.path.join(_DRIVE_MC, _KEYS[0]) if _KEYS else os.path.join(_DRIVE_MC, 'oracle_key.pem')
 ORACLE_REMOTE_PORT = 25565
 ORACLE_LOCAL_PORT = 25565
 oracle_tunnel_process = None
@@ -469,8 +472,13 @@ def start_oracle_tunnel():
 
     try:
         if not os.path.exists(ORACLE_KEY_PATH):
-            print(f"[ERROR] Llave SSH no encontrada en {ORACLE_KEY_PATH}")
-            print("[ERROR] Sube oracle_key.pem a Drive en minecraft/oracle_key.pem")
+            print(f"[ERROR] Llave SSH no encontrada en minecraft/")
+            _found = [f for f in os.listdir(os.path.join(DRIVE_MOUNT, 'minecraft')) if f.endswith('.key') or f.endswith('.pem')] if os.path.isdir(os.path.join(DRIVE_MOUNT, 'minecraft')) else []
+            if _found:
+                print(f"[INFO] Llaves encontradas en minecraft/: {_found}")
+            else:
+                print("[ERROR] No hay archivos .key ni .pem en minecraft/")
+                print("[ERROR] Sube tu llave SSH (.key) a la carpeta minecraft/ en Drive")
             return None
 
         # Fijar permisos de la llave
