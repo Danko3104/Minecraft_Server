@@ -266,6 +266,7 @@
             .players-grid { grid-template-columns: 1fr; }
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -1834,6 +1835,11 @@
         }
 
         function uploadWorldFolder(input) {
+            if (typeof JSZip === 'undefined') {
+                toast('JSZip no disponible. Reintenta o usa .zip', 'error');
+                input.value = '';
+                return;
+            }
             const files = input.files;
             if (!files || files.length === 0) return;
 
@@ -1841,101 +1847,117 @@
             if (oldErr) oldErr.remove();
             document.getElementById('upload-progress-filename').style.color = '#8b949e';
             document.getElementById('upload-progress-bar').style.background = 'linear-gradient(90deg,#58a6ff,#3fb950)';
-
-            let totalBytes = 0;
-            for (let i = 0; i < files.length; i++) {
-                totalBytes += files[i].size;
-            }
-
-            console.log('[Upload] Iniciando subida de ' + files.length + ' archivos (' + (totalBytes / 1048576).toFixed(1) + ' MB)');
+            document.getElementById('btn-cancel-upload').style.display = 'none';
 
             document.getElementById('modal-upload-progress').style.display = 'flex';
             document.getElementById('upload-progress-bar').style.width = '0%';
             document.getElementById('upload-progress-percent').textContent = '0%';
             document.getElementById('upload-progress-files').textContent = '0 / ' + files.length + ' archivos';
-            document.getElementById('upload-progress-size').textContent = '0 MB / ' + (totalBytes / 1048576).toFixed(1) + ' MB';
+            document.getElementById('upload-progress-size').textContent = '0 MB / ? MB';
             document.getElementById('upload-progress-filename').textContent = 'Preparando...';
-            document.getElementById('btn-cancel-upload').style.display = 'inline-flex';
 
-            const formData = new FormData();
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                formData.append('files', file);
-                formData.append('paths', file.webkitRelativePath || file.name);
+            // 1. Comprimir todo en ZIP localmente con JSZip
+            const zip = new JSZip();
+            let processed = 0;
+
+            function addNextFile(index) {
+                if (index >= files.length) {
+                    document.getElementById('upload-progress-filename').textContent = 'Generando ZIP...';
+                    zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } })
+                    .then(function(blob) {
+                        const totalMB = (blob.size / 1048576).toFixed(1);
+                        document.getElementById('upload-progress-files').textContent = files.length + ' / ' + files.length + ' archivos';
+                        document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
+                        document.getElementById('upload-progress-filename').textContent = 'Subiendo ZIP (' + totalMB + ' MB)...';
+                        document.getElementById('upload-progress-bar').style.width = '0%';
+                        document.getElementById('upload-progress-percent').textContent = '0%';
+
+                        // 2. Subir ZIP al endpoint existente
+                        const formData = new FormData();
+                        formData.append('file', blob, 'world.zip');
+
+                        const xhr = new XMLHttpRequest();
+                        uploadXhr = xhr;
+
+                        xhr.upload.addEventListener('progress', function(e) {
+                            if (e.lengthComputable) {
+                                const pct = Math.round((e.loaded / e.total) * 100);
+                                const loadedMB = (e.loaded / 1048576).toFixed(1);
+                                document.getElementById('upload-progress-bar').style.width = pct + '%';
+                                document.getElementById('upload-progress-percent').textContent = pct + '%';
+                                document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
+                            }
+                        });
+
+                        xhr.addEventListener('load', function() {
+                            uploadXhr = null;
+                            const status = document.getElementById('upload-status');
+                            console.log('[Upload] Respuesta ZIP (status ' + xhr.status + '):', xhr.responseText ? xhr.responseText.substring(0, 200) : '(vacia)');
+                            try {
+                                const data = JSON.parse(xhr.responseText);
+                                if (data.success) {
+                                    document.getElementById('modal-upload-progress').style.display = 'none';
+                                    toast('Mundo subido correctamente (' + files.length + ' archivos comprimidos)', 'success');
+                                    status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                                } else {
+                                    showUploadError(data.error || 'Error al subir mundo', 'status HTTP: ' + xhr.status);
+                                    toast(data.error || 'Error al subir mundo', 'error');
+                                }
+                            } catch(e) {
+                                console.error('[Upload] Error al parsear respuesta:', e, 'Texto:', xhr.responseText ? xhr.responseText.substring(0, 300) : '(vacia)');
+                                showUploadError('Error al procesar respuesta del servidor', 'status HTTP: ' + xhr.status);
+                                toast('Error al procesar respuesta del servidor', 'error');
+                            }
+                            setTimeout(function() { status.innerHTML = ''; }, 5000);
+                            input.value = '';
+                        });
+
+                        xhr.addEventListener('error', function() {
+                            uploadXhr = null;
+                            console.error('[Upload] Error de conexion');
+                            showUploadError('Error de conexión al subir ZIP', 'revisa que el servidor Flask esté corriendo');
+                            toast('Error de conexión al subir ZIP', 'error');
+                            input.value = '';
+                        });
+
+                        xhr.addEventListener('abort', function() {
+                            uploadXhr = null;
+                            document.getElementById('modal-upload-progress').style.display = 'none';
+                            toast('Subida cancelada', 'warning');
+                            input.value = '';
+                        });
+
+                        xhr.open('POST', '/api/settings/upload-world', true);
+                        xhr.send(formData);
+                    })
+                    .catch(function(err) {
+                        console.error('[Upload] Error al generar ZIP:', err);
+                        showUploadError('Error al comprimir la carpeta', err.message);
+                        toast('Error al comprimir la carpeta', 'error');
+                        input.value = '';
+                    });
+                    return;
+                }
+
+                const file = files[index];
+                const path = file.webkitRelativePath || file.name;
+                processed++;
+                document.getElementById('upload-progress-files').textContent = processed + ' / ' + files.length + ' archivos';
+                document.getElementById('upload-progress-filename').textContent = 'Comprimiendo: ' + path;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    zip.file(path, e.target.result, { binary: true });
+                    setTimeout(function() { addNextFile(index + 1); }, 0);
+                };
+                reader.onerror = function() {
+                    console.error('[Upload] Error leyendo archivo:', path);
+                    setTimeout(function() { addNextFile(index + 1); }, 0);
+                };
+                reader.readAsArrayBuffer(file);
             }
 
-            const xhr = new XMLHttpRequest();
-            uploadXhr = xhr;
-
-            xhr.upload.addEventListener('progress', function(e) {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    const loadedMB = (e.loaded / 1048576).toFixed(1);
-                    const totalMB = (e.total / 1048576).toFixed(1);
-
-                    document.getElementById('upload-progress-bar').style.width = percent + '%';
-                    document.getElementById('upload-progress-percent').textContent = percent + '%';
-                    document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
-
-                    let accumulated = 0;
-                    let currentFileIndex = 0;
-                    let currentFileName = '';
-                    for (let i = 0; i < files.length; i++) {
-                        accumulated += files[i].size;
-                        if (e.loaded <= accumulated) {
-                            currentFileIndex = i + 1;
-                            currentFileName = files[i].webkitRelativePath || files[i].name;
-                            break;
-                        }
-                        currentFileIndex = i + 1;
-                    }
-                    document.getElementById('upload-progress-files').textContent = currentFileIndex + ' / ' + files.length + ' archivos';
-                    document.getElementById('upload-progress-filename').textContent = currentFileName || 'Transfiriendo...';
-                }
-            });
-
-            xhr.addEventListener('load', function() {
-                uploadXhr = null;
-                document.getElementById('btn-cancel-upload').style.display = 'none';
-                const status = document.getElementById('upload-status');
-                console.log('[Upload] Respuesta recibida (status ' + xhr.status + '):', xhr.responseText ? xhr.responseText.substring(0, 200) : '(vacia)');
-                try {
-                    const data = JSON.parse(xhr.responseText);
-                    if (data.success) {
-                        document.getElementById('modal-upload-progress').style.display = 'none';
-                        toast('Mundo subido por carpeta correctamente (' + files.length + ' archivos)', 'success');
-                        status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
-                    } else {
-                        showUploadError(data.error || 'Error al subir carpeta', 'status HTTP: ' + xhr.status);
-                        toast(data.error || 'Error al subir carpeta', 'error');
-                    }
-                } catch(e) {
-                    console.error('[Upload] Error al parsear respuesta:', e, 'Texto:', xhr.responseText ? xhr.responseText.substring(0, 300) : '(vacia)');
-                    showUploadError('Error al procesar respuesta del servidor', 'status HTTP: ' + xhr.status + ' | respuesta no es JSON valido');
-                    toast('Error al procesar respuesta del servidor', 'error');
-                }
-                setTimeout(() => { status.innerHTML = ''; }, 5000);
-                input.value = '';
-            });
-
-            xhr.addEventListener('error', function() {
-                uploadXhr = null;
-                console.error('[Upload] Error de conexion (network error)');
-                showUploadError('Error de conexión al subir carpeta', 'revisa que el servidor Flask esté corriendo');
-                toast('Error de conexión al subir carpeta', 'error');
-                input.value = '';
-            });
-
-            xhr.addEventListener('abort', function() {
-                uploadXhr = null;
-                document.getElementById('modal-upload-progress').style.display = 'none';
-                toast('Subida cancelada', 'warning');
-                document.getElementById('upload-status').innerHTML = '';
-                input.value = '';
-            });
-
-            xhr.open('POST', '/api/settings/upload-world-folder', true);
-            xhr.send(formData);
+            addNextFile(0);
         }
 
         // ============ SERVER ICON ============

@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `512c4ce feat: modal de progreso con barra, porcentaje y nombre de archivo al subir carpeta`
+**Último commit:** `5e3b32f fix: modal de progreso ahora muestra error detallado sin cerrarse + console.log para debug`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `512c4ce feat: modal de progreso con barra, porcentaje y nombre de archivo al subir carpeta`
+**2026-06-14 · Último commit:** `5e3b32f fix: modal de progreso ahora muestra error detallado sin cerrarse + console.log para debug`

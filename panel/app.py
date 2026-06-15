@@ -602,35 +602,6 @@ def api_settings_upload_world():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route('/api/settings/upload-world-folder', methods=['POST'])
-def api_settings_upload_world_folder():
-    """
-    POST /api/settings/upload-world-folder — Sube una carpeta completa para reemplazar el mundo.
-    Body: multipart/form-data con campo 'files' (archivos) y 'paths' (rutas relativas)
-    """
-    try:
-        active_server = get_active_server()
-        if not active_server:
-            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
-
-        if 'files' not in request.files:
-            return jsonify({"success": False, "error": "No se enviaron archivos"}), 400
-
-        files_list = request.files.getlist('files')
-        paths_list = request.form.getlist('paths')
-
-        if len(files_list) == 0 or len(paths_list) == 0:
-            return jsonify({"success": False, "error": "No se recibieron archivos o rutas"}), 400
-
-        if len(files_list) != len(paths_list):
-            return jsonify({"success": False, "error": "Discrepancia entre archivos y rutas"}), 400
-
-        result = server_manager.upload_world_folder(active_server, files_list, paths_list)
-        return jsonify(result)
-
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
 
 # =============================================================================
 # FIN RUTAS DE CONFIGURACIÓN
