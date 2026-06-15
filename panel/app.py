@@ -6,6 +6,7 @@ Maneja las rutas HTTP y WebSocket para el panel de control.
 from datetime import datetime
 import os
 import re
+import shutil
 import psutil
 import os
 from flask import Flask, jsonify, request, send_from_directory, send_file
@@ -602,6 +603,77 @@ def api_settings_upload_world():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+
+
+@app.route('/api/settings/upload-world-chunked', methods=['POST'])
+def api_settings_upload_world_chunked():
+    """
+    POST /api/settings/upload-world-chunked — Recibe un chunk de archivo.
+    Cuando llega el último, reensambla y llama a upload_world.
+    Body (multipart): chunk (file), index, total, upload_id, filename
+    """
+    CHUNK_DIR = os.path.join(tempfile.gettempdir(), 'minecolab_upload_chunks')
+    os.makedirs(CHUNK_DIR, exist_ok=True)
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        if 'chunk' not in request.files:
+            return jsonify({"success": False, "error": "No se envió el chunk"}), 400
+
+        chunk = request.files['chunk']
+        index = int(request.form.get('index', -1))
+        total = int(request.form.get('total', 0))
+        upload_id = request.form.get('upload_id', '')
+
+        if index < 0 or total < 1 or not upload_id:
+            return jsonify({"success": False, "error": "Parámetros inválidos"}), 400
+
+        chunk_dir = os.path.join(CHUNK_DIR, upload_id)
+        os.makedirs(chunk_dir, exist_ok=True)
+        chunk.save(os.path.join(chunk_dir, f'chunk_{index:05d}'))
+
+        if index == total - 1:
+            for i in range(total):
+                cp = os.path.join(chunk_dir, f'chunk_{i:05d}')
+                if not os.path.exists(cp):
+                    return jsonify({"success": False, "error": f"Falta el chunk {i}"}), 400
+
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as tmp:
+                tmp_path = tmp.name
+                for i in range(total):
+                    cp = os.path.join(chunk_dir, f'chunk_{i:05d}')
+                    with open(cp, 'rb') as f:
+                        tmp.write(f.read())
+
+            shutil.rmtree(chunk_dir, ignore_errors=True)
+
+            try:
+                result = server_manager.upload_world(active_server, tmp_path)
+                return jsonify(result)
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
+
+        return jsonify({"success": True, "message": f"Chunk {index+1}/{total} recibido"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/upload-world-cancel', methods=['POST'])
+def api_settings_upload_world_cancel():
+    """Limpia los chunks de una subida cancelada."""
+    upload_id = request.json.get('upload_id', '') if request.is_json else ''
+    if upload_id:
+        chunk_dir = os.path.join(tempfile.gettempdir(), 'minecolab_upload_chunks', upload_id)
+        if os.path.isdir(chunk_dir):
+            shutil.rmtree(chunk_dir, ignore_errors=True)
+    return jsonify({"success": True})
 
 
 # =============================================================================
