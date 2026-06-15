@@ -1,7 +1,7 @@
 # MineColab Panel - Estado del Proyecto
 
 **Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `f4b31f4 fix: comando 'stop' desde consola ahora guarda mundo y hace backup`
+**Último commit:** `7eff978 feat: upload mundo por carpeta completa + endpoint /api/settings/upload-world-folder`
 
 ---
 
@@ -140,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-14 · Último commit:** `f4b31f4 fix: comando 'stop' desde consola ahora guarda mundo y hace backup`
+**2026-06-14 · Último commit:** `7eff978 feat: upload mundo por carpeta completa + endpoint /api/settings/upload-world-folder`

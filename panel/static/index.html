@@ -763,6 +763,29 @@
         </div>
     </div>
 
+    <!-- MODAL: PROGRESO DE SUBIDA -->
+    <div class="modal-overlay" id="modal-upload-progress" onclick="">
+        <div class="modal" style="max-width:480px;">
+            <h2><i class="fas fa-cloud-upload-alt" style="color:#58a6ff;"></i> Subiendo mundo</h2>
+            <div style="margin:16px 0;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#8b949e;margin-bottom:8px;">
+                    <span id="upload-progress-filename">Preparando...</span>
+                    <span id="upload-progress-percent">0%</span>
+                </div>
+                <div style="width:100%;height:8px;background:#30363d;border-radius:4px;overflow:hidden;">
+                    <div id="upload-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#58a6ff,#3fb950);border-radius:4px;transition:width 0.3s ease;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#484f58;margin-top:8px;">
+                    <span id="upload-progress-files">0 / 0 archivos</span>
+                    <span id="upload-progress-size">0 MB / 0 MB</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="btn-cancel-upload" onclick="cancelUpload()" style="display:none;"><i class="fas fa-times"></i> Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST CONTAINER -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -787,6 +810,7 @@
         let scrollLocked = false;
         let commandHistory = [];
         let historyIndex = -1;
+        let uploadXhr = null;
         const SUGGESTED_COMMANDS = ['/list', '/whitelist list', '/weather clear', '/time set day', '/gamemode survival @a', '/gamemode creative @a', '/tp @p ~ ~ ~', '/kill @e[type=!player]', '/give @p diamond 1', '/difficulty peaceful'];
 
         // ============ INIT ============
@@ -1778,37 +1802,112 @@
         }
 
         // ============ UPLOAD MUNDO POR CARPETA ============
+        function cancelUpload() {
+            if (uploadXhr) {
+                uploadXhr.abort();
+                uploadXhr = null;
+            }
+            document.getElementById('modal-upload-progress').style.display = 'none';
+            document.getElementById('upload-status').innerHTML = '';
+        }
+
         function uploadWorldFolder(input) {
             const files = input.files;
             if (!files || files.length === 0) return;
-            const status = document.getElementById('upload-status');
-            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo carpeta (' + files.length + ' archivos)...';
+
+            // Calcular tamaño total
+            let totalBytes = 0;
+            for (let i = 0; i < files.length; i++) {
+                totalBytes += files[i].size;
+            }
+
+            // Mostrar modal
+            document.getElementById('modal-upload-progress').style.display = 'flex';
+            document.getElementById('upload-progress-bar').style.width = '0%';
+            document.getElementById('upload-progress-percent').textContent = '0%';
+            document.getElementById('upload-progress-files').textContent = '0 / ' + files.length + ' archivos';
+            document.getElementById('upload-progress-size').textContent = '0 MB / ' + (totalBytes / 1048576).toFixed(1) + ' MB';
+            document.getElementById('upload-progress-filename').textContent = 'Preparando...';
+            document.getElementById('btn-cancel-upload').style.display = 'inline-flex';
+
             const formData = new FormData();
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 formData.append('files', file);
                 formData.append('paths', file.webkitRelativePath || file.name);
             }
-            fetch('/api/settings/upload-world-folder', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    toast('Mundo subido por carpeta correctamente', 'success');
-                    status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
-                } else {
-                    toast(data.error || 'Error al subir carpeta', 'error');
+
+            const xhr = new XMLHttpRequest();
+            uploadXhr = xhr;
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    const loadedMB = (e.loaded / 1048576).toFixed(1);
+                    const totalMB = (e.total / 1048576).toFixed(1);
+
+                    document.getElementById('upload-progress-bar').style.width = percent + '%';
+                    document.getElementById('upload-progress-percent').textContent = percent + '%';
+                    document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
+
+                    // Estimar archivo actual basado en progreso
+                    let accumulated = 0;
+                    let currentFileIndex = 0;
+                    let currentFileName = '';
+                    for (let i = 0; i < files.length; i++) {
+                        accumulated += files[i].size;
+                        if (e.loaded <= accumulated) {
+                            currentFileIndex = i + 1;
+                            currentFileName = files[i].webkitRelativePath || files[i].name;
+                            break;
+                        }
+                        currentFileIndex = i + 1;
+                    }
+                    document.getElementById('upload-progress-files').textContent = currentFileIndex + ' / ' + files.length + ' archivos';
+                    document.getElementById('upload-progress-filename').textContent = currentFileName || 'Transfiriendo...';
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                uploadXhr = null;
+                document.getElementById('btn-cancel-upload').style.display = 'none';
+                document.getElementById('modal-upload-progress').style.display = 'none';
+                const status = document.getElementById('upload-status');
+                try {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        toast('Mundo subido por carpeta correctamente (' + files.length + ' archivos)', 'success');
+                        status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                    } else {
+                        toast(data.error || 'Error al subir carpeta', 'error');
+                        status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                    }
+                } catch(e) {
+                    toast('Error al procesar respuesta del servidor', 'error');
                     status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
                 }
-                setTimeout(() => { status.innerHTML = ''; }, 3000);
-            })
-            .catch(e => {
-                toast('Error de conexión', 'error');
-                status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                setTimeout(() => { status.innerHTML = ''; }, 5000);
+                input.value = '';
             });
-            input.value = '';
+
+            xhr.addEventListener('error', function() {
+                uploadXhr = null;
+                document.getElementById('btn-cancel-upload').style.display = 'none';
+                document.getElementById('modal-upload-progress').style.display = 'none';
+                toast('Error de conexión al subir carpeta', 'error');
+                document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                input.value = '';
+            });
+
+            xhr.addEventListener('abort', function() {
+                uploadXhr = null;
+                toast('Subida cancelada', 'warning');
+                document.getElementById('upload-status').innerHTML = '';
+                input.value = '';
+            });
+
+            xhr.open('POST', '/api/settings/upload-world-folder', true);
+            xhr.send(formData);
         }
 
         // ============ SERVER ICON ============
