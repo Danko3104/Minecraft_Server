@@ -24,7 +24,8 @@ from panel.drive import (
     get_active_server,
     set_active_server,
     server_exists,
-    rename_server
+    rename_server,
+    delete_server
 )
 
 # =============================================================================
@@ -801,6 +802,28 @@ def list_servers_route():
             "success": False,
             "error": str(e)
         }), 500
+
+
+@servers_bp.route('/servers/<server_name>', methods=['DELETE'])
+def delete_server_route(server_name):
+    """
+    DELETE /api/servers/<server_name>
+    Elimina un servidor permanentemente.
+    """
+    try:
+        from panel.server_manager import server_manager
+
+        if server_manager.is_running() and get_active_server() == server_name:
+            return jsonify({"success": False, "error": "Detén el servidor antes de eliminarlo"}), 400
+
+        result = delete_server(server_name)
+        if result.get("success"):
+            return jsonify({"success": True, "message": f"Servidor '{server_name}' eliminado"})
+        else:
+            return jsonify({"success": False, "error": result.get("error", "Error al eliminar")}), 400
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @servers_bp.route('/servers/<server_name>/rename', methods=['PUT'])

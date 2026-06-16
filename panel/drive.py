@@ -218,6 +218,36 @@ def set_active_server(server_name: str) -> bool:
         return False
 
 
+def delete_server(server_name: str) -> dict:
+    """
+    Elimina un servidor: borra la carpeta y actualiza config global.
+    Retorna {"success": True/False, "error": "..."}
+    """
+    try:
+        if not server_exists(server_name):
+            return {"success": False, "error": f"El servidor '{server_name}' no existe"}
+
+        server_path = os.path.join(DRIVE_PATH, server_name)
+        shutil.rmtree(server_path, ignore_errors=True)
+
+        config = get_global_config()
+        server_list = config.get('server_list', [])
+        if server_name in server_list:
+            server_list.remove(server_name)
+            config['server_list'] = server_list
+
+        if config.get('server_in_use') == server_name:
+            config['server_in_use'] = server_list[0] if server_list else ''
+
+        save_global_config(config)
+
+        print(f"[INFO] Servidor '{server_name}' eliminado")
+        return {"success": True}
+    except Exception as e:
+        print(f"[ERROR] delete_server: {e}")
+        return {"success": False, "error": str(e)}
+
+
 def rename_server(old_name: str, new_name: str) -> dict:
     """
     Renombra un servidor: renombra la carpeta y actualiza config global.
