@@ -1,7 +1,6 @@
 # MineColab Panel - Estado del Proyecto
 
-**Repositorio:** https://github.com/Danko3104/Minecraft_Server.git
-**Último commit:** `294b375 feat: add whitelist toggle in server properties + fix write overwrite bug`
+**Último commit:** `5bf88b8 docs: update README and project context with all current features and server types`
 
 ---
 
@@ -115,22 +114,6 @@ Server.ipynb             # Notebook para Colab
 
 ---
 
-## 🔑 Configuración Default
-
-| Concepto | Valor |
-|----------|-------|
-| Contraseña panel | `minecolab2024` |
-| Puerto Flask | 5000 |
-| RCON password | `minecolab_panel` |
-| RCON port | 25575 |
-| Java | OpenJDK 21 JDK |
-| Túnel panel | Cloudflare (trycloudflare.com) |
-| Túnel Minecraft | Oracle Cloud SSH reverso |
-| JWT Secret | env var `MINECOLAB_JWT_SECRET` |
-| Debug mode | env var `FLASK_DEBUG` (default false) |
-
----
-
 ## 📁 Pendientes
 
 - **Forge / NeoForge** - Instaladores de servidores modded
@@ -157,4 +140,4 @@ Hangar    https://hangar.papermc.io/api/v1
 
 ---
 
-**2026-06-15 · Último commit:** `294b375 feat: add whitelist toggle in server properties + fix write overwrite bug`
+**2026-06-15 · Último commit:** `5bf88b8 docs: update README and project context with all current features and server types`

@@ -35,18 +35,4 @@ Panel web para gestionar servidores Minecraft desde Google Colab.
 - **Túneles**: Cloudflare (panel web) + Oracle Cloud SSH (Minecraft)
 - **APIs externas**: Modrinth, Hangar, PaperMC, PurpurMC, Mojang, Forge, NeoForge
 
-## Configuración por Defecto
 
-| Concepto | Valor |
-|----------|-------|
-| Contraseña panel | `minecolab2024` |
-| Puerto Flask | 5000 |
-| RCON password | `minecolab_panel` |
-| RCON port | 25575 |
-| Java | OpenJDK 21 JDK |
-| JWT Secret | env var `MINECOLAB_JWT_SECRET` |
-| Debug mode | env var `FLASK_DEBUG` (default false) |
-
-## Repositorio
-
-https://github.com/Danko3104/Minecraft_Server
