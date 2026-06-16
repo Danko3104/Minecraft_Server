@@ -735,7 +735,7 @@ class ServerManager:
 
     def _backup_world(self, server_name: str) -> Optional[str]:
         """
-        Hace backup del mundo en Copias de mundo de Minecraft/.
+        Hace backup comprimido del mundo en Copias de mundo de Minecraft/.
         Retorna el nombre del backup o None si falla.
         """
         try:
@@ -749,21 +749,21 @@ class ServerManager:
             os.makedirs(backups_dir, exist_ok=True)
 
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            backup_name = f"{server_name}_world_{timestamp}"
+            backup_name = f"{server_name}_world_{timestamp}.zip"
             backup_path = os.path.join(backups_dir, backup_name)
 
-            shutil.copytree(world_path, backup_path)
-            print(f"[INFO] Backup creado: {backup_path}")
+            shutil.make_archive(backup_path[:-4], 'zip', world_path)
+            print(f"[INFO] Backup comprimido creado: {backup_path}")
 
             # Prune: mantener solo los últimos 3 backups de mundo
             world_backups = [
                 e for e in os.listdir(backups_dir)
-                if e.startswith(server_name + '_world_') and os.path.isdir(os.path.join(backups_dir, e))
+                if e.startswith(server_name + '_world_') and e.endswith('.zip') and os.path.isfile(os.path.join(backups_dir, e))
             ]
             world_backups.sort(reverse=True)  # más reciente primero
             for old in world_backups[3:]:
                 old_path = os.path.join(backups_dir, old)
-                shutil.rmtree(old_path, ignore_errors=True)
+                os.remove(old_path)
                 print(f"[INFO] Backup antiguo eliminado: {old}")
 
             return backup_name
@@ -794,7 +794,7 @@ class ServerManager:
 
     def list_backups(self, server_name: str) -> List[Dict]:
         """
-        Lista los backups del servidor con fecha y tamaño.
+        Lista los backups (zips) del servidor con fecha y tamaño.
         """
         try:
             backups_dir = self.get_backups_dir()
@@ -804,11 +804,10 @@ class ServerManager:
             result = []
             for entry in sorted(os.listdir(backups_dir), reverse=True):
                 entry_path = os.path.join(backups_dir, entry)
-                # Filtrar solo backups que empiecen con el nombre del servidor
-                if entry.startswith(server_name + '_world_') and os.path.isdir(entry_path):
-                    size = sum(os.path.getsize(os.path.join(dp, f)) for dp, dn, fn in os.walk(entry_path) for f in fn)
-                    # Extraer timestamp del nombre
-                    ts_str = entry.replace(server_name + '_world_', '')
+                # Filtrar solo backups zip que empiecen con el nombre del servidor
+                if entry.startswith(server_name + '_world_') and entry.endswith('.zip') and os.path.isfile(entry_path):
+                    size = os.path.getsize(entry_path)
+                    ts_str = entry.replace(server_name + '_world_', '').replace('.zip', '')
                     try:
                         ts = datetime.strptime(ts_str, "%Y-%m-%d_%H-%M-%S")
                     except ValueError:
@@ -826,7 +825,7 @@ class ServerManager:
 
     def restore_backup(self, server_name: str, backup_name: str) -> Dict:
         """
-        Restaura un backup: detiene server, reemplaza world/, reinicia.
+        Restaura un backup comprimido: detiene server, reemplaza world/, reinicia.
         """
         try:
             backups_dir = self.get_backups_dir()
@@ -849,18 +848,19 @@ class ServerManager:
                 self.stop()
                 time.sleep(2)
 
-            # Backup del mundo actual antes de restaurar
+            # Backup comprimido del mundo actual antes de restaurar
             if os.path.exists(world_path):
                 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-                pre_restore_backup = os.path.join(backups_dir, f"{server_name}_world_{timestamp}_prerestore")
-                shutil.copytree(world_path, pre_restore_backup)
+                pre_restore_backup = os.path.join(backups_dir, f"{server_name}_world_{timestamp}_prerestore.zip")
+                shutil.make_archive(pre_restore_backup[:-4], 'zip', world_path)
 
             # Eliminar mundo actual
             if os.path.exists(world_path):
                 shutil.rmtree(world_path)
 
-            # Copiar backup
-            shutil.copytree(backup_path, world_path)
+            # Extraer backup zip
+            with zipfile.ZipFile(backup_path, 'r') as zf:
+                zf.extractall(world_path)
             print(f"[INFO] Backup '{backup_name}' restaurado para '{server_name}'")
 
             if was_running:
@@ -873,14 +873,14 @@ class ServerManager:
 
     def delete_backup(self, server_name: str, backup_name: str) -> Dict:
         """
-        Elimina un backup.
+        Elimina un backup comprimido.
         """
         try:
             backups_dir = self.get_backups_dir()
             backup_path = os.path.join(backups_dir, backup_name)
             if not os.path.exists(backup_path):
                 return {"success": False, "error": f"Backup '{backup_name}' no encontrado"}
-            shutil.rmtree(backup_path)
+            os.remove(backup_path)
             return {"success": True, "message": f"Backup '{backup_name}' eliminado"}
         except Exception as e:
             print(f"[ERROR] delete_backup: {e}")
@@ -1182,14 +1182,14 @@ class ServerManager:
             steps[-1]["status"] = "done"
             steps[-1]["message"] = "Servidor detenido"
 
-            # Paso 2: Backup del mundo
-            steps.append({"step": "backup", "status": "active", "message": "Haciendo backup del mundo..."})
+            # Paso 2: Backup comprimido del mundo
+            steps.append({"step": "backup", "status": "active", "message": "Haciendo backup comprimido del mundo..."})
             world_path = os.path.join(server_path, 'world')
             if os.path.exists(world_path):
-                backup_name = f'{server_name}_preupdate_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                backup_name = f'{server_name}_preupdate_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip'
                 backup_path = os.path.join(server_path, backup_name)
-                shutil.copytree(world_path, backup_path)
-                steps[-1]["message"] = f"Backup creado: {backup_name}"
+                shutil.make_archive(backup_path[:-4], 'zip', world_path)
+                steps[-1]["message"] = f"Backup comprimido creado: {backup_name}"
             else:
                 steps[-1]["message"] = "No se encontró mundo para backup"
             steps[-1]["status"] = "done"
@@ -1273,11 +1273,11 @@ class ServerManager:
                 self.stop()
                 time.sleep(2)
 
-            # Backup del mundo actual
+            # Backup comprimido del mundo actual
             if os.path.exists(world_path):
-                backup_name = f'{server_name}_prereset_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                backup_name = f'{server_name}_prereset_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip'
                 backup_path = os.path.join(server_path, backup_name)
-                shutil.copytree(world_path, backup_path)
+                shutil.make_archive(backup_path[:-4], 'zip', world_path)
                 shutil.rmtree(world_path)
                 msg = f"Mundo respaldado como '{backup_name}' y eliminado"
             else:
