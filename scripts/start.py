@@ -246,45 +246,6 @@ def install_cloudflared() -> bool:
 # FUNCIONES DE DESCARGA DE PAPERMC
 # =============================================================================
 
-def install_papermc() -> bool:
-    """
-    Descarga PaperMC 1.21.10 build 48 como paper.jar
-    si no existe en el directorio activo de Drive.
-    """
-    try:
-        from panel.drive import get_active_server
-        server_name = get_active_server()
-        if not server_name:
-            print("[INFO] No hay servidor activo, omitiendo descarga de PaperMC")
-            return False
-
-        server_path = os.path.join(MINECRAFT_DIR, server_name)
-        jar_path = os.path.join(server_path, 'paper.jar')
-
-        if os.path.exists(jar_path):
-            print(f"[OK] paper.jar ya existe en {server_name}")
-            return True
-
-        os.makedirs(server_path, exist_ok=True)
-        print(f"[INFO] Descargando PaperMC 1.21.10 build 48...")
-
-        import urllib.request
-        url = 'https://fill-data.papermc.io/v1/objects/bfca155b4a6b45644bfc1766f4e02a83c736e45fcc060e8788c71d6e7b3d56f6/paper-1.21.10-48.jar'
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'MineColab/1.0 (github.com/Danko3104/Minecraft_Server)'
-        })
-        with urllib.request.urlopen(req) as response:
-            with open(jar_path, 'wb') as f:
-                f.write(response.read())
-
-        print(f"[OK] paper.jar descargado correctamente en {server_name}")
-        return True
-
-    except Exception as e:
-        print(f"[ERROR] install_papermc: {e}")
-        return False
-
-
 # =============================================================================
 # FUNCIONES DE FLASK
 # =============================================================================
@@ -609,16 +570,9 @@ def launch():
         return False
     print("Java listo.")
 
-    # Paso 5: Descargar PaperMC
+    # Paso 5: Iniciar Flask
     print("\n" + "=" * 60)
-    print("PASO 5: Descargando PaperMC")
-    print("=" * 60)
-
-    install_papermc()
-
-    # Paso 6: Iniciar Flask
-    print("\n" + "=" * 60)
-    print("PASO 6: Iniciando Flask")
+    print("PASO 5: Iniciando Flask")
     print("=" * 60)
 
     if not start_flask_thread():
@@ -626,9 +580,9 @@ def launch():
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
-    # Paso 7: Iniciar túnel Cloudflare
+    # Paso 6: Iniciar túnel Cloudflare
     print("\n" + "=" * 60)
-    print("PASO 7: Iniciando túnel Cloudflare")
+    print("PASO 6: Iniciando túnel Cloudflare")
     print("=" * 60)
 
     panel_url = start_cloudflare_tunnel()
@@ -638,9 +592,9 @@ def launch():
         console.print(Panel(error_msg, title="ERROR", border_style="red"))
         return False
 
-    # Paso 8: Iniciar túnel SSH Oracle (única conexión para Minecraft)
+    # Paso 7: Iniciar túnel SSH Oracle (única conexión para Minecraft)
     print("\n" + "=" * 60)
-    print("PASO 8: Iniciando túnel SSH hacia Oracle")
+    print("PASO 7: Iniciando túnel SSH hacia Oracle")
     print("=" * 60)
     oracle_proc = start_oracle_tunnel()
     if oracle_proc:
@@ -649,7 +603,7 @@ def launch():
     else:
         print("[WARN] Túnel Oracle no disponible. Verifica que oracle_key.pem esté en Drive.")
 
-    # Paso 9: Mostrar resultado final
+    # Paso 8: Mostrar resultado final
     print("\n" + "=" * 60)
     print("MINECOLAB PANEL LISTO")
     print("=" * 60)

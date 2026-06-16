@@ -268,6 +268,44 @@ def api_whitelist_remove():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@players_bp.route('/delete', methods=['POST'])
+def api_player_delete():
+    try:
+        data = request.get_json()
+        player = data.get('player', '').strip()
+        if not player:
+            return jsonify({"success": False, "error": "Nombre de jugador requerido"}), 400
+
+        from panel.server_manager import server_manager
+        if server_manager.is_running():
+            resp = server_manager.send_command('list')
+            if player.lower() in [p.strip().lower() for p in resp.split(':')[-1].split(',')] if ':' in resp else []:
+                return jsonify({"success": False, "error": "No se puede eliminar el registro de un jugador conectado"}), 400
+
+        server_path = _get_active_server_path()
+        if not server_path:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        uc_path = os.path.join(server_path, 'usercache.json')
+        if not os.path.exists(uc_path):
+            return jsonify({"success": False, "error": "No hay registro de jugadores"}), 404
+
+        with open(uc_path, 'r') as f:
+            cache = json.load(f)
+
+        filtered = [e for e in cache if isinstance(e, dict) and e.get('name', '').lower() != player.lower()]
+
+        if len(filtered) == len(cache):
+            return jsonify({"success": False, "error": f"Jugador '{player}' no encontrado en el registro"}), 404
+
+        with open(uc_path, 'w') as f:
+            json.dump(filtered, f, indent=2)
+
+        return jsonify({"success": True, "message": f"Registro de '{player}' eliminado"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @players_bp.route('/banned', methods=['GET'])
 def api_players_banned():
     try:

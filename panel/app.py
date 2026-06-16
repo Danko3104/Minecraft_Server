@@ -21,7 +21,8 @@ from panel.drive import (
     set_active_server,
     save_server_config,
     get_global_config,
-    save_global_config
+    save_global_config,
+    get_server_config
 )
 from panel.server_manager import server_manager
 from panel.routes.servers import servers_bp
@@ -147,10 +148,17 @@ def api_status():
         colab_max_time = 43200  # 12 horas en segundos (límite Colab)
         colab_time_remaining = max(0, colab_max_time - session_uptime)
 
+        active = get_active_server()
+        server_type = ''
+        if active:
+            cfg = get_server_config(active)
+            server_type = cfg.get('server_type', '')
+
         return jsonify({
             "flask": True,
             "minecraft_running": server_manager.is_running(),
-            "active_server": get_active_server(),
+            "active_server": active,
+            "active_server_type": server_type,
             "servers": list_servers(),
             "session_uptime_seconds": int(session_uptime),
             "colab_time_remaining": int(colab_time_remaining)

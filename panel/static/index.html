@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MineColab Panel</title>
-    <link rel="icon" href="/api/settings/server-icon?_=1" sizes="64x64">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='14' height='14' rx='3' fill='%233fb950'/%3E%3Crect x='3' y='4' width='10' height='8' rx='1' fill='%2321262d'/%3E%3C/svg%3E">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='2' y='2' width='12' height='12' rx='2' fill='%233fb950'/%3E%3Crect x='3' y='7' width='10' height='6' rx='1' fill='%238b5e3c'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%236d4a2e'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%236d4a2e'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%236d4a2e'/%3E%3Crect x='3' y='2' width='10' height='5' rx='1' fill='%2348c774'/%3E%3Crect x='4' y='3' width='1' height='1' fill='%233fb950'/%3E%3Crect x='7' y='3' width='1' height='1' fill='%233fb950'/%3E%3Crect x='10' y='4' width='1' height='1' fill='%233fb950'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -200,6 +199,8 @@
         .act-ban:hover { background:#da3633; }
         .act-unban { background:#3fb950; color:#0f1117; }
         .act-unban:hover { background:#4ade80; }
+        .act-delete { background:#484f58; color:#e6edf3; }
+        .act-delete:hover { background:#f85149; color:#fff; }
         .act-op { background:#d29922; color:#0f1117; }
         .act-op:hover { background:#e3b341; }
         .act-deop { background:#484f58; color:#e6edf3; }
@@ -389,7 +390,7 @@
                         <div class="stat-card" onclick="openStatsModal()" style="cursor:pointer;" title="Click para ver estadísticas del servidor">
                             <div class="stat-header">
                                 <span class="stat-label">Estado</span>
-                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-signal" id="status-signal-icon"></i>
                             </div>
                             <div class="stat-value green" id="card-status">---</div>
                             <div class="stat-sub" id="card-status-sub">Cargando...</div>
@@ -426,15 +427,30 @@
                         <div style="font-size:12px;color:#8b949e;margin-top:4px;">Túnel SSH Oracle Cloud</div>
                     </div>
 
-                    <div class="resource-section" id="resource-section" style="display:none;">
-                        <div class="resource-bar">
-                            <div class="resource-label">
-                                <span>RAM</span>
-                                <span id="ram-text">0 MB / 0 MB</span>
+                    <div class="stats-grid" id="server-stats-grid" style="margin-top:0;">
+                        <div class="stat-card" id="stat-tps-card">
+                            <div class="stat-header">
+                                <span class="stat-label">TPS</span>
+                                <i class="fas fa-chart-line"></i>
                             </div>
-                            <div class="bar-track">
-                                <div class="bar-fill green" id="ram-bar" style="width:0%"></div>
+                            <div class="stat-value" id="card-tps">--</div>
+                            <div class="stat-sub">Ticks por segundo</div>
+                        </div>
+                        <div class="stat-card" id="stat-ram-card">
+                            <div class="stat-header">
+                                <span class="stat-label">RAM</span>
+                                <i class="fas fa-memory"></i>
                             </div>
+                            <div class="stat-value" id="card-ram">-- MB</div>
+                            <div class="stat-sub">Uso de memoria</div>
+                        </div>
+                        <div class="stat-card" id="stat-cpu-card">
+                            <div class="stat-header">
+                                <span class="stat-label">CPU</span>
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <div class="stat-value" id="card-cpu">--%</div>
+                            <div class="stat-sub">Uso de procesador</div>
                         </div>
                     </div>
                 </section>
@@ -677,28 +693,28 @@
                     </div>
                 </section>
 
-                <!-- ===== PLUGINS ===== -->
+                <!-- ===== PLUGINS / MODS ===== -->
                 <section id="section-plugins" class="section">
                     <div class="control-card">
-                        <h3><i class="fas fa-search"></i> Buscar Plugins <span id="plugin-server-version" style="font-size:12px;color:#8b949e;font-weight:400;"></span></h3>
+                        <h3><i class="fas fa-search"></i> Buscar <span id="plugins-section-label">Plugins</span> <span id="plugin-server-version" style="font-size:12px;color:#8b949e;font-weight:400;"></span></h3>
                         <div class="input-group">
-                            <input type="text" id="plugin-search-input" placeholder="Buscar plugins (ej: essentials, worldedit, luckperms)..." onkeydown="if(event.key==='Enter') searchPlugins()">
+                            <input type="text" id="plugin-search-input" placeholder="Buscar..." onkeydown="if(event.key==='Enter') searchPlugins()">
                             <button class="btn btn-primary" onclick="searchPlugins()"><i class="fas fa-search"></i> Buscar</button>
                         </div>
                         <div id="plugin-results" style="display:none;"></div>
                     </div>
                     <div class="control-card">
-                        <h3><i class="fas fa-box"></i> Plugins Instalados</h3>
+                        <h3><i class="fas fa-box"></i> <span id="plugins-installed-label">Plugins Instalados</span></h3>
                         <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn btn-secondary btn-sm" onclick="loadInstalledPlugins()"><i class="fas fa-sync"></i> Refrescar</button>
                             <button class="btn btn-secondary btn-sm" onclick="checkPluginUpdates()"><i class="fas fa-cloud-upload-alt"></i> Verificar Actualizaciones</button>
                             <label class="btn btn-secondary btn-sm" style="cursor:pointer;"><i class="fas fa-upload"></i> Subir .jar
                                 <input type="file" accept=".jar" style="display:none;" onchange="uploadPlugin(event)">
                             </label>
-                            <span style="font-size:12px;color:#8b949e;display:flex;align-items:center;">Requiere reinicio del servidor para cargar nuevos plugins</span>
+                            <span style="font-size:12px;color:#8b949e;display:flex;align-items:center;">Requiere reinicio del servidor</span>
                         </div>
                         <div id="installed-plugins-list">
-                            <p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">Cargando plugins instalados...</p>
+                            <p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">Cargando...</p>
                         </div>
                     </div>
                 </section>
@@ -858,6 +874,7 @@
             running: false,
             isStarting: false,
             serverName: '',
+            serverType: '',
             players: [],
             allPlayers: [],
             uptimeSeconds: 0,
@@ -867,7 +884,19 @@
             minecraftStart: null,
             maxPlayers: 20
         };
+
+        const SERVER_TYPE_MAP = {
+            'paper': { category: 'plugin' }, 'purpur': { category: 'plugin' },
+            'mohist': { category: 'plugin' }, 'arclight': { category: 'plugin' },
+            'banner': { category: 'plugin' }, 'folia': { category: 'plugin' },
+            'crucible': { category: 'plugin' }, 'magma': { category: 'plugin' },
+            'ketting': { category: 'plugin' }, 'cardboard': { category: 'plugin' },
+            'velocity': { category: 'plugin' },
+            'fabric': { category: 'mod' }, 'forge': { category: 'mod' },
+            'neoforge': { category: 'mod' }
+        };
         let statusInterval = null;
+        let resourcesInterval = null;
         let consoleInterval = null;
         let playersInterval = null;
         let uptimeInterval = null;
@@ -882,13 +911,14 @@
             loadServerTypes();
             loadStatus();
             statusInterval = setInterval(loadStatus, 5000);
+            loadServerResources();
+            resourcesInterval = setInterval(loadServerResources, 5000);
             setupConsoleSuggestions();
             setupConsoleInput();
             setupToggles();
             document.getElementById('btn-start').disabled = true;
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('btn-restart').disabled = true;
-            startConsolePolling();
         });
 
         // ============ NAVIGATION ============
@@ -899,9 +929,9 @@
                 document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
                 this.classList.add('active');
                 document.getElementById('section-' + section).classList.add('active');
-                const titles = { 'properties': 'Propiedades' };
+                const titles = { 'properties': 'Propiedades', 'plugins': getContentType() === 'mod' ? 'Mods' : 'Plugins' };
                 document.getElementById('section-title').textContent = titles[section] || section.charAt(0).toUpperCase() + section.slice(1);
-                if (section !== 'console') { stopConsolePolling(); }
+                if (section === 'console') { startConsolePolling(); } else { stopConsolePolling(); }
                 if (section === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); startPlayersPolling(); } else { stopPlayersPolling(); }
                 if (section === 'settings') { loadSettings(); }
                 if (section === 'properties') { loadSettings(); }
@@ -917,8 +947,10 @@
                 const data = await res.json();
                 state.running = data.minecraft_running;
                 state.serverName = data.active_server || '';
+                state.serverType = data.active_server_type || '';
                 state.sessionUptime = data.session_uptime_seconds || 0;
                 state.colabRemaining = data.colab_time_remaining || 43200;
+                updatePluginsNav();
 
                 const dot = document.getElementById('status-dot');
                 const text = document.getElementById('status-text');
@@ -960,14 +992,17 @@
                 document.getElementById('sidebar-active-server').textContent = data.active_server || 'Ninguno';
 
                 const cardStatus = document.getElementById('card-status');
+                const signalIcon = document.getElementById('status-signal-icon');
                 if (data.minecraft_running) {
                     cardStatus.textContent = 'ONLINE';
                     cardStatus.className = 'stat-value green';
                     document.getElementById('card-status-sub').textContent = 'Aceptando conexiones';
+                    signalIcon.style.color = '#3fb950';
                 } else {
                     cardStatus.textContent = 'OFFLINE';
                     cardStatus.className = 'stat-value red';
                     document.getElementById('card-status-sub').textContent = 'Servidor detenido';
+                    signalIcon.style.color = '#f85149';
                 }
 
                 const btnStart = document.getElementById('btn-start');
@@ -1049,6 +1084,52 @@
         }
 
         setInterval(updateTimers, 1000);
+
+        function updatePluginsNav() {
+            const navItem = document.querySelector('.nav-item[data-section="plugins"]');
+            const section = document.getElementById('section-plugins');
+            if (!navItem || !section) return;
+
+            const type = state.serverType.toLowerCase();
+            const info = SERVER_TYPE_MAP[type];
+
+            if (info) {
+                navItem.style.display = '';
+                const label = info.category === 'mod' ? 'Mods' : 'Plugins';
+                const icon = info.category === 'mod' ? 'fas fa-cubes' : 'fas fa-puzzle-piece';
+                navItem.querySelector('.nav-text').textContent = label;
+                navItem.querySelector('i').className = icon;
+                document.getElementById('plugins-section-label').textContent = label;
+                document.getElementById('plugins-installed-label').textContent = label + ' Instalados';
+                document.getElementById('plugin-search-input').placeholder = info.category === 'mod'
+                    ? 'Buscar mods...'
+                    : 'Buscar plugins (ej: essentials, worldedit, luckperms)...';
+            } else {
+                navItem.style.display = 'none';
+                section.classList.remove('active');
+                if (navItem.classList.contains('active')) {
+                    document.querySelector('.nav-item[data-section="dashboard"]').click();
+                }
+            }
+        }
+
+        function getContentType() {
+            const type = state.serverType.toLowerCase();
+            const info = SERVER_TYPE_MAP[type];
+            return info ? info.category : null;
+        }
+
+        function getContentLoaders() {
+            const type = state.serverType.toLowerCase();
+            const loaderMap = {
+                'paper': 'paper', 'purpur': 'purpur', 'mohist': 'mohist',
+                'arclight': 'arclight', 'banner': 'banner', 'folia': 'folia',
+                'crucible': 'crucible', 'magma': 'magma', 'ketting': 'ketting',
+                'cardboard': 'cardboard', 'velocity': 'velocity',
+                'fabric': 'fabric', 'forge': 'forge', 'neoforge': 'neoforge'
+            };
+            return loaderMap[type] || 'paper';
+        }
 
         function formatTime(sec) {
             if (!sec && sec !== 0) return '--:--';
@@ -1180,6 +1261,61 @@
             document.getElementById('modal-restart').classList.remove('active');
         }
 
+        // ============ SERVER RESOURCES (TPS, RAM, CPU) ============
+        async function loadServerResources() {
+            try {
+                const res = await fetch('/api/server/stats');
+                const data = await res.json();
+                if (!data.success) return;
+
+                // TPS
+                const tps = data.tps || [0, 0, 0];
+                const tpsAvg = tps[0] || 0;
+                const tpsEl = document.getElementById('card-tps');
+                const tpsCard = document.getElementById('stat-tps-card');
+                const signalIcon = document.getElementById('status-signal-icon');
+                tpsEl.textContent = tpsAvg.toFixed(1);
+                if (tpsAvg > 18) {
+                    tpsEl.className = 'stat-value green';
+                    signalIcon.style.color = '#3fb950';
+                } else if (tpsAvg > 15) {
+                    tpsEl.className = 'stat-value yellow';
+                    signalIcon.style.color = '#d29922';
+                } else {
+                    tpsEl.className = 'stat-value red';
+                    signalIcon.style.color = '#f85149';
+                }
+
+                // RAM
+                const ramMb = data.ram_mb || 0;
+                const ramEl = document.getElementById('card-ram');
+                const ramCard = document.getElementById('stat-ram-card');
+                ramEl.textContent = ramMb + ' MB';
+                if (ramMb < 1024) {
+                    ramEl.className = 'stat-value green';
+                } else if (ramMb < 2048) {
+                    ramEl.className = 'stat-value yellow';
+                } else {
+                    ramEl.className = 'stat-value red';
+                }
+
+                // CPU
+                const cpu = data.cpu_percent || 0;
+                const cpuEl = document.getElementById('card-cpu');
+                const cpuCard = document.getElementById('stat-cpu-card');
+                cpuEl.textContent = cpu + '%';
+                if (cpu < 50) {
+                    cpuEl.className = 'stat-value green';
+                } else if (cpu < 80) {
+                    cpuEl.className = 'stat-value yellow';
+                } else {
+                    cpuEl.className = 'stat-value red';
+                }
+            } catch(e) {
+                // Silently fail — server might be off
+            }
+        }
+
         // ============ STATS MODAL ============
         async function openStatsModal() {
             document.getElementById('modal-stats').classList.add('active');
@@ -1210,10 +1346,14 @@
                 html += '</div></div>';
 
                 // RAM
-                html += `<div><div style="font-size:12px;color:#8b949e;margin-bottom:4px;">RAM usada</div><div style="font-size:16px;font-weight:600;">${data.ram_mb || 0} MB</div></div>`;
+                const ramMb = data.ram_mb || 0;
+                const ramColor = ramMb < 1024 ? '#3fb950' : ramMb < 2048 ? '#d29922' : '#f85149';
+                html += `<div><div style="font-size:12px;color:#8b949e;margin-bottom:4px;">RAM usada</div><div style="font-size:16px;font-weight:600;color:${ramColor};">${ramMb} MB</div></div>`;
 
                 // CPU
-                html += `<div><div style="font-size:12px;color:#8b949e;margin-bottom:4px;">CPU</div><div style="font-size:16px;font-weight:600;">${data.cpu_percent || 0}%</div></div>`;
+                const cpu = data.cpu_percent || 0;
+                const cpuColor = cpu < 50 ? '#3fb950' : cpu < 80 ? '#d29922' : '#f85149';
+                html += `<div><div style="font-size:12px;color:#8b949e;margin-bottom:4px;">CPU</div><div style="font-size:16px;font-weight:600;color:${cpuColor};">${cpu}%</div></div>`;
 
                 html += '</div>';
                 container.innerHTML = html;
@@ -1286,8 +1426,9 @@
 
         function startConsolePolling() {
             if (consoleInterval) return;
+            _consoleLineCount = 0;
             loadConsoleOutput();
-            consoleInterval = setInterval(loadConsoleOutput, 2000);
+            consoleInterval = setInterval(loadConsoleOutput, 1500);
         }
 
         function stopConsolePolling() {
@@ -1295,12 +1436,13 @@
         }
 
         var _notifiedServerReady = false;
+        var _consoleLineCount = 0;
 
         async function loadConsoleOutput() {
             try {
                 const res = await fetch('/api/server/last-output');
                 const data = await res.json();
-                if (data.lines) {
+                if (data.lines && data.lines.length > 0) {
                     if (!_notifiedServerReady) {
                         for (var i = 0; i < data.lines.length; i++) {
                             if (/Done \(.*\)! For help, type/.test(data.lines[i])) {
@@ -1312,7 +1454,29 @@
                     }
                     const div = document.getElementById('console-output');
                     const wasAtBottom = div.scrollHeight - div.scrollTop - div.clientHeight < 50;
-                    div.innerHTML = data.lines.map(line => formatLogLine(line)).join('');
+
+                    if (data.lines.length > _consoleLineCount) {
+                        var newLines = data.lines.slice(_consoleLineCount);
+                        var fragment = document.createDocumentFragment();
+                        for (var j = 0; j < newLines.length; j++) {
+                            var tmp = document.createElement('div');
+                            tmp.innerHTML = formatLogLine(newLines[j]);
+                            while (tmp.firstChild) {
+                                fragment.appendChild(tmp.firstChild);
+                            }
+                        }
+                        div.appendChild(fragment);
+                        _consoleLineCount = data.lines.length;
+                    } else if (data.lines.length < _consoleLineCount) {
+                        div.innerHTML = data.lines.map(line => formatLogLine(line)).join('');
+                        _consoleLineCount = data.lines.length;
+                    }
+
+                    // Mantener máximo 500 líneas en el DOM
+                    while (div.children.length > 500) {
+                        div.removeChild(div.firstChild);
+                    }
+
                     if (wasAtBottom || !scrollLocked) {
                         div.scrollTop = div.scrollHeight;
                     }
@@ -1362,7 +1526,8 @@
             .then(data => {
                 input.value = '';
                 if (!data.success) console.error('cmd error:', data.error);
-                setTimeout(loadConsoleOutput, 500);
+                _consoleLineCount = 0;
+                setTimeout(loadConsoleOutput, 300);
             })
             .catch(e => console.error('cmd error:', e));
         }
@@ -1383,6 +1548,7 @@
 
         function clearConsoleView() {
             document.getElementById('console-output').innerHTML = '';
+            _consoleLineCount = 0;
         }
 
         // ============ PLAYERS ============
@@ -1447,6 +1613,9 @@
                 } else {
                     actions += '<button class="act-btn act-wl-add" onclick="playerAction(\'wl-add\',\'' + p.name + '\')" title="Agregar a whitelist"><i class="fas fa-user-plus"></i></button>';
                 }
+                if (!p.online) {
+                    actions += '<button class="act-btn act-delete" onclick="deletePlayer(\'' + p.name + '\')" title="Eliminar del registro"><i class="fas fa-trash"></i></button>';
+                }
 
                 return '<tr>' +
                     '<td><div class="player-cell"><img src="' + avatarUrl + '" onerror="this.src=\'' + avatarFallback + '\'"> ' + p.name + '</div></td>' +
@@ -1475,6 +1644,20 @@
             'wl-add': 'whitelist/add',
             'wl-remove': 'whitelist/remove'
         };
+
+        async function deletePlayer(player) {
+            if (!confirm('¿Eliminar el registro de "' + player + '" permanentemente?\nNo podrá recuperarse a menos que el jugador vuelva a entrar.')) return;
+            try {
+                const res = await fetch('/api/players/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({player})
+                });
+                const data = await res.json();
+                toast(data.message || data.error, data.success ? 'success' : 'error');
+                if (data.success) loadPlayers();
+            } catch(e) { toast('Error de conexión', 'error'); }
+        }
 
         async function playerAction(action, player) {
             let reason = '';
@@ -2770,6 +2953,7 @@
 
         // ============ PLUGINS ============
         async function loadPluginsSection() {
+            updatePluginsNav();
             await loadInstalledPlugins();
         }
 
@@ -2780,12 +2964,19 @@
             container.style.display = 'block';
             container.innerHTML = '<p style="font-size:13px;color:#8b949e;"><i class="fas fa-spinner fa-spin"></i> Buscando...</p>';
             try {
-                const res = await fetch('/api/plugins/search?q=' + encodeURIComponent(q) + '&limit=12');
+                const contentType = getContentType();
+                const loader = getContentLoaders();
+                let url = '/api/plugins/search?q=' + encodeURIComponent(q) + '&limit=12';
+                if (contentType) url += '&type=' + contentType;
+                if (loader) url += '&loader=' + loader;
+
+                const res = await fetch(url);
                 const data = await res.json();
                 if (data.server_version) {
                     document.getElementById('plugin-server-version').textContent = '— Servidor: ' + data.server_version;
                 }
                 if (data.success && data.results && data.results.length > 0) {
+                    const label = contentType === 'mod' ? 'Mod' : 'Plugin';
                     container.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">' +
                         data.results.map(p => `
                             <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:16px;display:flex;flex-direction:column;${p.compatible === false ? 'opacity:0.6;' : ''}">
@@ -2798,16 +2989,17 @@
                                 </div>
                                 <p style="font-size:12px;color:#8b949e;margin-bottom:12px;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${p.description || 'Sin descripción'}</p>
                                 <div style="display:flex;gap:6px;">
-                                    <button class="btn btn-primary btn-sm" onclick="installPlugin('${p.source}','${p.slug}','${p.name}')" style="flex:1;" ${p.compatible === false ? 'disabled' : ''}><i class="fas fa-download"></i> Instalar</button>
+                                    <button class="btn btn-primary btn-sm" onclick="installPlugin('${p.source}','${p.slug}','${p.name}')" style="flex:1;" ${p.compatible === false ? 'disabled' : ''}><i class="fas fa-download"></i> Instalar ${label}</button>
                                     <a href="${p.url}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;text-align:center;"><i class="fas fa-external-link-alt"></i></a>
                                 </div>
                             </div>
                         `).join('') + '</div>';
                 } else {
+                    const label = contentType === 'mod' ? 'mods' : 'plugins';
                     container.innerHTML = '<p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">Sin resultados para "' + q + '"</p>';
                 }
             } catch(e) {
-                container.innerHTML = '<p style="font-size:13px;color:#f85149;">Error al buscar plugins</p>';
+                container.innerHTML = '<p style="font-size:13px;color:#f85149;">Error al buscar</p>';
             }
         }
 
@@ -2829,11 +3021,13 @@
                         msg += ' | Advertencias: ' + data.warnings.join('; ');
                     }
                     toast(msg, 'success');
-                    sendNotification('MineColab', 'Plugin instalado: ' + (data.plugin_name || name), 'plugin');
+                    const label = getContentType() === 'mod' ? 'Mod' : 'Plugin';
+                    sendNotification('MineColab', label + ' instalado: ' + (data.plugin_name || name), 'plugin');
                     loadInstalledPlugins();
                 } else {
                     toast((data.server_version ? data.error + ' (servidor: ' + data.server_version + ')' : data.error) || 'Error', 'error');
-                    sendNotification('MineColab', 'Error al instalar ' + name + ': ' + (data.error || 'desconocido'), 'plugin');
+                    const label = getContentType() === 'mod' ? 'mod' : 'plugin';
+                    sendNotification('MineColab', 'Error al instalar ' + label + ' ' + name + ': ' + (data.error || 'desconocido'), 'plugin');
                 }
             } catch(e) { toast('Error de conexión', 'error'); sendNotification('MineColab', 'Error de conexión al instalar ' + name, 'plugin'); }
         }
@@ -2860,7 +3054,8 @@
                             </tr>
                         `).join('') + '</tbody></table>';
                 } else {
-                    container.innerHTML = '<p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">No hay plugins instalados. Busca e instala desde arriba.</p>';
+                    const label = (getContentType() === 'mod' ? 'mods' : 'plugins');
+                    container.innerHTML = '<p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">No hay ' + label + ' instalados. Busca e instala desde arriba.</p>';
                 }
             } catch(e) {
                 container.innerHTML = '<p style="font-size:13px;color:#f85149;">Error al cargar plugins instalados</p>';
@@ -2868,7 +3063,8 @@
         }
 
         async function uninstallPlugin(file, name) {
-            if (!confirm('¿Eliminar el plugin "' + name + '" permanentemente?')) return;
+            const label = getContentType() === 'mod' ? 'mod' : 'plugin';
+            if (!confirm('¿Eliminar ' + label + ' "' + name + '" permanentemente?')) return;
             try {
                 const res = await fetch('/api/plugins/uninstall', {
                     method: 'POST',
@@ -2886,7 +3082,8 @@
             if (!file) return;
             const form = new FormData();
             form.append('file', file);
-            toast('Subiendo ' + file.name + '...', 'info');
+            const label = getContentType() === 'mod' ? 'mod' : 'plugin';
+            toast('Subiendo ' + file.name + ' (' + label + ')...', 'info');
             try {
                 const res = await fetch('/api/plugins/upload', { method: 'POST', body: form });
                 const data = await res.json();
@@ -2897,34 +3094,38 @@
         }
 
         async function checkPluginUpdates() {
-            toast('Verificando actualizaciones...', 'info');
+            const label = getContentType() === 'mod' ? 'mods' : 'plugins';
+            toast('Verificando actualizaciones de ' + label + '...', 'info');
             try {
                 const res = await fetch('/api/plugins/check-updates', { method: 'POST' });
                 const data = await res.json();
                 if (!data.success) { toast(data.error, 'error'); return; }
                 if (!data.updates || data.updates.length === 0) {
-                    toast('Todos los plugins están actualizados', 'success');
+                    const label = getContentType() === 'mod' ? 'mods' : 'plugins';
+                    toast('Todos los ' + label + ' están actualizados', 'success');
                     return;
                 }
                 const names = data.updates.map(p => p.name).join(', ');
-                toast(data.updates.length + ' plugin(s) con actualizaciones: ' + names + '. ¿Actualizar todos?', 'info');
-                sendNotification('MineColab', data.updates.length + ' plugin(s) con actualizaciones: ' + names, 'plugin');
-                if (confirm(data.updates.length + ' plugin(s) tienen actualizaciones disponibles:\n' + names + '\n\n¿Actualizar todos?')) {
+                const label = getContentType() === 'mod' ? 'mod(s)' : 'plugin(s)';
+                toast(data.updates.length + ' ' + label + ' con actualizaciones: ' + names + '. ¿Actualizar todos?', 'info');
+                sendNotification('MineColab', data.updates.length + ' ' + label + ' con actualizaciones: ' + names, 'plugin');
+                if (confirm(data.updates.length + ' ' + label + ' tienen actualizaciones disponibles:\n' + names + '\n\n¿Actualizar todos?')) {
                     await updateAllPlugins();
                 }
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 
         async function updateAllPlugins() {
-            toast('Actualizando plugins...', 'info');
+            const label = getContentType() === 'mod' ? 'mods' : 'plugins';
+            toast('Actualizando ' + label + '...', 'info');
             try {
                 const res = await fetch('/api/plugins/update-all', { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
                     toast((data.updated.length > 0 ? 'Actualizados: ' + data.updated.join(', ') : 'Nada que actualizar') +
                         (data.errors.length > 0 ? ' | Errores: ' + data.errors.join(', ') : ''), data.updated.length > 0 ? 'success' : 'info');
-                    if (data.updated.length > 0) sendNotification('MineColab', 'Plugins actualizados: ' + data.updated.join(', '), 'plugin');
-                    if (data.errors.length > 0) sendNotification('MineColab', 'Errores al actualizar plugins: ' + data.errors.join(', '), 'plugin');
+                    if (data.updated.length > 0) sendNotification('MineColab', label + ' actualizados: ' + data.updated.join(', '), 'plugin');
+                    if (data.errors.length > 0) sendNotification('MineColab', 'Errores al actualizar ' + label + ': ' + data.errors.join(', '), 'plugin');
                     loadInstalledPlugins();
                 } else {
                     toast(data.error, 'error');
@@ -3041,6 +3242,7 @@
             { id: 'world_backup', icon: 'fa-archive', label: 'Backup creado/restaurado', default: true },
             { id: 'colab_warning', icon: 'fa-hourglass-half', label: 'Advertencia de tiempo Colab', default: true },
             { id: 'plugin', icon: 'fa-puzzle-piece', label: 'Plugins', default: false },
+            { id: '_browser', icon: 'fa-globe', label: 'Notificaciones del navegador', default: true },
         ];
 
         function getNotifPrefs() {
@@ -3060,12 +3262,23 @@
             localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
             renderNotifDropdown();
             updateBellDot();
+            if (enabled && !notifEnabled()) {
+                toggleNotifications(true);
+            }
         }
 
         function renderNotifDropdown() {
             var prefs = getNotifPrefs();
+            var browserOn = notifEnabled();
             var list = document.getElementById('notif-options-list');
             list.innerHTML = NOTIF_TYPES.map(function(t) {
+                if (t.id === '_browser') {
+                    return '<div class="notif-option" onclick="toggleNotifications(' + (!browserOn) + ')">' +
+                        '<span class="n-icon"><i class="fas ' + t.icon + '"></i></span>' +
+                        '<span class="n-label">' + t.label + '</span>' +
+                        '<span class="notif-toggle' + (browserOn ? ' on' : '') + '"></span>' +
+                    '</div>';
+                }
                 var on = prefs[t.id] !== false;
                 return '<div class="notif-option" onclick="setNotifPref(\'' + t.id + '\', ' + (!on) + ')">' +
                     '<span class="n-icon"><i class="fas ' + t.icon + '"></i></span>' +
@@ -3089,16 +3302,17 @@
 
         function enableAllNotifs() {
             var prefs = {};
-            NOTIF_TYPES.forEach(function(t) { prefs[t.id] = true; });
+            NOTIF_TYPES.forEach(function(t) { if (t.id !== '_browser') prefs[t.id] = true; });
             localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
             renderNotifDropdown();
             updateBellDot();
+            if (!notifEnabled()) toggleNotifications(true);
             toast('Todas las notificaciones activadas', 'info');
         }
 
         function disableAllNotifs() {
             var prefs = {};
-            NOTIF_TYPES.forEach(function(t) { prefs[t.id] = false; });
+            NOTIF_TYPES.forEach(function(t) { if (t.id !== '_browser') prefs[t.id] = false; });
             localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
             renderNotifDropdown();
             updateBellDot();
