@@ -278,7 +278,7 @@ def api_player_delete():
 
         from panel.server_manager import server_manager
         if server_manager.is_running():
-            resp = server_manager.send_command('list')
+            resp = server_manager.send_command('/list')
             if player.lower() in [p.strip().lower() for p in resp.split(':')[-1].split(',')] if ':' in resp else []:
                 return jsonify({"success": False, "error": "No se puede eliminar el registro de un jugador conectado"}), 400
 

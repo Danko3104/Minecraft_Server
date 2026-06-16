@@ -2176,34 +2176,86 @@
         // ============ UPLOAD MUNDO ============
         function uploadWorld(input) {
             const file = input.files[0];
-            if (!file) return;
-            const status = document.getElementById('upload-status');
-            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+            if (!file) { input.value = ''; return; }
+
+            clearChunkDetail();
+            const oldErr = document.getElementById('upload-error-msg');
+            if (oldErr) oldErr.remove();
+            document.getElementById('upload-progress-filename').style.color = '#8b949e';
+            document.getElementById('upload-progress-bar').style.background = 'linear-gradient(90deg,#58a6ff,#3fb950)';
+            document.getElementById('btn-cancel-upload').style.display = 'none';
+
+            const totalMB = (file.size / 1048576).toFixed(1);
+            document.getElementById('modal-upload-progress').style.display = 'flex';
+            document.getElementById('upload-progress-bar').style.width = '0%';
+            document.getElementById('upload-progress-percent').textContent = '0%';
+            document.getElementById('upload-progress-files').textContent = '1 archivo';
+            document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
+            document.getElementById('upload-progress-filename').textContent = 'Subiendo ' + file.name + ' (' + totalMB + ' MB)...';
+
             const formData = new FormData();
             formData.append('file', file);
-            fetch('/api/settings/upload-world', {
-                method: 'POST',
-                body: formData
-            })
-            .then(r => r.json())
-            .then(data => {
+
+            const xhr = new XMLHttpRequest();
+            uploadXhr = xhr;
+            xhr.timeout = 300000;
+
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    const loadedMB = (e.loaded / 1048576).toFixed(1);
+                    document.getElementById('upload-progress-bar').style.width = pct + '%';
+                    document.getElementById('upload-progress-percent').textContent = pct + '%';
+                    document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                uploadXhr = null;
+                const status = document.getElementById('upload-status');
+                var data;
+                try { data = JSON.parse(xhr.responseText); } catch(e) { data = { success: false, error: 'Respuesta inválida' }; }
                 if (data.success) {
+                    document.getElementById('upload-progress-bar').style.width = '100%';
+                    document.getElementById('upload-progress-percent').textContent = '100%';
+                    document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
+                    document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                    setTimeout(function() {
+                        document.getElementById('modal-upload-progress').style.display = 'none';
+                    }, 1000);
                     toast('Mundo subido correctamente', 'success');
                     sendNotification('MineColab', 'Mundo subido correctamente (ZIP)', 'world_upload');
                     status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                 } else {
+                    showUploadError(data.error || 'Error al subir mundo ZIP', 'status HTTP: ' + xhr.status);
                     toast(data.error || 'Error al subir', 'error');
                     sendNotification('MineColab', 'Error al subir mundo ZIP: ' + (data.error || 'desconocido'), 'world_upload');
                     status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
                 }
-                setTimeout(() => { status.innerHTML = ''; }, 3000);
-            })
-            .catch(e => {
+                setTimeout(function() { status.innerHTML = ''; }, 3000);
+                input.value = '';
+            });
+
+            xhr.addEventListener('error', function() {
+                uploadXhr = null;
+                showUploadError('Error de conexión al subir mundo ZIP', '');
                 toast('Error de conexión', 'error');
                 sendNotification('MineColab', 'Error de conexión al subir mundo ZIP', 'world_upload');
-                status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                input.value = '';
             });
-            input.value = '';
+
+            xhr.addEventListener('timeout', function() {
+                uploadXhr = null;
+                showUploadError('Tiempo de espera agotado al subir mundo ZIP', '');
+                toast('Timeout', 'error');
+                sendNotification('MineColab', 'Timeout al subir mundo ZIP', 'world_upload');
+                document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                input.value = '';
+            });
+
+            xhr.open('POST', '/api/settings/upload-world', true);
+            xhr.send(formData);
         }
 
         // ============ CHUNK DETAIL VIEW ============

@@ -56,13 +56,13 @@ def console_players():
         try:
             rcon = RCONClient()
             if rcon.connect():
-                resp = rcon.send_command('list')
+                resp = rcon.send_command('/list')
                 rcon.disconnect()
         except Exception:
             pass
 
         if not resp:
-            resp = server_manager.send_command('list')
+            resp = server_manager.send_command('/list')
 
         players = []
         max_players = 20
