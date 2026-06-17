@@ -2226,8 +2226,8 @@
             document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
             document.getElementById('upload-progress-filename').textContent = 'Subiendo ' + file.name + ' (' + totalMB + ' MB)...';
 
-            const CHUNK_SIZE = 25 * 1024 * 1024;
-            if (file.size > 45 * 1024 * 1024) {
+            const CHUNK_SIZE = 15 * 1024 * 1024;
+            if (file.size > 30 * 1024 * 1024) {
                 const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
                 const uploadId = 'up_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
                 initChunkDetail(totalChunks);
@@ -2238,6 +2238,7 @@
                 let chunkIndex = 0;
                 let aborted = false;
                 let totalLoaded = 0;
+                let chunkRetries = {};
 
                 function uploadNextChunk() {
                     if (aborted) return;
@@ -2262,7 +2263,7 @@
                     updateChunkDetail(chunkIndex, 'uploading', chunkBlob.size);
                     const xhr = new XMLHttpRequest();
                     uploadXhr = xhr;
-                    xhr.timeout = 120000;
+                    xhr.timeout = 300000;
 
                     xhr.upload.addEventListener('progress', function(e) {
                         if (e.lengthComputable && !aborted) {
@@ -2333,24 +2334,36 @@
 
                     xhr.addEventListener('error', function() {
                         if (aborted) return;
-                        updateChunkDetail(chunkIndex, 'error');
-                        aborted = true;
                         uploadXhr = null;
-                        showUploadError('Error de conexión al subir chunk ' + (chunkIndex + 1), 'revisa el servidor Flask');
-                        toast('Error de conexión en chunk', 'error');
-                        sendNotification('MineColab', 'Error de conexión al subir chunk', 'world_upload');
-                        input.value = '';
+                        chunkRetries[chunkIndex] = (chunkRetries[chunkIndex] || 0) + 1;
+                        if (chunkRetries[chunkIndex] <= 3) {
+                            updateChunkDetail(chunkIndex, 'retry');
+                            setTimeout(uploadNextChunk, 1000);
+                        } else {
+                            updateChunkDetail(chunkIndex, 'error');
+                            aborted = true;
+                            showUploadError('Error de conexión al subir chunk ' + (chunkIndex + 1) + ' (reintentado 3 veces)', 'revisa el servidor Flask');
+                            toast('Error de conexión en chunk tras 3 intentos', 'error');
+                            sendNotification('MineColab', 'Error de conexión al subir chunk tras 3 intentos', 'world_upload');
+                            input.value = '';
+                        }
                     });
 
                     xhr.addEventListener('timeout', function() {
                         if (aborted) return;
-                        updateChunkDetail(chunkIndex, 'error');
-                        aborted = true;
                         uploadXhr = null;
-                        showUploadError('Timeout al subir chunk ' + (chunkIndex + 1), 'el chunk tardó demasiado');
-                        toast('Timeout en chunk', 'error');
-                        sendNotification('MineColab', 'Timeout al subir chunk', 'world_upload');
-                        input.value = '';
+                        chunkRetries[chunkIndex] = (chunkRetries[chunkIndex] || 0) + 1;
+                        if (chunkRetries[chunkIndex] <= 3) {
+                            updateChunkDetail(chunkIndex, 'retry');
+                            setTimeout(uploadNextChunk, 1000);
+                        } else {
+                            updateChunkDetail(chunkIndex, 'error');
+                            aborted = true;
+                            showUploadError('Timeout al subir chunk ' + (chunkIndex + 1) + ' (reintentado 3 veces)', 'el chunk tardó demasiado');
+                            toast('Timeout en chunk tras 3 intentos', 'error');
+                            sendNotification('MineColab', 'Timeout al subir chunk ' + (chunkIndex + 1) + ' tras 3 intentos', 'world_upload');
+                            input.value = '';
+                        }
                     });
 
                     xhr.addEventListener('abort', function() {
@@ -2487,6 +2500,7 @@
                 if (c.status === 'pending') { statusIcon = '<i class="fas fa-circle" style="color:#30363d;font-size:8px;"></i>'; }
                 else if (c.status === 'uploading') { statusIcon = '<i class="fas fa-spinner fa-spin" style="color:#58a6ff;"></i>'; statusColor = '#58a6ff'; }
                 else if (c.status === 'done') { statusIcon = '<i class="fas fa-check" style="color:#3fb950;"></i>'; statusColor = '#3fb950'; }
+                else if (c.status === 'retry') { statusIcon = '<i class="fas fa-redo" style="color:#d29922;"></i>'; statusColor = '#d29922'; }
                 else if (c.status === 'error') { statusIcon = '<i class="fas fa-times" style="color:#f85149;"></i>'; statusColor = '#f85149'; }
                 var sizeStr = c.size > 0 ? (c.size / 1048576).toFixed(1) + ' MB' : '-';
                 html += '<tr style="border-bottom:1px solid #21262d;">';
@@ -2652,9 +2666,9 @@
                         sendNotification('MineColab', 'Compresión completada (' + files.length + ' archivos, ' + totalMB + ' MB). Subiendo...', 'world_upload');
 
                         // 2. Subir ZIP — directo si es pequeño, por partes si es grande
-                        const CHUNK_SIZE = 25 * 1024 * 1024; // 25 MB para evitar timeout del túnel Cloudflare (~100s)
+                        const CHUNK_SIZE = 15 * 1024 * 1024; // 15 MB para evitar timeout del túnel Cloudflare (~100s)
                         const uploadId = 'up_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-                        if (blob.size > 45 * 1024 * 1024) {
+                        if (blob.size > 30 * 1024 * 1024) {
                             // === CHUNKED UPLOAD ===
                             const totalChunks = Math.ceil(blob.size / CHUNK_SIZE);
                             console.log('[UPLOAD] Subida por partes: ' + totalChunks + ' chunks de 25MB');
@@ -2666,6 +2680,7 @@
                             let chunkIndex = 0;
                             let aborted = false;
                             let totalLoaded = 0;
+                            let chunkRetries = {};
 
                             function uploadNextChunk() {
                                 if (aborted) return;
@@ -2690,7 +2705,7 @@
                                 updateChunkDetail(chunkIndex, 'uploading', chunkBlob.size);
                                 const xhr = new XMLHttpRequest();
                                 uploadXhr = xhr;
-                                xhr.timeout = 120000;
+                                xhr.timeout = 300000;
 
                                 xhr.upload.addEventListener('progress', function(e) {
                                     if (e.lengthComputable && !aborted) {
@@ -2764,25 +2779,37 @@
 
                                 xhr.addEventListener('error', function() {
                                     if (aborted) return;
-                                    updateChunkDetail(chunkIndex, 'error');
-                                    aborted = true;
                                     uploadXhr = null;
-                                    console.error('[UPLOAD] Chunk error - status:', xhr.status);
-                                    showUploadError('Error de conexión al subir chunk ' + (chunkIndex + 1), 'revisa el servidor Flask');
-                                    toast('Error de conexión en chunk', 'error');
-                                    sendNotification('MineColab', 'Error de conexión al subir chunk', 'world_upload');
-                                    input.value = '';
+                                    chunkRetries[chunkIndex] = (chunkRetries[chunkIndex] || 0) + 1;
+                                    if (chunkRetries[chunkIndex] <= 3) {
+                                        updateChunkDetail(chunkIndex, 'retry');
+                                        setTimeout(uploadNextChunk, 1000);
+                                    } else {
+                                        updateChunkDetail(chunkIndex, 'error');
+                                        aborted = true;
+                                        console.error('[UPLOAD] Chunk error - status:', xhr.status);
+                                        showUploadError('Error de conexión al subir chunk ' + (chunkIndex + 1) + ' (reintentado 3 veces)', 'revisa el servidor Flask');
+                                        toast('Error de conexión en chunk tras 3 intentos', 'error');
+                                        sendNotification('MineColab', 'Error de conexión al subir chunk tras 3 intentos', 'world_upload');
+                                        input.value = '';
+                                    }
                                 });
 
                                 xhr.addEventListener('timeout', function() {
                                     if (aborted) return;
-                                    updateChunkDetail(chunkIndex, 'error');
-                                    aborted = true;
                                     uploadXhr = null;
-                                    showUploadError('Timeout al subir chunk ' + (chunkIndex + 1), 'el chunk tardó demasiado');
-                                    toast('Timeout en chunk', 'error');
-                                    sendNotification('MineColab', 'Timeout al subir chunk', 'world_upload');
-                                    input.value = '';
+                                    chunkRetries[chunkIndex] = (chunkRetries[chunkIndex] || 0) + 1;
+                                    if (chunkRetries[chunkIndex] <= 3) {
+                                        updateChunkDetail(chunkIndex, 'retry');
+                                        setTimeout(uploadNextChunk, 1000);
+                                    } else {
+                                        updateChunkDetail(chunkIndex, 'error');
+                                        aborted = true;
+                                        showUploadError('Timeout al subir chunk ' + (chunkIndex + 1) + ' (reintentado 3 veces)', 'el chunk tardó demasiado');
+                                        toast('Timeout en chunk tras 3 intentos', 'error');
+                                        sendNotification('MineColab', 'Timeout al subir chunk ' + (chunkIndex + 1) + ' tras 3 intentos', 'world_upload');
+                                        input.value = '';
+                                    }
                                 });
 
                                 xhr.addEventListener('abort', function() {
