@@ -757,13 +757,13 @@ class ServerManager:
             shutil.make_archive(backup_path[:-4], 'zip', world_path)
             print(f"[INFO] Backup comprimido creado: {backup_path}")
 
-            # Prune: mantener solo los últimos 3 backups de mundo
+            # Prune: mantener solo el último backup
             world_backups = [
                 e for e in os.listdir(backups_dir)
                 if e.startswith(server_name + '_world_') and e.endswith('.zip') and os.path.isfile(os.path.join(backups_dir, e))
             ]
-            world_backups.sort(reverse=True)  # más reciente primero
-            for old in world_backups[3:]:
+            world_backups.sort(reverse=True)
+            for old in world_backups[1:]:
                 old_path = os.path.join(backups_dir, old)
                 os.remove(old_path)
                 print(f"[INFO] Backup antiguo eliminado: {old}")
