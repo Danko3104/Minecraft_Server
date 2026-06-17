@@ -2226,69 +2226,216 @@
             document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
             document.getElementById('upload-progress-filename').textContent = 'Subiendo ' + file.name + ' (' + totalMB + ' MB)...';
 
-            const formData = new FormData();
-            formData.append('file', file);
+            const CHUNK_SIZE = 25 * 1024 * 1024;
+            if (file.size > 45 * 1024 * 1024) {
+                const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                const uploadId = 'up_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+                initChunkDetail(totalChunks);
+                document.getElementById('upload-progress-filename').textContent = 'Subiendo por partes (' + totalChunks + ' chunks)...';
+                document.getElementById('upload-progress-size').textContent = '0 MB / ' + totalMB + ' MB';
+                document.getElementById('upload-progress-files').textContent = 'Chunk 0 / ' + totalChunks;
+                sendNotification('MineColab', 'Archivo grande (' + totalMB + ' MB). Subiendo en ' + totalChunks + ' partes...', 'world_upload');
+                let chunkIndex = 0;
+                let aborted = false;
+                let totalLoaded = 0;
 
-            const xhr = new XMLHttpRequest();
-            uploadXhr = xhr;
-            xhr.timeout = 300000;
+                function uploadNextChunk() {
+                    if (aborted) return;
+                    const start = chunkIndex * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, file.size);
+                    const chunkBlob = file.slice(start, end);
+                    const chunkMB = (chunkBlob.size / 1048576).toFixed(1);
+                    const pct = Math.round((chunkIndex / totalChunks) * 100);
 
-            xhr.upload.addEventListener('progress', function(e) {
-                if (e.lengthComputable) {
-                    const pct = Math.round((e.loaded / e.total) * 100);
-                    const loadedMB = (e.loaded / 1048576).toFixed(1);
                     document.getElementById('upload-progress-bar').style.width = pct + '%';
                     document.getElementById('upload-progress-percent').textContent = pct + '%';
-                    document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
-                }
-            });
+                    document.getElementById('upload-progress-files').textContent = 'Chunk ' + (chunkIndex + 1) + ' / ' + totalChunks;
+                    document.getElementById('upload-progress-filename').textContent = 'Subiendo chunk ' + (chunkIndex + 1) + '/' + totalChunks + ' (' + chunkMB + ' MB)...';
 
-            xhr.addEventListener('load', function() {
-                uploadXhr = null;
-                const status = document.getElementById('upload-status');
-                var data;
-                try { data = JSON.parse(xhr.responseText); } catch(e) { data = { success: false, error: 'Respuesta inválida' }; }
-                if (data.success) {
-                    document.getElementById('upload-progress-bar').style.width = '100%';
-                    document.getElementById('upload-progress-percent').textContent = '100%';
-                    document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
-                    document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
-                    setTimeout(function() {
+                    const fd = new FormData();
+                    fd.append('chunk', chunkBlob, 'chunk_' + chunkIndex);
+                    fd.append('index', chunkIndex);
+                    fd.append('total', totalChunks);
+                    fd.append('upload_id', uploadId);
+                    fd.append('filename', 'world.zip');
+
+                    updateChunkDetail(chunkIndex, 'uploading', chunkBlob.size);
+                    const xhr = new XMLHttpRequest();
+                    uploadXhr = xhr;
+                    xhr.timeout = 120000;
+
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable && !aborted) {
+                            const chunkDone = (chunkIndex / totalChunks) * 100;
+                            const chunkPct = (e.loaded / e.total) * (100 / totalChunks);
+                            const overall = Math.round(chunkDone + chunkPct);
+                            const loadedMB = ((totalLoaded + e.loaded) / 1048576).toFixed(1);
+                            document.getElementById('upload-progress-bar').style.width = overall + '%';
+                            document.getElementById('upload-progress-percent').textContent = overall + '%';
+                            document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
+                        }
+                    });
+
+                    xhr.addEventListener('load', function() {
+                        if (aborted) return;
+                        uploadXhr = null;
+                        var _d;
+                        try {
+                            _d = JSON.parse(xhr.responseText);
+                            if (!_d.success) {
+                                updateChunkDetail(chunkIndex, 'error');
+                                aborted = true;
+                                showUploadError(_d.error || 'Error en chunk ' + (chunkIndex + 1), 'status HTTP: ' + xhr.status);
+                                toast(_d.error || 'Error en chunk', 'error');
+                                sendNotification('MineColab', 'Error al subir chunk ' + (chunkIndex + 1) + ': ' + (_d.error || 'desconocido'), 'world_upload');
+                                input.value = '';
+                                return;
+                            }
+                        } catch(e) {
+                            updateChunkDetail(chunkIndex, 'error');
+                            const preview = xhr.responseText ? xhr.responseText.slice(0, 200) : '(sin respuesta)';
+                            aborted = true;
+                            showUploadError('Error al procesar respuesta del chunk', 'status HTTP: ' + xhr.status + ' | ' + preview);
+                            toast('Error al procesar respuesta', 'error');
+                            sendNotification('MineColab', 'Error al subir chunk: respuesta inválida', 'world_upload');
+                            input.value = '';
+                            return;
+                        }
+                        totalLoaded += chunkBlob.size;
+                        updateChunkDetail(chunkIndex, 'done');
+                        chunkIndex++;
+                        if (chunkIndex >= totalChunks) {
+                            if (_d.processing) {
+                                document.getElementById('upload-progress-filename').textContent = 'Procesando mundo...';
+                                document.getElementById('upload-progress-percent').textContent = '---';
+                                document.getElementById('btn-cancel-upload').style.display = 'none';
+                                pollUploadStatus(_d.upload_id, uploadId, input, totalChunks, totalMB, 1);
+                            } else {
+                                document.getElementById('upload-progress-bar').style.width = '100%';
+                                document.getElementById('upload-progress-percent').textContent = '100%';
+                                document.getElementById('upload-progress-files').textContent = totalChunks + ' / ' + totalChunks + ' chunks';
+                                document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
+                                document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                                setTimeout(function() {
+                                    document.getElementById('modal-upload-progress').style.display = 'none';
+                                }, 1000);
+                                const status = document.getElementById('upload-status');
+                                toast('Mundo subido correctamente (' + totalChunks + ' chunks)', 'success');
+                                sendNotification('MineColab', 'Mundo subido correctamente (ZIP)', 'world_upload');
+                                status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                                setTimeout(function() { status.innerHTML = ''; }, 5000);
+                                input.value = '';
+                            }
+                        } else {
+                            uploadNextChunk();
+                        }
+                    });
+
+                    xhr.addEventListener('error', function() {
+                        if (aborted) return;
+                        updateChunkDetail(chunkIndex, 'error');
+                        aborted = true;
+                        uploadXhr = null;
+                        showUploadError('Error de conexión al subir chunk ' + (chunkIndex + 1), 'revisa el servidor Flask');
+                        toast('Error de conexión en chunk', 'error');
+                        sendNotification('MineColab', 'Error de conexión al subir chunk', 'world_upload');
+                        input.value = '';
+                    });
+
+                    xhr.addEventListener('timeout', function() {
+                        if (aborted) return;
+                        updateChunkDetail(chunkIndex, 'error');
+                        aborted = true;
+                        uploadXhr = null;
+                        showUploadError('Timeout al subir chunk ' + (chunkIndex + 1), 'el chunk tardó demasiado');
+                        toast('Timeout en chunk', 'error');
+                        sendNotification('MineColab', 'Timeout al subir chunk', 'world_upload');
+                        input.value = '';
+                    });
+
+                    xhr.addEventListener('abort', function() {
+                        aborted = true;
+                        uploadXhr = null;
+                        fetch('/api/settings/upload-world-cancel', {
+                            method: 'POST',
+                            headers: {'Content-Type':'application/json'},
+                            body: JSON.stringify({upload_id: uploadId})
+                        }).catch(function(){});
                         document.getElementById('modal-upload-progress').style.display = 'none';
-                    }, 1000);
-                    toast('Mundo subido correctamente', 'success');
-                    sendNotification('MineColab', 'Mundo subido correctamente (ZIP)', 'world_upload');
-                    status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
-                } else {
-                    showUploadError(data.error || 'Error al subir mundo ZIP', 'status HTTP: ' + xhr.status);
-                    toast(data.error || 'Error al subir', 'error');
-                    sendNotification('MineColab', 'Error al subir mundo ZIP: ' + (data.error || 'desconocido'), 'world_upload');
-                    status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                        toast('Subida cancelada', 'warning');
+                        input.value = '';
+                    });
+
+                    xhr.open('POST', '/api/settings/upload-world-chunked', true);
+                    xhr.send(fd);
                 }
-                setTimeout(function() { status.innerHTML = ''; }, 3000);
-                input.value = '';
-            });
 
-            xhr.addEventListener('error', function() {
-                uploadXhr = null;
-                showUploadError('Error de conexión al subir mundo ZIP', '');
-                toast('Error de conexión', 'error');
-                sendNotification('MineColab', 'Error de conexión al subir mundo ZIP', 'world_upload');
-                document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
-                input.value = '';
-            });
+                uploadNextChunk();
+            } else {
+                const formData = new FormData();
+                formData.append('file', file);
 
-            xhr.addEventListener('timeout', function() {
-                uploadXhr = null;
-                showUploadError('Tiempo de espera agotado al subir mundo ZIP', '');
-                toast('Timeout', 'error');
-                sendNotification('MineColab', 'Timeout al subir mundo ZIP', 'world_upload');
-                document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
-                input.value = '';
-            });
+                const xhr = new XMLHttpRequest();
+                uploadXhr = xhr;
+                xhr.timeout = 300000;
 
-            xhr.open('POST', '/api/settings/upload-world', true);
-            xhr.send(formData);
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        const loadedMB = (e.loaded / 1048576).toFixed(1);
+                        document.getElementById('upload-progress-bar').style.width = pct + '%';
+                        document.getElementById('upload-progress-percent').textContent = pct + '%';
+                        document.getElementById('upload-progress-size').textContent = loadedMB + ' MB / ' + totalMB + ' MB';
+                    }
+                });
+
+                xhr.addEventListener('load', function() {
+                    uploadXhr = null;
+                    const status = document.getElementById('upload-status');
+                    var data;
+                    try { data = JSON.parse(xhr.responseText); } catch(e) { data = { success: false, error: 'Respuesta inválida' }; }
+                    if (data.success) {
+                        document.getElementById('upload-progress-bar').style.width = '100%';
+                        document.getElementById('upload-progress-percent').textContent = '100%';
+                        document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
+                        document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                        setTimeout(function() {
+                            document.getElementById('modal-upload-progress').style.display = 'none';
+                        }, 1000);
+                        toast('Mundo subido correctamente', 'success');
+                        sendNotification('MineColab', 'Mundo subido correctamente (ZIP)', 'world_upload');
+                        status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
+                    } else {
+                        showUploadError(data.error || 'Error al subir mundo ZIP', 'status HTTP: ' + xhr.status);
+                        toast(data.error || 'Error al subir', 'error');
+                        sendNotification('MineColab', 'Error al subir mundo ZIP: ' + (data.error || 'desconocido'), 'world_upload');
+                        status.innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                    }
+                    setTimeout(function() { status.innerHTML = ''; }, 3000);
+                    input.value = '';
+                });
+
+                xhr.addEventListener('error', function() {
+                    uploadXhr = null;
+                    showUploadError('Error de conexión al subir mundo ZIP', '');
+                    toast('Error de conexión', 'error');
+                    sendNotification('MineColab', 'Error de conexión al subir mundo ZIP', 'world_upload');
+                    document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                    input.value = '';
+                });
+
+                xhr.addEventListener('timeout', function() {
+                    uploadXhr = null;
+                    showUploadError('Tiempo de espera agotado al subir mundo ZIP', '');
+                    toast('Timeout', 'error');
+                    sendNotification('MineColab', 'Timeout al subir mundo ZIP', 'world_upload');
+                    document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+                    input.value = '';
+                });
+
+                xhr.open('POST', '/api/settings/upload-world', true);
+                xhr.send(formData);
+            }
         }
 
         // ============ CHUNK DETAIL VIEW ============
@@ -2956,7 +3103,7 @@
                     if (isLast) {
                         bc.innerHTML += `<span style="color:#e6edf3;">${p}</span>`;
                     } else {
-                        bc.innerHTML += `<a href="#" onclick="loadFiles('${acc}');return false;" style="color:#58a6ff;text-decoration:none;">${p}</a>`;
+                        bc.innerHTML += `<a href="#" onclick="loadFiles('${acc.replace(/'/g, "\\'")}');return false;" style="color:#58a6ff;text-decoration:none;">${p}</a>`;
                     }
                 });
 
@@ -2966,7 +3113,7 @@
                 // Subir nivel
                 if (data.parent !== null) {
                     const parentPath = data.parent === '' ? '' : data.parent;
-                    html += `<tr class="file-row" onclick="loadFiles('${parentPath}')">
+                    html += `<tr class="file-row" onclick="loadFiles('${parentPath.replace(/'/g, "\\'")}')">
                         <td colspan="4"><i class="fas fa-level-up-alt" style="color:#8b949e;margin-right:8px;"></i> <span style="color:#8b949e;">..</span></td>
                     </tr>`;
                 }
@@ -3541,7 +3688,7 @@
         window.restoreBackup = restoreBackup; window.deleteBackup = deleteBackup;
         window.searchPlugins = searchPlugins; window.installPlugin = installPlugin; window.loadInstalledPlugins = loadInstalledPlugins;
         window.uninstallPlugin = uninstallPlugin;
-        window.loadSettings = loadSettings; window.showErrorDetail = showErrorDetail; window.closeErrorDetailModal = closeErrorDetailModal;
+        window.loadFiles = loadFiles; window.loadSettings = loadSettings; window.showErrorDetail = showErrorDetail; window.closeErrorDetailModal = closeErrorDetailModal;
         window.hideModalError = hideModalError; window.selectServer = selectServer;
         window.requestNotifPermission = requestNotifPermission; window.toggleNotifications = toggleNotifications;
     </script>
