@@ -309,7 +309,7 @@ def api_server_stats():
         if not server_manager.is_running():
             return jsonify({"success": False, "error": "Servidor no está corriendo"}), 400
 
-        tps_resp = server_manager.send_command('/tps')
+        tps_resp = server_manager.send_command('tps')
         ram_bytes = psutil.Process(server_manager.process.pid).memory_info().rss if server_manager.process else 0
         cpu_percent = psutil.Process(server_manager.process.pid).cpu_percent(interval=0.5) if server_manager.process else 0
 

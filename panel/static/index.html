@@ -949,9 +949,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadServerTypes();
             loadStatus();
-            statusInterval = setInterval(loadStatus, 5000);
+            statusInterval = setInterval(loadStatus, 2000);
             loadServerResources();
-            resourcesInterval = setInterval(loadServerResources, 5000);
+            resourcesInterval = setInterval(loadServerResources, 2000);
             setupConsoleSuggestions();
             setupConsoleInput();
             setupToggles();
