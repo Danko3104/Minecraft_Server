@@ -95,6 +95,17 @@
 
         /* CARDS */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .signal-bars { display: flex; align-items: flex-end; gap: 3px; height: 24px; }
+        .signal-bar { width: 5px; border-radius: 2px 2px 0 0; transition: background 0.3s, opacity 0.3s; }
+        .signal-bar.b1 { height: 8px; }
+        .signal-bar.b2 { height: 12px; }
+        .signal-bar.b3 { height: 16px; }
+        .signal-bar.b4 { height: 20px; }
+        .signal-bar.b5 { height: 24px; }
+        .signal-bar.off { background: #30363d; opacity: 0.3; }
+        .signal-bar.red { background: #f85149; }
+        .signal-bar.yellow { background: #d29922; }
+        .signal-bar.green { background: #3fb950; }
         .stat-card { background: #1c2128; border: 1px solid #21262d; border-radius: 12px; padding: 20px; transition: border-color 0.15s; }
         .stat-card:hover { border-color: #30363d; }
         .stat-card .stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -405,7 +416,13 @@
                         <div class="stat-card" onclick="openStatsModal()" style="cursor:pointer;" title="Click para ver estadísticas del servidor">
                             <div class="stat-header">
                                 <span class="stat-label">Estado</span>
-                                <i class="fas fa-signal" id="status-signal-icon"></i>
+                                <div class="signal-bars" id="signal-bars">
+                                    <div class="signal-bar b1 off"></div>
+                                    <div class="signal-bar b2 off"></div>
+                                    <div class="signal-bar b3 off"></div>
+                                    <div class="signal-bar b4 off"></div>
+                                    <div class="signal-bar b5 off"></div>
+                                </div>
                             </div>
                             <div class="stat-value green" id="card-status">---</div>
                             <div class="stat-sub" id="card-status-sub">Cargando...</div>
@@ -1026,17 +1043,16 @@
                 document.getElementById('sidebar-active-server').textContent = data.active_server || 'Ninguno';
 
                 const cardStatus = document.getElementById('card-status');
-                const signalIcon = document.getElementById('status-signal-icon');
                 if (data.minecraft_running) {
                     cardStatus.textContent = 'ONLINE';
                     cardStatus.className = 'stat-value green';
                     document.getElementById('card-status-sub').textContent = 'Aceptando conexiones';
-                    signalIcon.style.color = '#3fb950';
+                    updateSignalBars(20, true);
                 } else {
                     cardStatus.textContent = 'OFFLINE';
                     cardStatus.className = 'stat-value red';
                     document.getElementById('card-status-sub').textContent = 'Servidor detenido';
-                    signalIcon.style.color = '#f85149';
+                    updateSignalBars(0, false);
                 }
 
                 const btnStart = document.getElementById('btn-start');
@@ -1295,6 +1311,26 @@
             document.getElementById('modal-restart').classList.remove('active');
         }
 
+        // ============ SIGNAL BARS (5 barras según TPS) ============
+        function updateSignalBars(tpsAvg, running) {
+            const bars = document.querySelectorAll('#signal-bars .signal-bar');
+            const thresholds = [5, 10, 15, 18, 19.5];
+            let color = 'red';
+            if (!running) color = 'off';
+            else if (tpsAvg > 18) color = 'green';
+            else if (tpsAvg > 15) color = 'yellow';
+
+            bars.forEach(function(bar, i) {
+                var cls = bar.className.split(' ')[0] + ' ' + bar.className.split(' ')[1];
+                bar.className = cls;
+                if (!running || tpsAvg >= thresholds[i]) {
+                    bar.classList.add(color);
+                } else {
+                    bar.classList.add('off');
+                }
+            });
+        }
+
         // ============ SERVER RESOURCES (TPS, RAM, CPU) ============
         async function loadServerResources() {
             try {
@@ -1307,17 +1343,14 @@
                 const tpsAvg = tps[0] || 0;
                 const tpsEl = document.getElementById('card-tps');
                 const tpsCard = document.getElementById('stat-tps-card');
-                const signalIcon = document.getElementById('status-signal-icon');
+                updateSignalBars(tpsAvg, true);
                 tpsEl.textContent = tpsAvg.toFixed(1);
                 if (tpsAvg > 18) {
                     tpsEl.className = 'stat-value green';
-                    signalIcon.style.color = '#3fb950';
                 } else if (tpsAvg > 15) {
                     tpsEl.className = 'stat-value yellow';
-                    signalIcon.style.color = '#d29922';
                 } else {
                     tpsEl.className = 'stat-value red';
-                    signalIcon.style.color = '#f85149';
                 }
 
                 // RAM
