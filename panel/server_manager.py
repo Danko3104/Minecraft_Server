@@ -1020,6 +1020,11 @@ class ServerManager:
 
                     self._copy_player_files(source_root, server_path)
 
+                    cfg_src = os.path.join(source_root, 'colabconfig.txt')
+                    if os.path.exists(cfg_src):
+                        shutil.copy2(cfg_src, os.path.join(server_path, 'colabconfig.txt'))
+                        print(f"[INFO] Configuración del servidor restaurada")
+
                     icon_src = os.path.join(source_root, 'server-icon.png')
                     if os.path.exists(icon_src):
                         shutil.copy2(icon_src, os.path.join(server_path, 'server-icon.png'))
@@ -1076,6 +1081,10 @@ class ServerManager:
 
                     # También copiar archivos de jugadores en modo mundo simple
                     self._copy_player_files(temp_dir, server_path)
+                    cfg_src_simple = os.path.join(temp_dir, 'colabconfig.txt')
+                    if os.path.exists(cfg_src_simple):
+                        shutil.copy2(cfg_src_simple, os.path.join(server_path, 'colabconfig.txt'))
+                        print(f"[INFO] Configuración del servidor restaurada")
 
                 # Actualizar server.properties con el nuevo level-name
                 props = self.read_server_properties(server_name)
