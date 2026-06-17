@@ -13,6 +13,8 @@ import shutil
 import re
 import zipfile
 import tempfile
+import gzip
+import struct
 from datetime import datetime
 from typing import Optional, Dict, List
 
@@ -886,6 +888,55 @@ class ServerManager:
             print(f"[ERROR] delete_backup: {e}")
             return {"success": False, "error": str(e)}
 
+    def _get_world_data_version(self, world_path: str) -> Optional[int]:
+        """Lee la DataVersion del level.dat de un mundo Minecraft."""
+        level_dat = os.path.join(world_path, 'level.dat')
+        if not os.path.exists(level_dat):
+            return None
+        try:
+            with gzip.open(level_dat, 'rb') as f:
+                raw = f.read()
+            # Buscar TAG_Int(3) + name_len(2) "DataVersion" + int(4)
+            match = re.search(b'\x03\x00\x0bDataVersion', raw)
+            if match:
+                version_bytes = raw[match.end():match.end()+4]
+                return struct.unpack('>i', version_bytes)[0]
+        except Exception:
+            pass
+        return None
+
+    def _clean_world_dirs(self, server_path: str, names: list):
+        """Limpia carpetas de mundo y archivos huérfanos del servidor."""
+        for name in names:
+            for suffix in ['', '_nether', '_the_end', '_end', '_DIM1', '_DIM-1']:
+                dim_path = os.path.join(server_path, name + suffix)
+                if os.path.exists(dim_path):
+                    if os.path.isdir(dim_path):
+                        shutil.rmtree(dim_path)
+                    else:
+                        os.remove(dim_path)
+        # Archivos huérfanos comunes que ensucian el directorio
+        orphan_files = ['session.lock', 'uid.dat', '.thanos', '.console_history',
+                        'version_history.json', 'server-icon.php', 'colabconfig.txt',
+                        'tunnel', 'cache', 'logs']
+        for fname in orphan_files:
+            fpath = os.path.join(server_path, fname)
+            if os.path.exists(fpath):
+                if os.path.isdir(fpath):
+                    shutil.rmtree(fpath, ignore_errors=True)
+                else:
+                    os.remove(fpath)
+
+    def _copy_player_files(self, source_root: str, server_path: str):
+        """Copia archivos de datos de jugadores desde la fuente al servidor."""
+        player_files = ['usercache.json', 'ops.json', 'whitelist.json',
+                        'banned-players.json', 'banned-ips.json']
+        for pf in player_files:
+            src = os.path.join(source_root, pf)
+            if os.path.exists(src):
+                shutil.copy2(src, os.path.join(server_path, pf))
+                print(f"[INFO] Datos de jugadores restaurados: {pf}")
+
     def upload_world(self, server_name: str, zip_path: str) -> Dict:
         """
         Reemplaza el mundo actual con el contenido de un .zip.
@@ -916,12 +967,15 @@ class ServerManager:
                 with zipfile.ZipFile(zip_path, 'r') as zf:
                     zf.extractall(temp_dir)
 
-                items = os.listdir(temp_dir)
+                items = [i for i in os.listdir(temp_dir) if not i.startswith('.')]
+                if not items:
+                    items = os.listdir(temp_dir)
 
                 # ---- Detectar si es un backup completo de servidor ----
                 source_root = temp_dir
                 is_full_server = False
-                server_indicators = {'server.properties', 'server.jar', 'eula.txt', 'bukkit.yml', 'spigot.yml', 'paper.yml', 'plugins'}
+                server_indicators = {'server.properties', 'server.jar', 'eula.txt',
+                                     'bukkit.yml', 'spigot.yml', 'paper.yml', 'plugins'}
 
                 if len(items) == 1:
                     single_path = os.path.join(temp_dir, items[0])
@@ -939,7 +993,6 @@ class ServerManager:
                     # =========================================================
                     # MODO: BACKUP COMPLETO DE SERVIDOR
                     # =========================================================
-                    # Leer server.properties del backup para obtener level-name
                     backup_props_path = os.path.join(source_root, 'server.properties')
                     level_name = 'world'
                     if os.path.exists(backup_props_path):
@@ -950,22 +1003,13 @@ class ServerManager:
                                     key, _, value = line.partition('=')
                                     if key.strip() == 'level-name':
                                         level_name = value.strip()
-
                     new_level_name = level_name
 
-                    # Limpiar mundo anterior y carpetas por defecto
                     old_props = self.read_server_properties(server_name)
                     old_level_name = old_props.get('level-name', 'world')
-                    for name in [old_level_name, new_level_name, 'world']:
-                        for suffix in ['', '_nether', '_the_end', '_end']:
-                            dim_path = os.path.join(server_path, name + suffix)
-                            if os.path.exists(dim_path):
-                                if os.path.isdir(dim_path):
-                                    shutil.rmtree(dim_path)
-                                else:
-                                    os.remove(dim_path)
 
-                    # Mover solo las carpetas del mundo (level-name y dimensiones)
+                    self._clean_world_dirs(server_path, [old_level_name, new_level_name, 'world'])
+
                     for suffix in ['', '_nether', '_the_end']:
                         src = os.path.join(source_root, level_name + suffix)
                         if os.path.exists(src):
@@ -973,15 +1017,8 @@ class ServerManager:
 
                     world_path = os.path.join(server_path, new_level_name)
 
-                    # Copiar archivos de datos de jugadores
-                    player_files = ['usercache.json', 'ops.json', 'whitelist.json', 'banned-players.json', 'banned-ips.json']
-                    for pf in player_files:
-                        src = os.path.join(source_root, pf)
-                        if os.path.exists(src):
-                            shutil.copy2(src, os.path.join(server_path, pf))
-                            print(f"[INFO] Datos de jugadores restaurados: {pf}")
+                    self._copy_player_files(source_root, server_path)
 
-                    # Copiar icono del servidor
                     icon_src = os.path.join(source_root, 'server-icon.png')
                     if os.path.exists(icon_src):
                         shutil.copy2(icon_src, os.path.join(server_path, 'server-icon.png'))
@@ -1007,19 +1044,11 @@ class ServerManager:
                         props = self.read_server_properties(server_name)
                         new_level_name = props.get('level-name', 'world')
 
-                    # Limpiar mundos anteriores
                     old_props = self.read_server_properties(server_name)
                     old_level_name = old_props.get('level-name', 'world')
-                    for name in [old_level_name, new_level_name, 'world']:
-                        for suffix in ['', '_nether', '_the_end', '_end']:
-                            dim_path = os.path.join(server_path, name + suffix)
-                            if os.path.exists(dim_path):
-                                if os.path.isdir(dim_path):
-                                    shutil.rmtree(dim_path)
-                                else:
-                                    os.remove(dim_path)
 
-                    # Mover archivos según el caso
+                    self._clean_world_dirs(server_path, [old_level_name, new_level_name, 'world'])
+
                     if main_world_dir and len(items) > 1:
                         for item in items:
                             dest = os.path.join(server_path, item)
@@ -1044,6 +1073,9 @@ class ServerManager:
                         for item in items:
                             shutil.move(os.path.join(source_dir, item), os.path.join(world_path, item))
 
+                    # También copiar archivos de jugadores en modo mundo simple
+                    self._copy_player_files(temp_dir, server_path)
+
                 # Actualizar server.properties con el nuevo level-name
                 props = self.read_server_properties(server_name)
                 props['level-name'] = new_level_name
@@ -1051,16 +1083,43 @@ class ServerManager:
             finally:
                 shutil.rmtree(temp_dir, ignore_errors=True)
 
-            # Validar que el mundo extraído tenga level.dat
-            if not os.path.exists(os.path.join(server_path, new_level_name, 'level.dat')):
-                print(f"[WARNING] No se encontró level.dat en el zip subido para '{server_name}'")
+            world_path_final = os.path.join(server_path, new_level_name)
+            level_dat_path = os.path.join(world_path_final, 'level.dat')
+
+            if not os.path.exists(level_dat_path):
+                msg = f"No se encontró level.dat en el zip subido para '{server_name}'. El servidor generará un mundo nuevo."
+                print(f"[WARNING] {msg}")
+                return {"success": False, "error": msg}
+
+            # Validar compatibilidad de versión del mundo
+            world_data_version = self._get_world_data_version(world_path_final)
+            if world_data_version is not None:
+                print(f"[INFO] DataVersion del mundo subido: {world_data_version}")
+                # Intentar obtener la versión del jar actual
+                try:
+                    jar_path = os.path.join(server_path, 'paper.jar')
+                    if not os.path.exists(jar_path):
+                        jar_path = os.path.join(server_path, 'server.jar')
+                    if os.path.exists(jar_path):
+                        with zipfile.ZipFile(jar_path, 'r') as zf:
+                            if 'version.json' in zf.namelist():
+                                with zf.open('version.json') as f:
+                                    vdata = json.loads(f.read().decode('utf-8'))
+                                    server_data_version = vdata.get('world_version', vdata.get('data_version', 0))
+                                    if server_data_version and world_data_version > server_data_version:
+                                        warn = (f"El mundo subido tiene DataVersion {world_data_version} "
+                                                f"pero el servidor es {server_data_version}. "
+                                                f"El mundo puede no cargarse correctamente.")
+                                        print(f"[WARNING] {warn}")
+                except Exception:
+                    pass
 
             print(f"[INFO] Mundo subido para '{server_name}' → '{new_level_name}'")
 
             if was_running:
                 self.start(server_name)
 
-            return {"success": True, "message": "Mundo subido correctamente"}
+            return {"success": True, "message": f"Mundo '{new_level_name}' subido correctamente"}
         except Exception as e:
             print(f"[ERROR] upload_world: {e}")
             return {"success": False, "error": str(e)}
