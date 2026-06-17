@@ -91,10 +91,11 @@ class ServerManager:
                 'spawn-monsters': 'true',
                 'spawn-animals': 'true',
                 'render-distance': '10',
-                'simulation-distance': '10',
+                'simulation-distance': '8',
                 'view-distance': '10',
                 'spawn-protection': '16',
                 'enable-command-block': 'false',
+                'network-compression-threshold': '128',
             }
 
             if not os.path.exists(props_path):

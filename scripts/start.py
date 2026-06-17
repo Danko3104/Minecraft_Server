@@ -453,6 +453,9 @@ def start_oracle_tunnel():
             '-o', 'StrictHostKeyChecking=no',
             '-o', 'ServerAliveInterval=30',
             '-o', 'ServerAliveCountMax=3',
+            '-o', 'Compression=yes',
+            '-o', 'CompressionLevel=1',
+            '-o', 'ExitOnForwardFailure=yes',
             '-N',
             '-R', f'{ORACLE_REMOTE_PORT}:localhost:{ORACLE_LOCAL_PORT}',
             f'{ORACLE_USER}@{ORACLE_HOST}'
