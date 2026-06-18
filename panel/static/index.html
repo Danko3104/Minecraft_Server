@@ -485,7 +485,7 @@
                 </div>
                 <div class="header-right">
                     <div class="notif-bell-wrapper">
-                        <div class="notif-bell" id="notif-bell" ondblclick="toggleNotifDropdown()" onclick="notifBellClick()">
+                        <div class="notif-bell" id="notif-bell" onclick="toggleNotifDropdown()">
                             <i class="fas fa-bell"></i>
                             <span class="bell-dot" id="bell-dot"></span>
                         </div>
@@ -4864,11 +4864,13 @@
 
         function toast(message, type) {
             const container = document.getElementById('toast-container');
+            if (!container) return;
             const t = document.createElement('div');
             t.className = 'toast ' + (type || 'info');
-            t.innerHTML = message;
+            var iconMap = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+            t.innerHTML = '<i class="fas ' + (iconMap[type] || 'fa-info-circle') + '" style="margin-right:6px;flex-shrink:0;"></i>' + message;
             container.appendChild(t);
-            setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+            setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(40px)'; t.style.transition = 'opacity 0.3s, transform 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
         }
 
         // ============ NOTIFICACIONES DEL NAVEGADOR ============
@@ -4961,11 +4963,16 @@
                 try { stored = JSON.parse(raw); } catch(e) {}
             }
             var prefs = {};
+            var changed = false;
             NOTIF_TYPES.forEach(function(t) {
                 if (t.id === '_browser') return;
-                prefs[t.id] = stored.hasOwnProperty(t.id) ? stored[t.id] : t.default;
+                var val = stored.hasOwnProperty(t.id) ? stored[t.id] : t.default;
+                prefs[t.id] = val;
+                if (val !== stored[t.id]) changed = true;
             });
-            localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
+            if (changed || raw === null) {
+                localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
+            }
             return prefs;
         }
 
@@ -5006,11 +5013,6 @@
             var isOpen = dd.classList.contains('open');
             if (!isOpen) renderNotifDropdown();
             dd.classList.toggle('open');
-        }
-
-        function notifBellClick() {
-            var dd = document.getElementById('notif-dropdown');
-            if (dd.classList.contains('open')) dd.classList.remove('open');
         }
 
         function enableAllNotifs() {
@@ -5057,11 +5059,16 @@
 
         // ============ SEND NOTIFICATION (con tipo) ============
         function sendNotification(title, body, type, icon) {
-            if (!notifEnabled()) return;
+            var showToast = function() {
+                toast(title + (body ? ': ' + body : ''), type === 'server_error' ? 'error' : type === 'server_stop' ? 'warning' : 'info');
+            };
             if (type) {
                 var prefs = getNotifPrefs();
                 if (prefs[type] === false) return;
             }
+            if (!('Notification' in window)) { showToast(); return; }
+            if (Notification.permission !== 'granted') { showToast(); return; }
+            if (localStorage.getItem('minecolab_notif') !== 'true') { showToast(); return; }
             try {
                 var n = new Notification(title, {
                     body: body,
@@ -5069,7 +5076,7 @@
                     tag: 'minecolab-' + Date.now()
                 });
                 setTimeout(function() { n.close(); }, 6000);
-            } catch(e) { console.warn('[Notif] Error:', e); }
+            } catch(e) { console.warn('[Notif] Error:', e); showToast(); }
         }
 
         // Sobrescribir llamadas existentes para incluir tipo — no hace falta,
