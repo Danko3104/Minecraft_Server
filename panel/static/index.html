@@ -1391,6 +1391,10 @@
                 notif_label_colab: 'Advertencia de tiempo Colab',
                 notif_label_plugins: 'Plugins',
                 notif_label_browser: 'Notificaciones del navegador',
+                chunky_running: 'Pre-generando...',
+                chunky_done: 'Completado',
+                chunky_eta: 'ETA: ',
+                chunky_chunk: 'Chunk: ',
                 mb_short: 'MB',
                 cpu_percent: '%',
                 chart_ram: 'RAM (MB)',
@@ -1692,6 +1696,10 @@
                 notif_label_colab: 'Colab time warning',
                 notif_label_plugins: 'Plugins',
                 notif_label_browser: 'Browser notifications',
+                chunky_running: 'Pre-generating...',
+                chunky_done: 'Completed',
+                chunky_eta: 'ETA: ',
+                chunky_chunk: 'Chunk: ',
                 mb_short: 'MB',
                 cpu_percent: '%',
                 chart_ram: 'RAM (MB)',
@@ -2381,12 +2389,54 @@
         }
 
         var _notifiedServerReady = false;
+        function updateChunkyProgress(lines) {
+            if (!lines) return;
+            var el = document.getElementById('chunky-progress');
+            var bar = document.getElementById('chunky-bar');
+            var pctEl = document.getElementById('chunky-percent');
+            var statusEl = document.getElementById('chunky-status');
+            var chunkEl = document.getElementById('chunky-chunk');
+            var etaEl = document.getElementById('chunky-eta');
+            var lastProgress = -1;
+            var completed = false;
+            for (var i = lines.length - 1; i >= 0; i--) {
+                var line = lines[i];
+                if (/\[Chunky\]\s*Task\s*completed/i.test(line)) {
+                    completed = true;
+                    el.style.display = '';
+                    bar.style.width = '100%';
+                    pctEl.textContent = '100%';
+                    statusEl.textContent = t('chunky_done');
+                    chunkEl.textContent = 'Chunk: --';
+                    etaEl.textContent = 'ETA: --';
+                    if (lastProgress < 0) lastProgress = 100;
+                    break;
+                }
+                var m = line.match(/\[Chunky\]\s*Progress:\s*([\d.]+)%/i);
+                if (m && lastProgress < 0) {
+                    lastProgress = parseFloat(m[1]);
+                    el.style.display = '';
+                    bar.style.width = lastProgress + '%';
+                    pctEl.textContent = lastProgress + '%';
+                    statusEl.textContent = t('chunky_running');
+                    var etaM = line.match(/ETA:\s*([\dmsh ]+)/i);
+                    etaEl.textContent = etaM ? t('chunky_eta') + etaM[1] : t('chunky_eta') + '--';
+                    var chunkM = line.match(/Current chunk:\s*\(?(-?\d+),\s*(-?\d+)\)?/i);
+                    chunkEl.textContent = chunkM ? t('chunky_chunk') + '(' + chunkM[1] + ', ' + chunkM[2] + ')' : t('chunky_chunk') + '--';
+                    break;
+                }
+            }
+            if (lastProgress < 0 && !completed) {
+                el.style.display = 'none';
+            }
+        }
         async function checkServerReady() {
             if (_notifiedServerReady) return;
             try {
                 const res = await fetch('/api/console/output?lines=20');
                 const data = await res.json();
                 if (data.lines) {
+                    updateChunkyProgress(data.lines);
                     for (var i = 0; i < data.lines.length; i++) {
                         if (/Done \(.*\)! For help, type/.test(data.lines[i])) {
                             _notifiedServerReady = true;
@@ -2404,6 +2454,7 @@
                 const res = await fetch('/api/server/last-output');
                 const data = await res.json();
                 if (data.lines && data.lines.length > 0) {
+                    updateChunkyProgress(data.lines);
                     if (!_notifiedServerReady) {
                         for (var i = 0; i < data.lines.length; i++) {
                             if (/Done \(.*\)! For help, type/.test(data.lines[i])) {
@@ -3177,7 +3228,24 @@
                                             <span style="color:var(--text-muted);">: ${r.current_value}</span>
                                             <i class="fas fa-arrow-right" style="margin:0 4px;color:#3fb950;font-size:10px;"></i>
                                             <span style="color:#3fb950;font-weight:600;">${r.recommended_value}</span>
-                                        </div>
+                        </div>
+                        <div class="chunky-progress" id="chunky-progress" style="display:none;">
+                            <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-card);border-bottom:1px solid var(--border-subtle);">
+                                <i class="fas fa-cubes" style="color:#d29922;font-size:16px;"></i>
+                                <span style="font-size:13px;font-weight:600;color:var(--text-primary);flex:1;">Chunky</span>
+                                <span style="font-size:11px;color:#8b949e;" id="chunky-status">Pre-generando...</span>
+                                <span style="font-size:12px;font-weight:600;color:var(--text-primary);min-width:45px;text-align:right;" id="chunky-percent">0%</span>
+                            </div>
+                            <div style="padding:0 16px 10px 16px;background:var(--bg-card);">
+                                <div style="width:100%;height:6px;background:var(--border-color);border-radius:3px;overflow:hidden;">
+                                    <div id="chunky-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#d29922,#f0883e);border-radius:3px;transition:width 0.5s ease;"></div>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;font-size:10px;color:#484f58;margin-top:3px;">
+                                    <span id="chunky-chunk">Chunk: --</span>
+                                    <span id="chunky-eta">ETA: --</span>
+                                </div>
+                            </div>
+                        </div>
                                     </div>
                                     ${r.current_value !== r.recommended_value ? `
                                         <button class="btn btn-primary btn-sm" onclick="applyPropertyRecommendation('${r.key}','${r.recommended_value}','${r.label}')" style="flex-shrink:0;"><i class="fas fa-check"></i> ${t('btn_apply')}</button>
