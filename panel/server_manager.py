@@ -682,8 +682,9 @@ class ServerManager:
 
             self.intentional_stop = True
 
-            # Backup automático del mundo (si se conoce el server_name)
-            if hasattr(self, '_current_server') and self._current_server:
+            # Guardar mundo via RCON
+            server_name = getattr(self, '_current_server', None)
+            if server_name:
                 print("[INFO] Guardando mundo...")
                 if MCRCON_AVAILABLE and self.process.poll() is None:
                     try:
@@ -691,10 +692,8 @@ class ServerManager:
                             rcon.command("save-all")
                     except Exception:
                         pass
-                print("[INFO] Haciendo backup automático del mundo...")
-                self._backup_world(self._current_server)
 
-            # Intentar primero con RCON
+            # Enviar comando stop primero (rápido)
             if MCRCON_AVAILABLE and self.process.poll() is None:
                 try:
                     print("[INFO] Enviando comando 'stop' via RCON...")
@@ -703,8 +702,6 @@ class ServerManager:
                     print("[INFO] Comando stop enviado via RCON")
                 except Exception as e:
                     print(f"[WARNING] RCON falló: {e}, usando stdin...")
-
-                    # Fallback: enviar al stdin
                     try:
                         self.process.stdin.write("stop\n")
                         self.process.stdin.flush()
@@ -712,7 +709,7 @@ class ServerManager:
                     except Exception as e2:
                         print(f"[WARNING] stdin falló: {e2}")
 
-            # Esperar hasta 30 segundos
+            # Esperar hasta 30 segundos a que termine
             print("[INFO] Esperando que el servidor se detenga...")
             try:
                 self.process.wait(timeout=30)
@@ -720,19 +717,21 @@ class ServerManager:
             except subprocess.TimeoutExpired:
                 print("[WARNING] Timeout, terminando proceso...")
                 self.process.terminate()
-
-                # Esperar 5 segundos más
                 try:
                     self.process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     print("[ERROR] Forzando terminación...")
                     self.process.kill()
 
-            # Limpiar
             self.process = None
             self.start_time = None
-
             print("[INFO] Servidor detenido")
+
+            # Backup en background después de detener (no bloquea la respuesta)
+            if server_name:
+                import threading
+                t = threading.Thread(target=self._backup_world, args=(server_name,), daemon=True)
+                t.start()
 
             return {
                 "success": True,
