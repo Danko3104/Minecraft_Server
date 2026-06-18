@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 import requests
 from flask import Blueprint, jsonify, request
 
@@ -540,6 +541,68 @@ def check_plugins_compatibility(target_version: str) -> dict:
         "total": len(compatible) + len(incompatible) + len(unknown) + len(orphaned_deps)
     }
 
+
+def get_cross_server_recommendations() -> dict:
+    """
+    Busca servidores del mismo tipo (Paper, Fabric, etc.) y compara
+    sus plugins/mods instalados. Recomienda instalar plugins que están
+    en otros servidores pero no en el activo.
+    """
+    from panel.drive import get_active_server, get_server_config, list_servers, DRIVE_PATH
+    active = get_active_server()
+    if not active:
+        return {"success": True, "recommendations": []}
+
+    active_config = get_server_config(active)
+    active_type = active_config.get('server_type', '').lower()
+    if not active_type:
+        return {"success": True, "recommendations": []}
+
+    info = _get_content_info()
+    active_dir = info['dir'] if info else None
+    if not active_dir or not os.path.exists(active_dir):
+        active_plugins = set()
+    else:
+        active_plugins = {f for f in os.listdir(active_dir) if f.endswith('.jar')}
+
+    servers = list_servers()
+    recommendations = []
+    seen_plugins = set()
+
+    for name in servers:
+        if name == active:
+            continue
+        cfg = get_server_config(name)
+        if cfg.get('server_type', '').lower() != active_type:
+            continue
+
+        other_dir = os.path.join(DRIVE_PATH, name, (info['category'] + 's') if info and info.get('category') else 'plugins')
+        if not os.path.exists(other_dir):
+            continue
+
+        for f in sorted(os.listdir(other_dir)):
+            if not f.endswith('.jar'):
+                continue
+            if f in active_plugins or f in seen_plugins:
+                continue
+            seen_plugins.add(f)
+            fpath = os.path.join(other_dir, f)
+            recommendations.append({
+                "name": f.replace('.jar', ''),
+                "file": f,
+                "source_server": name,
+                "size": os.path.getsize(fpath) if os.path.isfile(fpath) else 0
+            })
+
+    return {
+        "success": True,
+        "server_type": active_type,
+        "active_server": active,
+        "recommendations": recommendations,
+        "total": len(recommendations)
+    }
+
+
 def _get_plugin_updates() -> dict:
     target_dir = _get_content_dir()
     if not target_dir or not os.path.exists(target_dir):
@@ -671,5 +734,68 @@ def upload_plugin():
             "success": True,
             "message": f"Archivo '{f.filename}' subido"
         })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@plugins_bp.route('/recommend/install', methods=['POST'])
+def install_recommended_plugin():
+    """
+    POST /api/plugins/recommend/install
+    Body: {"file": "plugin.jar"}
+    Copia un plugin/mod desde otro servidor del mismo tipo al servidor activo.
+    """
+    try:
+        data = request.get_json()
+        if not data or 'file' not in data:
+            return jsonify({"success": False, "error": "Falta 'file'"}), 400
+
+        from panel.drive import get_active_server, get_server_config, list_servers, DRIVE_PATH
+        active = get_active_server()
+        if not active:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        active_config = get_server_config(active)
+        active_type = active_config.get('server_type', '').lower()
+        if not active_type:
+            return jsonify({"success": False, "error": "Tipo de servidor no configurado"}), 400
+
+        info = _get_content_info()
+        target_dir = info['dir'] if info else None
+        if not target_dir:
+            return jsonify({"success": False, "error": "No se pudo determinar directorio de plugins"}), 400
+
+        target_file = data['file']
+        source_server = data.get('source_server', '')
+
+        servers = list_servers()
+        source_dir = None
+
+        if source_server:
+            cfg = get_server_config(source_server)
+            if cfg.get('server_type', '').lower() == active_type:
+                source_dir = os.path.join(DRIVE_PATH, source_server, (info['category'] + 's') if info and info.get('category') else 'plugins')
+        else:
+            for name in servers:
+                if name == active:
+                    continue
+                cfg = get_server_config(name)
+                if cfg.get('server_type', '').lower() != active_type:
+                    continue
+                d = os.path.join(DRIVE_PATH, name, (info['category'] + 's') if info and info.get('category') else 'plugins')
+                if os.path.exists(os.path.join(d, target_file)):
+                    source_dir = d
+                    break
+
+        if not source_dir or not os.path.exists(os.path.join(source_dir, target_file)):
+            return jsonify({"success": False, "error": "Archivo no encontrado en otros servidores"}), 404
+
+        os.makedirs(target_dir, exist_ok=True)
+        src = os.path.join(source_dir, target_file)
+        dst = os.path.join(target_dir, target_file)
+        shutil.copy2(src, dst)
+
+        return jsonify({"success": True, "message": f"'{target_file.replace('.jar', '')}' instalado desde '{os.path.basename(os.path.dirname(source_dir))}'"})
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

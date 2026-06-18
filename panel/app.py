@@ -68,6 +68,7 @@ PUBLIC_API_PATHS = [
     '/api/settings/server-icon',
     '/api/settings/check-updates',
     '/api/settings/check-plugin-compatibility',
+    '/api/settings/plugin-recommendations',
     '/api/settings/server-properties',
     '/api/servers',
 ]
@@ -417,6 +418,20 @@ def api_settings_check_plugin_compatibility():
         result = check_plugins_compatibility(target_version)
         return jsonify(result)
 
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/plugin-recommendations', methods=['GET'])
+def api_settings_plugin_recommendations():
+    """
+    GET /api/settings/plugin-recommendations
+    Recomienda instalar plugins/mods de otros servidores del mismo tipo.
+    """
+    try:
+        from panel.routes.plugins import get_cross_server_recommendations
+        result = get_cross_server_recommendations()
+        return jsonify(result)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

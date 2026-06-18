@@ -773,6 +773,11 @@
                             <p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">Cargando...</p>
                         </div>
                     </div>
+                    <div class="control-card" id="plugin-recommendations-card" style="display:none;">
+                        <h3><i class="fas fa-lightbulb" style="color:#d29922;"></i> Recomendaciones de otros servidores</h3>
+                        <p style="font-size:12px;color:#8b949e;margin-bottom:12px;" id="plugin-recommendations-desc"></p>
+                        <div id="plugin-recommendations-list"></div>
+                    </div>
                 </section>
 
                 <!-- ===== ARCHIVOS ===== -->
@@ -3474,9 +3479,53 @@
                     const label = (getContentType() === 'mod' ? 'mods' : 'plugins');
                     container.innerHTML = '<p style="font-size:13px;color:#484f58;text-align:center;padding:20px;">No hay ' + label + ' instalados. Busca e instala desde arriba.</p>';
                 }
+                loadPluginRecommendations();
             } catch(e) {
                 container.innerHTML = '<p style="font-size:13px;color:#f85149;">Error al cargar plugins instalados</p>';
             }
+        }
+
+        async function loadPluginRecommendations() {
+            const card = document.getElementById('plugin-recommendations-card');
+            const list = document.getElementById('plugin-recommendations-list');
+            const desc = document.getElementById('plugin-recommendations-desc');
+            try {
+                const res = await fetch('/api/settings/plugin-recommendations');
+                const data = await res.json();
+                if (data.success && data.recommendations && data.recommendations.length > 0) {
+                    const label = getContentType() === 'mod' ? 'mods' : 'plugins';
+                    desc.textContent = 'Estos ' + label + ' están instalados en otros servidores ' + data.server_type + ' pero no en este.';
+                    list.innerHTML = data.recommendations.map(p =>
+                        `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #30363d;">
+                            <span><i class="fas fa-puzzle-piece" style="color:#d29922;"></i> ${p.name}</span>
+                            <span style="font-size:12px;color:#484f58;">${p.source_server}</span>
+                            <button class="btn btn-primary btn-sm" onclick='installRecommendedPlugin("${p.file}","${p.name}")'><i class="fas fa-download"></i> Instalar</button>
+                        </div>`
+                    ).join('');
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            } catch(e) {
+                card.style.display = 'none';
+            }
+        }
+
+        async function installRecommendedPlugin(file, name) {
+            const label = getContentType() === 'mod' ? 'mod' : 'plugin';
+            try {
+                const res = await fetch('/api/plugins/recommend/install', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({file})
+                });
+                const data = await res.json();
+                toast(data.message || data.error, data.success ? 'success' : 'error');
+                if (data.success) {
+                    loadInstalledPlugins();
+                    loadPluginRecommendations();
+                }
+            } catch(e) { toast('Error de conexión', 'error'); }
         }
 
         async function uninstallPlugin(file, name) {
