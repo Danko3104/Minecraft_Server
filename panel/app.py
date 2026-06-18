@@ -73,6 +73,7 @@ PUBLIC_API_PATHS = [
     '/api/settings/property-recommendations/apply',
     '/api/settings/server-properties',
     '/api/servers',
+    '/api/server/chunky-progress',
 ]
 
 
@@ -299,6 +300,42 @@ def api_server_command():
             "success": True,
             "response": response
         })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/server/chunky-progress', methods=['POST'])
+def api_server_chunky_progress():
+    """
+    POST /api/server/chunky-progress
+    Body: {"percent": 45.5, "eta": "35s", "chunk": "(100, 64)", "running": true}
+    Envía un actionbar a todos los jugadores con el progreso de Chunky.
+    """
+    try:
+        if not server_manager.is_running():
+            return jsonify({"success": False, "error": "Servidor no está corriendo"}), 400
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Body requerido"}), 400
+
+        pct = data.get('percent')
+        running = data.get('running', True)
+        eta = data.get('eta', '')
+
+        if running and pct is not None:
+            pct_display = round(pct, 1)
+            eta_text = f" | ETA: {eta}" if eta else ""
+            cmd = f'title @a actionbar {{"text":"⛏ Chunky: {pct_display}%{eta_text}","color":"gold","bold":true}}'
+        else:
+            cmd = 'title @a actionbar {"text":"⛏ Chunky completado!","color":"green","bold":true}'
+
+        response = server_manager.send_command(cmd)
+        return jsonify({"success": True, "response": response})
 
     except Exception as e:
         return jsonify({

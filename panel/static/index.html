@@ -2389,6 +2389,7 @@
         }
 
         var _notifiedServerReady = false;
+        var _lastChunkyPct = -1;
         function updateChunkyProgress(lines) {
             if (!lines) return;
             var el = document.getElementById('chunky-progress');
@@ -2399,6 +2400,7 @@
             var etaEl = document.getElementById('chunky-eta');
             var lastProgress = -1;
             var completed = false;
+            var etaFound = '';
             for (var i = lines.length - 1; i >= 0; i--) {
                 var line = lines[i];
                 if (/\[Chunky\]\s*Task\s*completed/i.test(line)) {
@@ -2410,6 +2412,10 @@
                     chunkEl.textContent = 'Chunk: --';
                     etaEl.textContent = 'ETA: --';
                     if (lastProgress < 0) lastProgress = 100;
+                    if (_lastChunkyPct !== 100) {
+                        _lastChunkyPct = 100;
+                        fetch('/api/server/chunky-progress', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({percent:100,running:false})}).catch(()=>{});
+                    }
                     break;
                 }
                 var m = line.match(/\[Chunky\]\s*Progress:\s*([\d.]+)%/i);
@@ -2420,11 +2426,16 @@
                     pctEl.textContent = lastProgress + '%';
                     statusEl.textContent = t('chunky_running');
                     var etaM = line.match(/ETA:\s*([\dmsh ]+)/i);
-                    etaEl.textContent = etaM ? t('chunky_eta') + etaM[1] : t('chunky_eta') + '--';
+                    etaFound = etaM ? etaM[1].trim() : '';
+                    etaEl.textContent = etaM ? t('chunky_eta') + etaFound : t('chunky_eta') + '--';
                     var chunkM = line.match(/Current chunk:\s*\(?(-?\d+),\s*(-?\d+)\)?/i);
                     chunkEl.textContent = chunkM ? t('chunky_chunk') + '(' + chunkM[1] + ', ' + chunkM[2] + ')' : t('chunky_chunk') + '--';
                     break;
                 }
+            }
+            if (lastProgress >= 0 && Math.abs(lastProgress - _lastChunkyPct) >= 1) {
+                _lastChunkyPct = lastProgress;
+                fetch('/api/server/chunky-progress', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({percent:lastProgress,eta:etaFound,running:true})}).catch(()=>{});
             }
             if (lastProgress < 0 && !completed) {
                 el.style.display = 'none';
