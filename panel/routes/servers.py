@@ -876,6 +876,19 @@ def export_server_route(server_name):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@servers_bp.route('/servers/<server_name>/icon', methods=['GET'])
+def server_icon_route(server_name):
+    try:
+        from panel.drive import DRIVE_PATH
+        icon_path = os.path.join(DRIVE_PATH, server_name, 'server-icon.png')
+        if os.path.exists(icon_path):
+            resp = send_file(icon_path, mimetype='image/png')
+            resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            return resp
+        return jsonify({"success": False, "error": "No hay icono"}), 404
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @servers_bp.route('/servers/import', methods=['POST'])
 def import_server_route():
     try:
