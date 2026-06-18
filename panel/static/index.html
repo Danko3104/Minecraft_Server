@@ -189,14 +189,14 @@
         .section.active { display: block; }
         .section::before { content: ''; position: fixed; inset: 0; z-index: -1; opacity: 0.12; transition: opacity 0.5s; pointer-events: none; }
         [data-theme="light"] .section::before { opacity: 0.05; }
-        #section-dashboard::before { background: url('/static/backgrounds/dashboard.jpeg') center center / cover no-repeat; }
-        #section-console::before { background: url('/static/backgrounds/consola.png') center center / cover no-repeat; }
-        #section-players::before { background: url('/static/backgrounds/jugadores.png') center center / cover no-repeat; }
-        #section-properties::before { background: url('/static/backgrounds/propiedades.png') center center / cover no-repeat; }
-        #section-settings::before { background: url('/static/backgrounds/configuracion.png') center center / cover no-repeat; }
-        #section-plugins::before { background: url('/static/backgrounds/plugins.png') center center / cover no-repeat; }
-        #section-files::before { background: url('/static/backgrounds/archivos.png') center center / cover no-repeat; }
-        #section-manage-server::before { background: url('/static/backgrounds/gestionar_servidor.png') center center / cover no-repeat; }
+        #section-dashboard::before { background: url('/static/backgrounds/dashboard.jpg') center center / cover no-repeat; }
+        #section-console::before { background: url('/static/backgrounds/consola.jpg') center center / cover no-repeat; }
+        #section-players::before { background: url('/static/backgrounds/jugadores.jpg') center center / cover no-repeat; }
+        #section-properties::before { background: url('/static/backgrounds/propiedades.jpg') center center / cover no-repeat; }
+        #section-settings::before { background: url('/static/backgrounds/configuracion.jpg') center center / cover no-repeat; }
+        #section-plugins::before { background: url('/static/backgrounds/plugins.jpg') center center / cover no-repeat; }
+        #section-files::before { background: url('/static/backgrounds/archivos.jpg') center center / cover no-repeat; }
+        #section-manage-server::before { background: url('/static/backgrounds/gestionar_servidor.jpg') center center / cover no-repeat; }
         @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
         /* CARDS */
@@ -352,8 +352,10 @@
         .act-wl-remove { background:#f85149; color:#fff; }
         .act-wl-remove:hover { background:#da3633; }
 
-        .subsection { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-        .subsection h3 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .subsection { background: rgba(33,38,45,0.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 20px; margin-bottom: 20px; transition: border-color 0.2s; }
+        [data-theme="light"] .subsection { background: rgba(255,255,255,0.5); border-color: rgba(0,0,0,0.04); }
+        .subsection:hover { border-color: rgba(63,185,80,0.1); }
+        .subsection h3 { font-size: 12px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 
         .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
         .input-group input, .input-group select { flex: 1; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
@@ -373,11 +375,12 @@
         /* SETTINGS */
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
-        .setting-field { margin-bottom: 16px; }
-        .setting-field label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; font-weight: 500; }
-        .setting-field input, .setting-field select { width: 100%; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .setting-field { margin-bottom: 12px; }
+        .setting-field label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+        .setting-field input, .setting-field select { width: 100%; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
         .setting-field input:focus, .setting-field select:focus { border-color: #3fb950; box-shadow: 0 0 0 3px rgba(63,185,80,0.15); }
-        .setting-field input:focus, .setting-field select:focus { border-color: #3fb950; }
+        .props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 900px) { .props-grid { grid-template-columns: 1fr; } }
         .setting-field .toggle-group { display: flex; gap: 8px; }
         .setting-field .toggle-btn { padding: 8px 16px; background: var(--border-subtle); border: 1px solid var(--border-color); border-radius: 6px; color: #8b949e; cursor: pointer; font-size: 13px; transition: all 0.2s ease; font-family: 'Inter', sans-serif; }
         .setting-field .toggle-btn.active { background: #3fb950; border-color: #3fb950; color: var(--bg-primary); box-shadow: 0 0 12px rgba(63,185,80,0.2); }
@@ -730,6 +733,7 @@
                     <div class="update-card">
                         <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-sliders-h"></i> Propiedades del Servidor</h3>
                         <div class="setting-saved-notice" id="props-saved-notice"><i class="fas fa-check-circle"></i> Cambios guardados. Se requiere reinicio para aplicar.</div>
+                        <div class="props-grid">
                         <div class="setting-field">
                             <label>Nombre del servidor (MOTD)</label>
                             <input type="text" id="prop-motd" placeholder="A Minecraft Server">
@@ -811,6 +815,7 @@
                                 <button class="toggle-btn" data-target="prop-white-list" data-value="false">Desactivada</button>
                             </div>
                             <input type="hidden" id="prop-white-list" value="true">
+                        </div>
                         </div>
                         <div style="display:flex;gap:8px;margin-top:8px;">
                             <button class="btn btn-primary" onclick="saveServerProperties()"><i class="fas fa-save"></i> Guardar cambios</button>
