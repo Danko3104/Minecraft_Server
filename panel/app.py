@@ -69,6 +69,8 @@ PUBLIC_API_PATHS = [
     '/api/settings/check-updates',
     '/api/settings/check-plugin-compatibility',
     '/api/settings/plugin-recommendations',
+    '/api/settings/property-recommendations',
+    '/api/settings/property-recommendations/apply',
     '/api/settings/server-properties',
     '/api/servers',
 ]
@@ -509,6 +511,123 @@ def api_settings_plugin_recommendations():
         from panel.routes.plugins import get_cross_server_recommendations
         result = get_cross_server_recommendations()
         return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/property-recommendations', methods=['GET'])
+def api_settings_property_recommendations():
+    """
+    GET /api/settings/property-recommendations
+    Recomienda cambios útiles en server.properties basados en mejores prácticas.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        current = server_manager.read_server_properties(active_server) or {}
+
+        recommendations = [
+            {
+                "key": "spawn-protection",
+                "current_value": current.get("spawn-protection", "16"),
+                "recommended_value": "0",
+                "label": "Desactivar protección de spawn",
+                "description": "Permite a los jugadores construir y modificar el terreno cerca del punto de spawn.",
+                "category": "gameplay"
+            },
+            {
+                "key": "enable-command-blocks",
+                "current_value": current.get("enable-command-blocks", "false"),
+                "recommended_value": "true",
+                "label": "Activar bloques de comandos",
+                "description": "Permite usar bloques de comandos para crear mapas, minijuegos y mecanismos avanzados.",
+                "category": "gameplay"
+            },
+            {
+                "key": "max-tick-time",
+                "current_value": current.get("max-tick-time", "60000"),
+                "recommended_value": "-1",
+                "label": "Desactivar watchdog timeout",
+                "description": "Evita que el servidor se detenga por superar el límite de tick time. Útil para servidores con muchos plugins o granjas grandes.",
+                "category": "performance"
+            },
+            {
+                "key": "network-compression-threshold",
+                "current_value": current.get("network-compression-threshold", "256"),
+                "recommended_value": "256",
+                "label": "Compresión de red óptima",
+                "description": "Valor recomendado para equilibrar ancho de banda y CPU en la comunicación con jugadores.",
+                "category": "performance"
+            },
+            {
+                "key": "view-distance",
+                "current_value": current.get("view-distance", "10"),
+                "recommended_value": "8",
+                "label": "Reducir distancia de renderizado a 8",
+                "description": "Mejora el rendimiento del servidor reduciendo la distancia que se envía a los jugadores. Buena relación calidad/rendimiento.",
+                "category": "performance"
+            },
+            {
+                "key": "simulation-distance",
+                "current_value": current.get("simulation-distance", "10"),
+                "recommended_value": "6",
+                "label": "Reducir distancia de simulación a 6",
+                "description": "Reduce el área donde el servidor procesa entidades, mejorando el TPS en servidores con muchos jugadores.",
+                "category": "performance"
+            },
+            {
+                "key": "hardcore",
+                "current_value": current.get("hardcore", "false"),
+                "recommended_value": "true",
+                "label": "Activar modo hardcore",
+                "description": "Si un jugador muere, es baneado permanentemente. Dificultad máxima, sin regeneración natural.",
+                "category": "gameplay"
+            },
+            {
+                "key": "online-mode",
+                "current_value": current.get("online-mode", "true"),
+                "recommended_value": "true",
+                "label": "Mantener online-mode=true",
+                "description": "Verifica cuentas premium con Mojang. Desactivarlo permite que cualquiera entre con cualquier nombre, pero abre la puerta a ataques.",
+                "category": "security"
+            },
+        ]
+
+        return jsonify({"success": True, "recommendations": recommendations, "server": active_server})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/property-recommendations/apply', methods=['POST'])
+def api_settings_property_recommendations_apply():
+    """
+    POST /api/settings/property-recommendations/apply
+    Body: {"key": "spawn-protection", "value": "0"}
+    Aplica una propiedad recomendada al server.properties.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        data = request.get_json()
+        if not data or 'key' not in data:
+            return jsonify({"success": False, "error": "Falta 'key'"}), 400
+
+        key = data['key']
+        value = data.get('value', '')
+
+        current = server_manager.read_server_properties(active_server)
+        current[key] = value
+        success = server_manager.write_server_properties(active_server, current)
+
+        if success:
+            return jsonify({"success": True, "message": f"{key} = {value} aplicado. Se requiere reinicio."})
+        else:
+            return jsonify({"success": False, "error": "Error al guardar server.properties"}), 500
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

@@ -714,6 +714,11 @@
                             <button class="btn btn-secondary" onclick="reloadServer()" title="Recarga config sin reiniciar (no recomendado en producción)"><i class="fas fa-sync-alt"></i> Reload</button>
                         </div>
                     </div>
+                    <div class="control-card" id="property-recommendations-card" style="display:none;">
+                        <h3><i class="fas fa-lightbulb" style="color:#d29922;"></i> <span id="props-recommendations-title">Propiedades Recomendadas</span></h3>
+                        <p style="font-size:12px;color:#8b949e;margin-bottom:12px;" id="props-recommendations-desc">Ajustes sugeridos para optimizar tu servidor.</p>
+                        <div id="property-recommendations-list"></div>
+                    </div>
                 </section>
 
                 <section id="section-settings" class="section">
@@ -1246,6 +1251,13 @@
                 colab_warning_10min: '¡Quedan menos de 10 minutos de Colab!',
                 colab_warning_end: 'El tiempo de Colab ha terminado.',
                 language: 'Idioma',
+                props_recommended: 'Propiedades Recomendadas',
+                props_recommended_desc: 'Ajustes sugeridos para optimizar tu servidor.',
+                cat_gameplay: 'Juego',
+                cat_performance: 'Rendimiento',
+                cat_security: 'Seguridad',
+                btn_apply: 'Aplicar',
+                btn_applied: 'Aplicado',
             },
             en: {
                 lang_name: 'English',
@@ -1414,6 +1426,13 @@
                 colab_warning_10min: 'Less than 10 minutes of Colab remaining!',
                 colab_warning_end: 'Colab time has ended.',
                 language: 'Language',
+                props_recommended: 'Recommended Properties',
+                props_recommended_desc: 'Suggested tweaks to optimize your server.',
+                cat_gameplay: 'Gameplay',
+                cat_performance: 'Performance',
+                cat_security: 'Security',
+                btn_apply: 'Apply',
+                btn_applied: 'Applied',
             }
         };
         let currentLang = localStorage.getItem('panel-lang') || 'es';
@@ -1458,6 +1477,8 @@
             // Settings - properties
             var propsLabel = document.querySelector('#section-properties h3');
             if (propsLabel) propsLabel.innerHTML = '<i class="fas fa-sliders-h"></i> ' + t('server_properties');
+            document.getElementById('props-recommendations-title').textContent = t('props_recommended');
+            document.getElementById('props-recommendations-desc').textContent = t('props_recommended_desc');
             // Footer
             var footerName = document.querySelector('.sidebar-footer .server-name');
             if (footerName) footerName.textContent = t('active_server');
@@ -2820,6 +2841,73 @@
 
             loadServerIcon();
             loadBackups();
+            loadPropertyRecommendations();
+        }
+
+        async function loadPropertyRecommendations() {
+            const card = document.getElementById('property-recommendations-card');
+            const list = document.getElementById('property-recommendations-list');
+            const desc = document.getElementById('props-recommendations-desc');
+            try {
+                const res = await fetch('/api/settings/property-recommendations');
+                const data = await res.json();
+                if (data.success && data.recommendations && data.recommendations.length > 0) {
+                    const cats = {};
+                    data.recommendations.forEach(r => {
+                        if (!cats[r.category]) cats[r.category] = [];
+                        cats[r.category].push(r);
+                    });
+                    const catLabels = { 'gameplay': t('cat_gameplay'), 'performance': t('cat_performance'), 'security': t('cat_security') };
+                    const catIcons = { 'gameplay': 'fa-gamepad', 'performance': 'fa-tachometer-alt', 'security': 'fa-shield-alt' };
+                    list.innerHTML = Object.entries(cats).map(([cat, items]) => `
+                        <div style="margin-bottom:12px;">
+                            <div style="font-size:12px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                                <i class="fas ${catIcons[cat] || 'fa-wrench'}" style="color:#d29922;"></i> ${catLabels[cat] || cat}
+                            </div>
+                            ${items.map(r => `
+                                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:8px;margin-bottom:4px;gap:8px;">
+                                    <div style="flex:1;min-width:0;">
+                                        <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${r.label}</div>
+                                        <div style="font-size:11px;color:#8b949e;margin-top:2px;">${r.description}</div>
+                                        <div style="font-size:11px;color:#484f58;margin-top:2px;">
+                                            <code style="background:var(--bg-primary);padding:1px 5px;border-radius:3px;font-size:11px;">${r.key}</code>
+                                            <span style="color:var(--text-muted);">: ${r.current_value}</span>
+                                            <i class="fas fa-arrow-right" style="margin:0 4px;color:#3fb950;font-size:10px;"></i>
+                                            <span style="color:#3fb950;font-weight:600;">${r.recommended_value}</span>
+                                        </div>
+                                    </div>
+                                    ${r.current_value !== r.recommended_value ? `
+                                        <button class="btn btn-primary btn-sm" onclick="applyPropertyRecommendation('${r.key}','${r.recommended_value}','${r.label}')" style="flex-shrink:0;"><i class="fas fa-check"></i> ${t('btn_apply')}</button>
+                                    ` : `
+                                        <span style="font-size:11px;color:#3fb950;flex-shrink:0;white-space:nowrap;"><i class="fas fa-check-circle"></i> ${t('btn_applied')}</span>
+                                    `}
+                                </div>
+                            `).join('')}
+                        </div>
+                    `).join('');
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            } catch(e) {
+                card.style.display = 'none';
+            }
+        }
+
+        async function applyPropertyRecommendation(key, value, label) {
+            try {
+                const res = await fetch('/api/settings/property-recommendations/apply', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({key, value})
+                });
+                const data = await res.json();
+                toast(data.message || data.error, data.success ? 'success' : 'error');
+                if (data.success) {
+                    loadPropertyRecommendations();
+                    loadSettings();
+                }
+            } catch(e) { toast('Error de conexión', 'error'); }
         }
 
         function setToggle(id, on) {
