@@ -91,7 +91,7 @@
         .server-tab { padding: 8px 12px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.15s; font-family: 'Inter', sans-serif; display:inline-flex; align-items:center; gap:4px; }
         .server-tab:hover { color: var(--text-primary); background: var(--bg-card); border-radius: 6px 6px 0 0; }
         .server-tab.active { color: #3fb950; border-bottom-color: #3fb950; }
-        .server-tab .tab-icon { width: 16px; height: 16px; border-radius: 3px; object-fit: cover; flex-shrink: 0; }
+        .server-tab .tab-icon { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; flex-shrink: 0; display: inline-block; background: var(--border-subtle); }
         .server-tab .tab-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
         .server-tab .tab-dot.online { background: #3fb950; }
         .server-tab .tab-dot.offline { background: #f85149; }
@@ -1135,16 +1135,16 @@
                         const tab = document.createElement('button');
                         tab.className = 'server-tab';
                         if (s === data.active_server) tab.classList.add('active');
+                        const isOnline = data.minecraft_running && s === data.active_server;
                         const iconImg = document.createElement('img');
                         iconImg.className = 'tab-icon';
-                        iconImg.src = '/api/servers/' + encodeURIComponent(s) + '/icon?_=' + Date.now();
+                        iconImg.setAttribute('data-server', s);
                         iconImg.onerror = function() {
-                            this.style.display = 'none';
                             const dot = document.createElement('span');
-                            dot.className = 'tab-dot ' + (data.minecraft_running && s === data.active_server ? 'online' : 'offline');
-                            this.parentNode.insertBefore(dot, this);
-                            this.remove();
+                            dot.className = 'tab-dot ' + (isOnline ? 'online' : 'offline');
+                            this.replaceWith(dot);
                         };
+                        iconImg.src = '/api/servers/' + encodeURIComponent(s) + '/icon?_=' + Date.now();
                         tab.appendChild(iconImg);
                         const nameSpan = document.createElement('span');
                         nameSpan.textContent = s;
