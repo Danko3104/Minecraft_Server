@@ -10,6 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="preload" as="image" href="/static/backgrounds/dashboard.jpg">
+    <link rel="preload" as="image" href="/static/backgrounds/consola.jpg">
+    <link rel="preload" as="image" href="/static/backgrounds/jugadores.jpg">
+    <link rel="preload" as="image" href="/static/backgrounds/propiedades.jpg">
+    <link rel="preload" as="image" href="/static/backgrounds/configuracion.jpg">
+    <link rel="preload" as="image" href="/static/backgrounds/plugins.jpg">
+    <link rel="preload" as="image" href="/static/backgrounds/archivos.jpg">
+    <link rel="preload" as="image" href="/static/backgrounds/gestionar_servidor.jpg">
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -165,10 +173,10 @@
         .notif-dropdown { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: rgba(33,38,45,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 16px; width: 280px; box-shadow: 0 16px 48px rgba(0,0,0,0.4); z-index: 200; animation: modalSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
         [data-theme="light"] .notif-dropdown { background: rgba(255,255,255,0.85); border-color: rgba(0,0,0,0.06); }
         .notif-dropdown.open { display: block; }
-        .notif-dropdown h4 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 8px; }
-        .notif-dropdown .notif-option { display: flex; align-items: center; gap: 10px; padding: 7px 4px; cursor: pointer; border-radius: 6px; transition: background 0.15s; }
-        .notif-dropdown .notif-option:hover { background: var(--border-subtle); }
-        .notif-dropdown .notif-option .n-icon { width: 20px; text-align: center; font-size: 13px; color: #8b949e; }
+        .notif-dropdown h4 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 8px; }
+        .notif-dropdown .notif-option { display: flex; align-items: center; gap: 10px; padding: 8px 4px; cursor: pointer; border-radius: 8px; transition: background 0.15s; min-height: 36px; }
+        .notif-dropdown .notif-option:hover { background: rgba(255,255,255,0.04); }
+        .notif-dropdown .notif-option .n-icon { width: 20px; text-align: center; font-size: 14px; color: #8b949e; display: flex; align-items: center; justify-content: center; }
         .notif-dropdown .notif-option .n-label { flex: 1; font-size: 13px; color: var(--text-primary); }
         .notif-dropdown .notif-toggle { position: relative; width: 32px; height: 18px; flex-shrink: 0; background: var(--border-color); border-radius: 9px; transition: background 0.2s; }
         .notif-dropdown .notif-toggle.on { background: #3fb950; }
@@ -187,8 +195,9 @@
         /* SECTIONS */
         .section { display: none; animation: sectionFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; }
         .section.active { display: block; }
-        .section::before { content: ''; position: fixed; inset: 0; z-index: -1; opacity: 0.12; transition: opacity 0.5s; pointer-events: none; }
-        [data-theme="light"] .section::before { opacity: 0.05; }
+        .section::before { content: ''; position: fixed; inset: 0; z-index: -1; opacity: 0; transition: opacity 0.6s ease; pointer-events: none; background-size: cover !important; background-position: center center !important; background-repeat: no-repeat !important; }
+        .section.active::before { opacity: 0.12; }
+        [data-theme="light"] .section.active::before { opacity: 0.05; }
         #section-dashboard::before { background: url('/static/backgrounds/dashboard.jpg') center center / cover no-repeat; }
         #section-console::before { background: url('/static/backgrounds/consola.jpg') center center / cover no-repeat; }
         #section-players::before { background: url('/static/backgrounds/jugadores.jpg') center center / cover no-repeat; }
@@ -281,32 +290,34 @@
         .resource-bar .bar-fill.red { background: #f85149; }
 
         /* CONSOLE */
-        .console-wrapper { background: rgba(22,27,34,0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; overflow: hidden; position: relative; }
-        [data-theme="light"] .console-wrapper { background: rgba(255,255,255,0.5); }
-        .console-wrapper::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent-green), transparent); opacity: 0.6; }
-        .console-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); }
-        .console-header .console-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+        .console-wrapper { background: rgba(10,14,20,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.04); border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03); }
+        [data-theme="light"] .console-wrapper { background: rgba(240,242,245,0.85); border-color: rgba(0,0,0,0.04); }
+        .console-wrapper::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent-green), transparent); opacity: 0.4; }
+        .console-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.04); backdrop-filter: blur(8px); }
+        [data-theme="light"] .console-header { background: rgba(255,255,255,0.3); }
+        .console-header .console-title { font-size: 13px; font-weight: 600; color: var(--accent-green); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .console-actions { display: flex; gap: 8px; }
-        .console-actions button { padding: 4px 10px; background: var(--border-subtle); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.15s; font-family: 'Inter', sans-serif; }
-        .console-actions button:hover { background: var(--border-color); color: var(--text-primary); }
-        .console-actions button.active { background: #3fb950; color: var(--bg-primary); border-color: #3fb950; }
-        .console-output { height: 400px; overflow-y: auto; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; background: rgba(13,17,23,0.6); box-shadow: inset 0 4px 20px rgba(0,0,0,0.2); }
-        .console-output .log-line { padding: 1px 0; white-space: pre-wrap; word-break: break-all; transition: opacity 0.15s; }
-        .console-output .log-line .timestamp { color: var(--text-muted); }
+        .console-actions button { padding: 5px 12px; background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+        .console-actions button:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); border-color: rgba(255,255,255,0.08); }
+        .console-actions button.active { background: rgba(63,185,80,0.15); color: #3fb950; border-color: rgba(63,185,80,0.2); }
+        .console-output { height: 400px; overflow-y: auto; padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; background: rgba(0,0,0,0.5); box-shadow: inset 0 4px 30px rgba(0,0,0,0.3); }
+        .console-output .log-line { padding: 2px 0; white-space: pre-wrap; word-break: break-all; transition: opacity 0.15s; }
+        .console-output .log-line .timestamp { color: var(--text-muted); opacity: 0.6; }
         .console-output .log-line .level-info { color: var(--text-secondary); }
         .console-output .log-line .level-warn { color: var(--accent-yellow); }
         .console-output .log-line .level-error { color: var(--accent-red); }
         .console-output .log-line .level-connect { color: var(--accent-blue); }
         .console-output .log-line .level-player { color: var(--accent-green); }
         .console-output .log-line .cmd-echo { color: var(--accent-blue); font-weight: 500; }
-        .console-input-area { display: flex; padding: 12px 16px; background: var(--bg-card); border-top: 1px solid var(--border-subtle); gap: 8px; }
+        .console-input-area { display: flex; padding: 12px 20px; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.03); gap: 10px; backdrop-filter: blur(8px); }
         .console-input-area .input-wrapper { flex: 1; position: relative; }
-        .console-input-area input { width: 100%; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; caret-color: #3fb950; }
-        .console-input-area input:focus { border-color: #3fb950; box-shadow: 0 0 0 3px rgba(63,185,80,0.15), 0 0 24px rgba(63,185,80,0.05); }
+        .console-input-area input { width: 100%; padding: 10px 16px 10px 40px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; caret-color: #3fb950; }
+        .console-input-area input:focus { border-color: rgba(63,185,80,0.3); box-shadow: 0 0 0 3px rgba(63,185,80,0.06), 0 0 24px rgba(63,185,80,0.03); }
+        .console-input-area .input-wrapper .input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--accent-green); font-family: 'JetBrains Mono', monospace; font-size: 12px; opacity: 0.5; pointer-events: none; }
         .console-input-area input::placeholder { color: #484f58; }
-        .console-suggestions { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 16px; background: var(--bg-card); border-top: 1px solid var(--border-subtle); }
-        .console-suggestions .chip { padding: 4px 10px; background: var(--border-subtle); border: 1px solid var(--border-color); border-radius: 4px; color: #8b949e; font-size: 11px; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: all 0.15s; }
-        .console-suggestions .chip:hover { background: var(--border-color); color: var(--text-primary); }
+        .console-suggestions { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 20px; background: rgba(0,0,0,0.15); border-top: 1px solid rgba(255,255,255,0.02); backdrop-filter: blur(4px); }
+        .console-suggestions .chip { padding: 4px 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.04); border-radius: 6px; color: #8b949e; font-size: 11px; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: all 0.15s; }
+        .console-suggestions .chip:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); border-color: rgba(63,185,80,0.15); }
 
         /* PLAYERS */
         .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -381,10 +392,12 @@
         .setting-field input:focus, .setting-field select:focus { border-color: #3fb950; box-shadow: 0 0 0 3px rgba(63,185,80,0.15); }
         .props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         @media (max-width: 900px) { .props-grid { grid-template-columns: 1fr; } }
-        .setting-field .toggle-group { display: flex; gap: 8px; }
-        .setting-field .toggle-btn { padding: 8px 16px; background: var(--border-subtle); border: 1px solid var(--border-color); border-radius: 6px; color: #8b949e; cursor: pointer; font-size: 13px; transition: all 0.2s ease; font-family: 'Inter', sans-serif; }
-        .setting-field .toggle-btn.active { background: #3fb950; border-color: #3fb950; color: var(--bg-primary); box-shadow: 0 0 12px rgba(63,185,80,0.2); }
-        .setting-field .toggle-btn:hover:not(.active) { background: var(--border-color); transform: translateY(-1px); }
+        .setting-field .toggle-group { display: flex; gap: 6px; }
+        .setting-field .toggle-btn { padding: 6px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; color: #8b949e; cursor: pointer; font-size: 12px; transition: all 0.2s ease; font-family: 'Inter', sans-serif; font-weight: 500; backdrop-filter: blur(4px); }
+        [data-theme="light"] .setting-field .toggle-btn { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.06); }
+        .setting-field .toggle-btn.active { background: rgba(63,185,80,0.15); border-color: #3fb950; color: #3fb950; box-shadow: 0 0 16px rgba(63,185,80,0.12); }
+        .setting-field .toggle-btn:hover:not(.active) { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); transform: translateY(-1px); }
+        [data-theme="light"] .setting-field .toggle-btn:hover:not(.active) { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
         .setting-saved-notice { background: #3fb95020; border: 1px solid #3fb950; border-radius: 8px; padding: 12px 16px; color: #3fb950; font-size: 13px; margin-bottom: 16px; display: none; align-items: center; gap: 8px; }
 
         .update-card { background: rgba(33,38,45,0.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 24px; margin-bottom: 20px; transition: border-color 0.2s, box-shadow 0.3s; }
@@ -474,6 +487,16 @@
 </head>
 <body>
     <div class="particles"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div style="display:none;visibility:hidden;position:absolute;width:0;height:0;">
+        <img src="/static/backgrounds/dashboard.jpg" alt="">
+        <img src="/static/backgrounds/consola.jpg" alt="">
+        <img src="/static/backgrounds/jugadores.jpg" alt="">
+        <img src="/static/backgrounds/propiedades.jpg" alt="">
+        <img src="/static/backgrounds/configuracion.jpg" alt="">
+        <img src="/static/backgrounds/plugins.jpg" alt="">
+        <img src="/static/backgrounds/archivos.jpg" alt="">
+        <img src="/static/backgrounds/gestionar_servidor.jpg" alt="">
+    </div>
     <div class="container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
@@ -567,7 +590,7 @@
                 <section id="section-dashboard" class="section active">
                     <div class="control-card">
                         <h3><i class="fas fa-power-off"></i> Control del Servidor</h3>
-                        <div class="btn-group">
+                        <div class="btn-group" style="justify-content:center;">
                             <button class="btn btn-primary" id="btn-start" onclick="startServer()"><i class="fas fa-play"></i> Iniciar</button>
                             <button class="btn btn-danger" id="btn-stop" onclick="stopServer()"><i class="fas fa-stop"></i> Detener</button>
                             <button class="btn btn-warning" id="btn-restart" onclick="openRestartModal()"><i class="fas fa-sync-alt"></i> Reiniciar</button>
@@ -671,6 +694,7 @@
                         <div class="console-suggestions" id="console-suggestions"></div>
                         <div class="console-input-area">
                             <div class="input-wrapper">
+                                <span class="input-prefix">&gt;</span>
                                 <input type="text" id="console-input" placeholder="Escribe un comando..." spellcheck="false" autocomplete="off">
                             </div>
                             <button class="btn btn-primary btn-sm" onclick="sendConsoleCommand()"><i class="fas fa-arrow-right"></i></button>
