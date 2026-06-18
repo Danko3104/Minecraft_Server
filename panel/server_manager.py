@@ -1084,9 +1084,9 @@ class ServerManager:
                         pass
                 self.stop()
                 time.sleep(2)
-
-            # Backup automático del mundo actual
-            self._backup_world(server_name)
+            else:
+                # Si no estaba corriendo, el stop no hizo backup
+                self._backup_world(server_name)
 
             # Extraer a temp para inspeccionar estructura
             temp_dir = tempfile.mkdtemp()
