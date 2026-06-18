@@ -1796,6 +1796,7 @@
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('btn-restart').disabled = true;
             applyTranslations();
+            setInterval(checkServerReady, 3000);
             var savedSection = localStorage.getItem('panel-section');
             if (savedSection && savedSection !== 'dashboard') {
                 navigateTo(savedSection);
@@ -2380,6 +2381,22 @@
         }
 
         var _notifiedServerReady = false;
+        async function checkServerReady() {
+            if (_notifiedServerReady) return;
+            try {
+                const res = await fetch('/api/console/output?lines=20');
+                const data = await res.json();
+                if (data.lines) {
+                    for (var i = 0; i < data.lines.length; i++) {
+                        if (/Done \(.*\)! For help, type/.test(data.lines[i])) {
+                            _notifiedServerReady = true;
+                            sendNotification('MineColab', 'Servidor listo para entrar', 'server_ready');
+                            break;
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
         var _consoleLineCount = 0;
 
         async function loadConsoleOutput() {
