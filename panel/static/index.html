@@ -921,6 +921,19 @@
         </div>
     </div>
 
+    <!-- PLUGIN COMPATIBILITY WARNING MODAL -->
+    <div class="modal-overlay" id="modal-plugin-warning" onclick="">
+        <div class="modal" style="max-width:520px;">
+            <h2><i class="fas fa-exclamation-triangle" style="color:#d29922;"></i> Plugins incompatibles detectados</h2>
+            <p style="color:#8b949e;font-size:13px;margin:8px 0 16px 0;">Los siguientes plugins/mods no tienen versión compatible con la versión destino. Serán eliminados automáticamente si continúas.</p>
+            <div id="plugin-warning-list" style="max-height:300px;overflow-y:auto;border:1px solid #30363d;border-radius:8px;margin-bottom:16px;"></div>
+            <div class="modal-actions" style="display:flex;gap:8px;">
+                <button class="btn btn-danger" id="btn-plugin-warning-confirm"><i class="fas fa-trash-alt"></i> Eliminar incompatibles y actualizar</button>
+                <button class="btn btn-secondary" id="btn-plugin-warning-cancel"><i class="fas fa-times"></i> Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST CONTAINER -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -2165,6 +2178,62 @@
             const doFullBackup = document.getElementById('chk-full-backup')?.checked || false;
             const stepsDiv = document.getElementById('update-steps');
             stepsDiv.style.display = 'block';
+            stepsDiv.innerHTML = '<div class="step active"><i class="fas fa-spinner fa-spin"></i> Verificando compatibilidad de plugins...</div>';
+
+            try {
+                const compatRes = await fetch('/api/settings/check-plugin-compatibility', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({version})
+                });
+                const compatData = await compatRes.json();
+
+                if (compatData.incompatible && compatData.incompatible.length > 0) {
+                    const modal = document.getElementById('modal-plugin-warning');
+                    const list = document.getElementById('plugin-warning-list');
+                    const confirmBtn = document.getElementById('btn-plugin-warning-confirm');
+                    const cancelBtn = document.getElementById('btn-plugin-warning-cancel');
+                    list.innerHTML = compatData.incompatible.map(p =>
+                        `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #30363d;">
+                            <span><strong style="color:#f85149;">${p.name}</strong><br>
+                            <span style="font-size:12px;color:#8b949e;">${p.reason}</span></span>
+                            <span style="font-size:11px;color:#484f58;">${p.latest_version || ''} ${p.latest_game_versions ? '('+p.latest_game_versions.join(', ')+')' : ''}</span>
+                        </div>`
+                    ).join('');
+                    modal.style.display = 'flex';
+                    return new Promise(resolve => {
+                        confirmBtn.onclick = async function() {
+                            modal.style.display = 'none';
+                            for (const p of compatData.incompatible) {
+                                try {
+                                    await fetch('/api/plugins/uninstall', {
+                                        method: 'POST',
+                                        headers: {'Content-Type':'application/json'},
+                                        body: JSON.stringify({file: p.file})
+                                    });
+                                } catch(e) {}
+                            }
+                            startUpdate(version, doFullBackup, stepsDiv);
+                            resolve();
+                        };
+                        cancelBtn.onclick = function() {
+                            modal.style.display = 'none';
+                            stepsDiv.style.display = 'none';
+                            stepsDiv.innerHTML = '';
+                            resolve();
+                        };
+                    });
+                }
+                if (compatData.unknown && compatData.unknown.length > 0) {
+                    stepsDiv.innerHTML = `<div class="step" style="color:#d29922;"><i class="fas fa-exclamation-triangle"></i> ${compatData.unknown.length} plugin(s) no pudieron verificarse. Continuando...</div>`;
+                }
+            } catch(e) {
+                stepsDiv.innerHTML = `<div class="step" style="color:#d29922;"><i class="fas fa-exclamation-triangle"></i> No se pudo verificar compatibilidad: ${e.message}. Continuando...</div>`;
+            }
+            setTimeout(() => startUpdate(version, doFullBackup, stepsDiv), 500);
+        }
+
+        async function startUpdate(version, doFullBackup, stepsDiv) {
             let stepsHtml = `
                 <div class="step" id="step-stop"><i class="fas fa-circle"></i> Deteniendo servidor...</div>
                 <div class="step" id="step-backup"><i class="fas fa-circle"></i> Haciendo backup del mundo...</div>`;

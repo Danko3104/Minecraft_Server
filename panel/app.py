@@ -67,6 +67,7 @@ PUBLIC_API_PATHS = [
     '/api/software/versions',
     '/api/settings/server-icon',
     '/api/settings/check-updates',
+    '/api/settings/check-plugin-compatibility',
     '/api/settings/server-properties',
     '/api/servers',
 ]
@@ -394,6 +395,27 @@ def api_settings_paper_version():
 
         version = server_manager.get_paper_version(active_server)
         return jsonify({"success": True, "version": version or "Desconocida"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/check-plugin-compatibility', methods=['POST'])
+def api_settings_check_plugin_compatibility():
+    """
+    POST /api/settings/check-plugin-compatibility
+    Body: {"version": "1.21.1"}
+    Verifica compatibilidad de plugins/mods con la versión destino.
+    """
+    try:
+        data = request.get_json()
+        target_version = data.get('version', '') if data else ''
+        if not target_version:
+            return jsonify({"success": False, "error": "Falta 'version'"}), 400
+
+        from panel.routes.plugins import check_plugins_compatibility
+        result = check_plugins_compatibility(target_version)
+        return jsonify(result)
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

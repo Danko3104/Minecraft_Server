@@ -426,6 +426,78 @@ def list_installed():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+def check_plugins_compatibility(target_version: str) -> dict:
+    """
+    Verifica la compatibilidad de todos los plugins/mods instalados
+    contra una versión específica de Minecraft.
+    Retorna listas de: compatibles, incompatibles y no verificados.
+    """
+    target_dir = _get_content_dir()
+    if not target_dir or not os.path.exists(target_dir):
+        return {"success": True, "compatible": [], "incompatible": [], "unknown": []}
+
+    info = _get_content_info()
+    loaders = info['modloaders'] or ['paper']
+    project_type = info['project_type'] or 'plugin'
+    major = '.'.join(target_version.split('.')[:2])
+
+    compatible = []
+    incompatible = []
+    unknown = []
+
+    for f in sorted(os.listdir(target_dir)):
+        if not f.endswith('.jar'):
+            continue
+        plugin_name = f.replace('.jar', '')
+
+        facets = [[f'project_type:{project_type}']]
+        try:
+            res = requests.get(
+                f'{MODRINTH_API}/search',
+                params={'query': plugin_name, 'facets': json.dumps(facets), 'limit': 1},
+                timeout=10
+            )
+            if not res.ok:
+                unknown.append({"name": plugin_name, "file": f, "reason": f"Error API: {res.status_code}"})
+                continue
+            data = res.json()
+            hits = data.get('hits', [])
+            if not hits:
+                unknown.append({"name": plugin_name, "file": f, "reason": "No encontrado en Modrinth"})
+                continue
+
+            slug = hits[0].get('slug', '')
+            dl_info = get_modrinth_download(slug, major, loaders)
+
+            if dl_info['supported'] and dl_info['url']:
+                compatible.append({
+                    "name": plugin_name,
+                    "file": f,
+                    "slug": slug,
+                    "version": dl_info['version_name'],
+                    "game_versions": dl_info.get('game_versions', [])
+                })
+            else:
+                incompatible.append({
+                    "name": plugin_name,
+                    "file": f,
+                    "slug": slug,
+                    "reason": dl_info.get('error', 'No compatible'),
+                    "latest_version": dl_info.get('version_name', '?'),
+                    "latest_game_versions": dl_info.get('game_versions', [])
+                })
+        except Exception as e:
+            unknown.append({"name": plugin_name, "file": f, "reason": str(e)})
+
+    return {
+        "success": True,
+        "target_version": target_version,
+        "compatible": compatible,
+        "incompatible": incompatible,
+        "unknown": unknown,
+        "total": len(compatible) + len(incompatible) + len(unknown)
+    }
+
 def _get_plugin_updates() -> dict:
     target_dir = _get_content_dir()
     if not target_dir or not os.path.exists(target_dir):
