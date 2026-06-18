@@ -48,7 +48,9 @@ def login():
             return jsonify({"success": False, "error": "Falta 'password' en el body"}), 400
 
         config = get_global_config()
-        expected = config.get('panel_password', 'minecolab2024')
+        expected = config.get('panel_password')
+        if not expected:
+            return jsonify({"success": False, "error": "No hay contraseña configurada"}), 500
 
         if data['password'] != expected:
             return jsonify({"success": False, "error": "Contraseña incorrecta"}), 401

@@ -7,12 +7,14 @@ import os
 import re
 import json
 import time
+import shutil
+import tempfile
 import threading
 import subprocess
 import requests
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 
 from panel.drive import (
     DRIVE_PATH,
@@ -854,5 +856,56 @@ def rename_server_route(server_name):
         else:
             return jsonify({"success": False, "error": result.get("error", "Error al renombrar")}), 400
 
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@servers_bp.route('/servers/<server_name>/export', methods=['GET'])
+def export_server_route(server_name):
+    try:
+        from panel.drive import DRIVE_PATH
+        server_path = os.path.join(DRIVE_PATH, server_name)
+        if not os.path.exists(server_path):
+            return jsonify({"success": False, "error": "Servidor no encontrado"}), 404
+        tmp = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+        shutil.make_archive(tmp_path[:-4], 'zip', server_path)
+        return send_file(tmp_path, as_attachment=True, download_name=f'{server_name}.zip', mimetype='application/zip')
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@servers_bp.route('/servers/import', methods=['POST'])
+def import_server_route():
+    try:
+        from panel.drive import DRIVE_PATH, list_servers, save_global_config, get_global_config
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "Falta archivo ZIP"}), 400
+        f = request.files['file']
+        if not f.filename.endswith('.zip'):
+            return jsonify({"success": False, "error": "Solo archivos .zip"}), 400
+        desired_name = request.form.get('server_name', '').strip()
+        if not desired_name:
+            desired_name = f.filename.replace('.zip', '')
+        if not re.match(r'^[a-zA-Z0-9_-]+$', desired_name):
+            return jsonify({"success": False, "error": "El nombre solo puede contener letras, números, guiones y guiones bajos"}), 400
+        server_path = os.path.join(DRIVE_PATH, desired_name)
+        if os.path.exists(server_path):
+            return jsonify({"success": False, "error": f"Ya existe un servidor llamado '{desired_name}'"}), 400
+        os.makedirs(server_path, exist_ok=True)
+        tmp = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+        f.save(tmp_path)
+        shutil.unpack_archive(tmp_path, server_path, 'zip')
+        os.unlink(tmp_path)
+        config = get_global_config()
+        servers = config.get('server_list', [])
+        if desired_name not in servers:
+            servers.append(desired_name)
+        config['server_list'] = servers
+        save_global_config(config)
+        return jsonify({"success": True, "message": f"Servidor '{desired_name}' importado correctamente"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

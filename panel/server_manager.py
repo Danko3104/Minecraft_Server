@@ -247,7 +247,6 @@ class ServerManager:
                         if self._log_file_handle and not self._log_file_handle.closed:
                             self._log_file_handle.write(f'[{timestamp}] {line}\n')
                             self._log_file_handle.flush()
-                        # Mantener solo las últimas 200 líneas
                         if len(self.last_output_lines) > 200:
                             self.last_output_lines.pop(0)
             except Exception as e:
@@ -259,7 +258,69 @@ class ServerManager:
 
         output_thread = threading.Thread(target=read_output, daemon=True)
         output_thread.start()
+
+        self._start_stats_recorder()
         return output_thread
+
+    def _start_stats_recorder(self):
+        def record_stats():
+            while self.is_running():
+                try:
+                    server_name = self._current_server
+                    if server_name:
+                        stats_path = os.path.join(self.get_server_path(server_name), 'logs', 'stats_history.json')
+                        os.makedirs(os.path.dirname(stats_path), exist_ok=True)
+                        import psutil
+                        pid = self.process.pid if self.process else None
+                        ram_mb = 0
+                        cpu_percent = 0
+                        if pid:
+                            try:
+                                proc = psutil.Process(pid)
+                                ram_mb = proc.memory_info().rss / 1048576
+                                cpu_percent = proc.cpu_percent(interval=0.3)
+                            except Exception:
+                                pass
+                        player_count = 0
+                        if MCRCON_AVAILABLE:
+                            try:
+                                from mcrcon import RCon
+                                with RCon("localhost", self.rcon_port, self.rcon_password) as rcon:
+                                    resp = rcon.command('list')
+                                    if resp and ':' in resp:
+                                        import re as _re
+                                        m = _re.search(r'(\d+)\s*/\s*(\d+)', resp)
+                                        if m: player_count = int(m.group(1))
+                            except Exception:
+                                pass
+                        entry = {
+                            "t": datetime.now().strftime('%H:%M:%S'),
+                            "ram": round(ram_mb, 1),
+                            "cpu": round(cpu_percent, 1),
+                            "players": player_count
+                        }
+                        history = []
+                        if os.path.exists(stats_path):
+                            try:
+                                with open(stats_path, 'r') as f:
+                                    history = json.load(f)
+                            except Exception:
+                                pass
+                        history.append(entry)
+                        max_points = 120
+                        if len(history) > max_points:
+                            history = history[-max_points:]
+                        with open(stats_path, 'w') as f:
+                            json.dump(history, f)
+                except Exception as e:
+                    print(f"[ERROR] stats_recorder: {e}")
+                for _ in range(60):
+                    if not self.is_running():
+                        return
+                    time.sleep(1)
+
+        t = threading.Thread(target=record_stats, daemon=True)
+        t.start()
 
     def _check_java_installed(self) -> Dict:
         """

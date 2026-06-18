@@ -67,3 +67,21 @@ def dashboard_java_info():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@dashboard_bp.route('/history', methods=['GET'])
+def dashboard_history():
+    try:
+        from panel.server_manager import server_manager
+        from panel.drive import get_active_server
+        active = get_active_server()
+        if not active:
+            return jsonify({"success": True, "points": []})
+        stats_path = os.path.join(server_manager.get_server_path(active), 'logs', 'stats_history.json')
+        if not os.path.exists(stats_path):
+            return jsonify({"success": True, "points": []})
+        with open(stats_path, 'r') as f:
+            history = json.load(f)
+        return jsonify({"success": True, "points": history})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

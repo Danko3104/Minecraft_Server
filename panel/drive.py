@@ -38,8 +38,7 @@ DEFAULT_GLOBAL_CONFIG = {
     "notifications": {
         "discord_webhook": "",
         "enabled": False
-    },
-    "panel_password": "minecolab2024"
+    }
 }
 
 DEFAULT_SERVER_CONFIG = {
