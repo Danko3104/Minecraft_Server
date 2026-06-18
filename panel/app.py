@@ -350,17 +350,29 @@ def api_server_stats():
         if not server_manager.is_running():
             return jsonify({"success": False, "error": "Servidor no está corriendo"}), 400
 
+        # Obtener TPS por RCON, con fallback a last_output
+        tps_values = []
         tps_resp = server_manager.send_command('tps')
+        import re
+        if tps_resp and tps_resp != "Comando enviado":
+            numbers = re.findall(r'\b\d+\.\d+\b', tps_resp)
+            if len(numbers) >= 3:
+                tps_values = [float(v) for v in numbers[:3]]
+            else:
+                numbers = re.findall(r'\b(\d+)\b', tps_resp)
+                filtered = [float(v) for v in numbers if 0 <= float(v) <= 20.0]
+                if len(filtered) >= 3:
+                    tps_values = filtered[:3]
+        if not tps_values:
+            for line in reversed(server_manager.get_last_output()):
+                if 'tps' in line.lower():
+                    m = re.findall(r'\b\d+\.\d+\b', line)
+                    if len(m) >= 3:
+                        tps_values = [float(v) for v in m[:3]]
+                        break
+
         ram_bytes = psutil.Process(server_manager.process.pid).memory_info().rss if server_manager.process else 0
         cpu_percent = psutil.Process(server_manager.process.pid).cpu_percent(interval=0.5) if server_manager.process else 0
-
-        tps_values = []
-        if tps_resp and 'TPS is' in tps_resp:
-            import re
-            parts = tps_resp.split('TPS is')[-1].strip()
-            m = re.findall(r'(\d+\.?\d*)', parts)
-            if m:
-                tps_values = [float(v) for v in m[:3]]
 
         return jsonify({
             "success": True,
