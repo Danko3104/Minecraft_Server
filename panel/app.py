@@ -315,11 +315,13 @@ def api_server_stats():
         ram_bytes = psutil.Process(server_manager.process.pid).memory_info().rss if server_manager.process else 0
         cpu_percent = psutil.Process(server_manager.process.pid).cpu_percent(interval=0.5) if server_manager.process else 0
 
-        import re
         tps_values = []
-        m = re.findall(r'(?:§[a-z])?(\d+\.\d+)', tps_resp)
-        if m:
-            tps_values = [float(v) for v in m[:3]]
+        if tps_resp and 'TPS is' in tps_resp:
+            import re
+            parts = tps_resp.split('TPS is')[-1].strip()
+            m = re.findall(r'(\d+\.?\d*)', parts)
+            if m:
+                tps_values = [float(v) for v in m[:3]]
 
         return jsonify({
             "success": True,
