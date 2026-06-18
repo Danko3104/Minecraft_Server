@@ -187,18 +187,16 @@
         /* SECTIONS */
         .section { display: none; animation: sectionFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; }
         .section.active { display: block; }
-        .section::before { content: ''; position: fixed; inset: 0; z-index: -1; opacity: 0.15; transition: opacity 0.5s; pointer-events: none; animation: bgPan 60s linear infinite; }
-        [data-theme="light"] .section::before { opacity: 0.07; }
-        @keyframes bgPan { 0% { background-position: 0 0; } 100% { background-position: 64px 64px; } }
-        [data-theme="light"] .section::before { opacity: 0.07; }
-        #section-dashboard::before { background: #5B8731; background-image: repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0,0,0,0.06) 8px, rgba(0,0,0,0.06) 16px), repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.04) 8px, rgba(0,0,0,0.04) 16px), linear-gradient(180deg, #7CBD5E 0%, #7CBD5E 22%, #8B5E3C 22%, #8B5E3C 100%); }
-        #section-console::before { background: #606060; background-image: repeating-linear-gradient(0deg, transparent, transparent 12px, rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 13px), repeating-linear-gradient(90deg, transparent, transparent 12px, rgba(0,0,0,0.06) 12px, rgba(0,0,0,0.06) 13px), radial-gradient(circle at 25% 30%, #505050 2px, transparent 2px), radial-gradient(circle at 60% 70%, #484848 3px, transparent 3px), radial-gradient(circle at 80% 20%, #505050 2px, transparent 2px), radial-gradient(circle at 10% 80%, #484848 1px, transparent 1px); }
-        #section-players::before { background: #C4C1A9; background-image: repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(0,0,0,0.04) 10px, rgba(0,0,0,0.04) 11px), repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 11px), radial-gradient(ellipse at 20% 40%, #ACA98D 6px, transparent 6px), radial-gradient(ellipse at 70% 60%, #B5B296 4px, transparent 4px), radial-gradient(ellipse at 45% 80%, #ACA98D 5px, transparent 5px), radial-gradient(ellipse at 85% 15%, #B5B296 3px, transparent 3px); }
-        #section-properties::before { background: #B5823A; background-image: repeating-linear-gradient(0deg, transparent, transparent 16px, #9E6E2E 16px, #9E6E2E 17px), repeating-linear-gradient(90deg, transparent, transparent 16px, #9E6E2E 16px, #9E6E2E 17px); }
-        #section-settings::before { background: #3A3A3A; background-image: radial-gradient(circle at 15% 25%, #C0392B 2px, transparent 2px), radial-gradient(circle at 35% 55%, #E74C3C 1px, transparent 1px), radial-gradient(circle at 55% 15%, #C0392B 2px, transparent 2px), radial-gradient(circle at 75% 65%, #E74C3C 1px, transparent 1px), radial-gradient(circle at 90% 35%, #C0392B 2px, transparent 2px), repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0,0,0,0.06) 8px, rgba(0,0,0,0.06) 16px), repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.04) 8px, rgba(0,0,0,0.04) 16px); }
-        #section-plugins::before { background: #6D4C2A; background-image: repeating-linear-gradient(0deg, transparent, transparent 14px, #5C3D1F 14px, #5C3D1F 16px), repeating-linear-gradient(90deg, transparent, transparent 60px, #5C3D1F 60px, #5C3D1F 62px); }
-        #section-files::before { background: #7A4E2D; background-image: repeating-linear-gradient(0deg, transparent, transparent 16px, #6B3F1F 16px, #6B3F1F 17px), repeating-linear-gradient(90deg, transparent, transparent 16px, #6B3F1F 16px, #6B3F1F 17px), linear-gradient(45deg, transparent 48%, #D4A24E 48%, #D4A24E 52%, transparent 52%); background-size: auto, auto, 32px 32px; }
-        #section-manage-server::before { background: #2C2C2C; background-image: linear-gradient(135deg, #3A3A3A 25%, transparent 25%, transparent 50%, #3A3A3A 50%, #3A3A3A 75%, transparent 75%, transparent); background-size: 20px 20px; }
+        .section::before { content: ''; position: fixed; inset: 0; z-index: -1; opacity: 0.12; transition: opacity 0.5s; pointer-events: none; }
+        [data-theme="light"] .section::before { opacity: 0.05; }
+        #section-dashboard::before { background: url('/static/backgrounds/dashboard.jpeg') center center / cover no-repeat; }
+        #section-console::before { background: url('/static/backgrounds/consola.png') center center / cover no-repeat; }
+        #section-players::before { background: url('/static/backgrounds/jugadores.png') center center / cover no-repeat; }
+        #section-properties::before { background: url('/static/backgrounds/propiedades.png') center center / cover no-repeat; }
+        #section-settings::before { background: url('/static/backgrounds/configuracion.png') center center / cover no-repeat; }
+        #section-plugins::before { background: url('/static/backgrounds/plugins.png') center center / cover no-repeat; }
+        #section-files::before { background: url('/static/backgrounds/archivos.png') center center / cover no-repeat; }
+        #section-manage-server::before { background: url('/static/backgrounds/gestionar_servidor.png') center center / cover no-repeat; }
         @keyframes sectionFadeIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
         /* CARDS */
