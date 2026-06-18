@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PanelCraft</title>
+    <title>MineColab Panel</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Crect x='5' y='7' width='12' height='9' rx='2' fill='%23f9a8d4'/%3E%3Crect x='3' y='8' width='2' height='3' rx='1' fill='%23f472b6'/%3E%3Crect x='17' y='8' width='2' height='3' rx='1' fill='%23f472b6'/%3E%3Crect x='3' y='12' width='2' height='2' rx='1' fill='%23f472b6'/%3E%3Crect x='17' y='12' width='2' height='2' rx='1' fill='%23f472b6'/%3E%3Crect x='8' y='10' width='2' height='2' rx='1' fill='%231c1917'/%3E%3Crect x='12' y='10' width='2' height='2' rx='1' fill='%231c1917'/%3E%3Crect x='10' y='12' width='2' height='1' fill='%23f472b6'/%3E%3Crect x='6' y='6' width='2' height='1' rx='1' fill='%23f472b6'/%3E%3Crect x='14' y='6' width='2' height='1' rx='1' fill='%23f472b6'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,19 +12,18 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         :root {
-            --bg-primary: var(--bg-primary);
-            --bg-secondary: var(--bg-secondary);
-            --bg-card: var(--bg-card);
-            --border-color: var(--border-color);
-            --border-subtle: var(--border-subtle);
-            --text-primary: var(--text-primary);
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #21262d;
+            --border-color: #30363d;
+            --border-subtle: #21262d;
+            --text-primary: #e6edf3;
             --text-secondary: #8b949e;
             --text-muted: #484f58;
             --accent-blue: #58a6ff;
             --accent-green: #3fb950;
             --accent-red: #f85149;
             --accent-yellow: #d29922;
-            --sidebar-width: 220px;
         }
         [data-theme="light"] {
             --bg-primary: #f6f8fa;
@@ -50,10 +49,24 @@
         .container { display: flex; min-height: 100vh; }
 
         /* SIDEBAR */
-        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+        .sidebar { width: 260px; background: var(--bg-secondary); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; transition: width 0.25s ease; }
+        .sidebar.collapsed { width: 60px; }
+        .sidebar.collapsed .sidebar-logo h1,
+        .sidebar.collapsed .nav-text,
+        .sidebar.collapsed .sidebar-footer .footer-text,
+        .sidebar.collapsed .sidebar-footer .server-name,
+        .sidebar.collapsed .sidebar-footer .server-value { display: none; }
+        .sidebar.collapsed .sidebar-logo { justify-content: center; padding: 16px; gap: 0; }
+        .sidebar.collapsed .sidebar-nav { padding: 12px 8px; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: 12px; }
+        .sidebar.collapsed .nav-item i { margin: 0; }
+        .sidebar.collapsed .sidebar-footer { padding: 12px 8px; align-items: center; }
+        .sidebar.collapsed .sidebar-footer .footer-row { justify-content: center; }
+        .sidebar-collapse-btn { background: none; border: none; color: #8b949e; cursor: pointer; padding: 6px; font-size: 13px; border-radius: 6px; transition: color 0.15s; flex-shrink: 0; }
+        .sidebar-collapse-btn:hover { color: var(--text-primary); }
         .sidebar-logo { padding: 24px 20px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 12px; }
-        .sidebar-logo .logo-icon { width: 36px; height: 36px; background: #3fb950; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--bg-primary); }
-        .sidebar-logo h1 { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+        .sidebar-logo .logo-icon { width: 36px; height: 36px; background: #3fb950; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--bg-primary); flex-shrink: 0; }
+        .sidebar-logo h1 { font-size: 18px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
         .sidebar-logo h1 span { color: #3fb950; }
         .sidebar-nav { flex: 1; padding: 16px 12px; }
         .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: #8b949e; text-decoration: none; border-radius: 8px; margin-bottom: 4px; transition: all 0.15s; cursor: pointer; font-size: 14px; font-weight: 500; border: none; background: none; width: 100%; text-align: left; }
@@ -354,7 +367,7 @@
     <div class="container">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="sidebar-logo">
+            <div class="sidebar-logo" onclick="toggleSidebar()" style="cursor:pointer;">
                 <div class="logo-icon"><i class="fas fa-cube"></i></div>
                 <h1>Mine<span>Colab</span></h1>
             </div>
@@ -394,10 +407,12 @@
                 </div>
             </nav>
             <div class="sidebar-footer">
-                <div class="server-name">Servidor activo</div>
-                <div class="server-value" id="sidebar-active-server">---</div>
-                <div style="margin-top:10px;display:flex;gap:8px;">
-                    <span onclick="toggleTheme()" style="cursor:pointer;font-size:14px;color:var(--text-secondary);" id="theme-toggle-icon" title="Cambiar tema"><i class="fas fa-moon"></i></span>
+                <div class="footer-text">
+                    <div class="server-name">Servidor activo</div>
+                    <div class="server-value" id="sidebar-active-server">---</div>
+                </div>
+                <div class="footer-row" style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+                    <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="Colapsar sidebar" style="margin-left:auto;"><i class="fas fa-chevron-left"></i></button>
                 </div>
             </div>
         </aside>
@@ -407,6 +422,7 @@
             <!-- HEADER -->
             <header class="header">
                 <div class="header-left">
+                    <img id="header-server-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="width:32px;height:32px;border-radius:6px;display:none;object-fit:cover;background:var(--bg-secondary);border:1px solid var(--border-subtle);">
                     <h2 id="section-title">Dashboard</h2>
                     <div class="server-tabs" id="server-tabs"></div>
                     <button class="btn-new-server" onclick="openNewServerModal()"><i class="fas fa-plus"></i> Nuevo</button>
@@ -426,6 +442,7 @@
                             </div>
                         </div>
                     </div>
+                    <span onclick="toggleTheme()" style="cursor:pointer;font-size:16px;color:var(--text-secondary);padding:6px 8px;border-radius:8px;transition:all 0.15s;" id="theme-toggle-icon" title="Cambiar tema" onmouseover="this.style.background='var(--bg-card)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)'"><i class="fas fa-moon"></i></span>
                     <div class="status-badge">
                         <div class="status-dot" id="status-dot"></div>
                         <span id="status-text">Cargando...</span>
@@ -1135,6 +1152,7 @@
                 }
 
                 document.getElementById('sidebar-active-server').textContent = data.active_server || 'Ninguno';
+                loadHeaderServerIcon();
 
                 const cardStatus = document.getElementById('card-status');
                 if (data.minecraft_running) {
@@ -2069,6 +2087,21 @@
             document.getElementById('modal-new-error').style.display = 'none';
 
         }
+
+        // ============ SIDEBAR TOGGLE ============
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('collapsed');
+            const btn = sidebar.querySelector('.sidebar-collapse-btn i');
+            btn.className = sidebar.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+            localStorage.setItem('panel-sidebar', sidebar.classList.contains('collapsed') ? 'collapsed' : '');
+        }
+        (function initSidebar() {
+            if (localStorage.getItem('panel-sidebar') === 'collapsed') {
+                document.querySelector('.sidebar').classList.add('collapsed');
+                document.querySelector('.sidebar-collapse-btn i').className = 'fas fa-chevron-right';
+            }
+        })();
 
         // ============ THEME TOGGLE ============
         function toggleTheme() {
@@ -3293,6 +3326,23 @@
                     preview.innerHTML = `<img src="${url}" style="width:64px;height:64px;border-radius:6px;">`;
                 }
             } catch(e) {}
+        }
+
+        async function loadHeaderServerIcon() {
+            const img = document.getElementById('header-server-icon');
+            if (img._blobUrl) URL.revokeObjectURL(img._blobUrl);
+            try {
+                const res = await fetch('/api/settings/server-icon?_=' + Date.now());
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    img._blobUrl = url;
+                    img.style.display = 'block';
+                    img.src = url;
+                } else {
+                    img.style.display = 'none';
+                }
+            } catch(e) { img.style.display = 'none'; }
         }
 
         async function uploadServerIcon(event) {
