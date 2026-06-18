@@ -126,7 +126,11 @@ def index():
     Ruta principal - sirve el archivo HTML del panel.
     """
     try:
-        return send_from_directory('static', 'index.html')
+        resp = send_from_directory('static', 'index.html')
+        resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        resp.headers['Pragma'] = 'no-cache'
+        resp.headers['Expires'] = '0'
+        return resp
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
