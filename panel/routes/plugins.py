@@ -129,7 +129,7 @@ def get_modrinth_download(slug: str, major_version: str, loaders: list = None) -
                 'error': f'No hay versión compatible con {major_version}. '
                          f'Última disponible: {versions[0].get("name", "?")} '
                          f'(para Minecraft {", ".join(versions[0].get("game_versions", []))})',
-                'dependencies': []
+                'dependencies': versions[0].get('dependencies', []) if versions else []
             }
 
         jar_url = None
@@ -430,11 +430,13 @@ def check_plugins_compatibility(target_version: str) -> dict:
     """
     Verifica la compatibilidad de todos los plugins/mods instalados
     contra una versión específica de Minecraft.
-    Retorna listas de: compatibles, incompatibles y no verificados.
+    También resuelve dependencias: si un plugin incompatible tiene
+    dependencias que solo usa él, se marcan para eliminar también.
+    Retorna listas de: compatibles, incompatibles, no verificados y dependencias huérfanas.
     """
     target_dir = _get_content_dir()
     if not target_dir or not os.path.exists(target_dir):
-        return {"success": True, "compatible": [], "incompatible": [], "unknown": []}
+        return {"success": True, "compatible": [], "incompatible": [], "unknown": [], "orphaned_deps": []}
 
     info = _get_content_info()
     loaders = info['modloaders'] or ['paper']
@@ -475,7 +477,8 @@ def check_plugins_compatibility(target_version: str) -> dict:
                     "file": f,
                     "slug": slug,
                     "version": dl_info['version_name'],
-                    "game_versions": dl_info.get('game_versions', [])
+                    "game_versions": dl_info.get('game_versions', []),
+                    "dependencies": dl_info.get('dependencies', [])
                 })
             else:
                 incompatible.append({
@@ -484,10 +487,48 @@ def check_plugins_compatibility(target_version: str) -> dict:
                     "slug": slug,
                     "reason": dl_info.get('error', 'No compatible'),
                     "latest_version": dl_info.get('version_name', '?'),
-                    "latest_game_versions": dl_info.get('game_versions', [])
+                    "latest_game_versions": dl_info.get('game_versions', []),
+                    "dependencies": dl_info.get('dependencies', [])
                 })
         except Exception as e:
             unknown.append({"name": plugin_name, "file": f, "reason": str(e)})
+
+    # Resolver dependencias huérfanas: dependencias requeridas de plugins incompatibles
+    # que NO son usadas por ningún plugin compatible
+    installed_names = {f.replace('.jar', '') for f in os.listdir(target_dir) if f.endswith('.jar')} if target_dir else set()
+    compatible_slugs = {p['slug'] for p in compatible}
+    incompatible_slugs = {p['slug'] for p in incompatible}
+    all_compat_dep_ids = set()
+    for p in compatible:
+        for dep in p.get('dependencies', []):
+            if dep.get('dependency_type') == 'required':
+                all_compat_dep_ids.add(dep.get('project_id', ''))
+
+    orphaned_deps = []
+    for p in incompatible:
+        for dep in p.get('dependencies', []):
+            if dep.get('dependency_type') != 'required':
+                continue
+            dep_id = dep.get('project_id', '')
+            if not dep_id:
+                continue
+            if dep_id in all_compat_dep_ids:
+                continue
+            dep_slug = _lookup_project_slug(dep_id)
+            installed_file = None
+            for name in installed_names:
+                if name.lower() == dep_slug.lower():
+                    installed_file = name + '.jar'
+                    break
+                if dep_slug.lower() in name.lower() or name.lower() in dep_slug.lower():
+                    installed_file = name + '.jar'
+                    break
+            if installed_file and dep_slug not in compatible_slugs and dep_slug not in incompatible_slugs:
+                orphaned_deps.append({
+                    "name": dep_slug,
+                    "file": installed_file,
+                    "reason": f"Dependencia requerida de '{p['name']}' (incompatible)"
+                })
 
     return {
         "success": True,
@@ -495,7 +536,8 @@ def check_plugins_compatibility(target_version: str) -> dict:
         "compatible": compatible,
         "incompatible": incompatible,
         "unknown": unknown,
-        "total": len(compatible) + len(incompatible) + len(unknown)
+        "orphaned_deps": orphaned_deps,
+        "total": len(compatible) + len(incompatible) + len(unknown) + len(orphaned_deps)
     }
 
 def _get_plugin_updates() -> dict:
