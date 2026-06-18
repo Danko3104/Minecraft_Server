@@ -1130,30 +1130,60 @@
                 // Renderizar tabs de servidores
                 const tabsContainer = document.getElementById('server-tabs');
                 tabsContainer.innerHTML = '';
-                if (data.servers && data.servers.length > 0) {
-                    data.servers.forEach(s => {
-                        const tab = document.createElement('button');
-                        tab.className = 'server-tab';
-                        if (s === data.active_server) tab.classList.add('active');
-                        const isOnline = data.minecraft_running && s === data.active_server;
-                        const iconImg = document.createElement('img');
-                        iconImg.className = 'tab-icon';
-                        iconImg.setAttribute('data-server', s);
-                        iconImg.onerror = function() {
-                            const dot = document.createElement('span');
-                            dot.className = 'tab-dot ' + (isOnline ? 'online' : 'offline');
-                            this.replaceWith(dot);
-                        };
-                        iconImg.src = '/api/servers/' + encodeURIComponent(s) + '/icon?_=' + Date.now();
-                        tab.appendChild(iconImg);
-                        const nameSpan = document.createElement('span');
-                        nameSpan.textContent = s;
-                        tab.appendChild(nameSpan);
-                        tab.onclick = function() { if (s !== data.active_server) selectServer(s); };
-                        tabsContainer.appendChild(tab);
-                    });
-                } else {
-                    tabsContainer.innerHTML = '<span style="font-size:13px;color:#484f58;padding:8px 0;">Sin servidores</span>';
+                const currentNames = data.servers || [];
+                const existingTabs = tabsContainer.querySelectorAll('.server-tab');
+                const existingNames = new Set();
+                let placeholder = tabsContainer.querySelector('.no-servers');
+
+                existingTabs.forEach(tab => {
+                    const name = tab.getAttribute('data-server');
+                    if (currentNames.includes(name)) {
+                        existingNames.add(name);
+                        const isActive = name === data.active_server;
+                        tab.classList.toggle('active', isActive);
+                        const isOnline = data.minecraft_running && isActive;
+                        const indicator = tab.querySelector('.tab-icon, .tab-dot');
+                        if (indicator && indicator.classList.contains('tab-dot')) {
+                            indicator.className = 'tab-dot ' + (isOnline ? 'online' : 'offline');
+                        }
+                    } else {
+                        tab.remove();
+                    }
+                });
+
+                currentNames.forEach(s => {
+                    if (existingNames.has(s)) return;
+                    const tab = document.createElement('button');
+                    tab.className = 'server-tab';
+                    tab.setAttribute('data-server', s);
+                    if (s === data.active_server) tab.classList.add('active');
+                    const isOnline = data.minecraft_running && s === data.active_server;
+                    const iconImg = document.createElement('img');
+                    iconImg.className = 'tab-icon';
+                    iconImg.onerror = function() {
+                        const dot = document.createElement('span');
+                        dot.className = 'tab-dot ' + (isOnline ? 'online' : 'offline');
+                        this.replaceWith(dot);
+                    };
+                    iconImg.src = '/api/servers/' + encodeURIComponent(s) + '/icon?_=' + Date.now();
+                    tab.appendChild(iconImg);
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = s;
+                    tab.appendChild(nameSpan);
+                    tab.onclick = function() { if (s !== data.active_server) selectServer(s); };
+                    tabsContainer.appendChild(tab);
+                });
+
+                if (currentNames.length === 0) {
+                    if (!placeholder) {
+                        placeholder = document.createElement('span');
+                        placeholder.className = 'no-servers';
+                        placeholder.style.cssText = 'font-size:13px;color:#484f58;padding:8px 0;';
+                    }
+                    placeholder.textContent = 'Sin servidores';
+                    tabsContainer.appendChild(placeholder);
+                } else if (placeholder) {
+                    placeholder.remove();
                 }
 
                 document.getElementById('sidebar-active-server').textContent = data.active_server || 'Ninguno';
