@@ -1082,27 +1082,37 @@
             document.getElementById('btn-start').disabled = true;
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('btn-restart').disabled = true;
-            initStatsChart();
+            var savedSection = localStorage.getItem('panel-section');
+            if (savedSection && savedSection !== 'dashboard') {
+                navigateTo(savedSection);
+            } else {
+                initStatsChart();
+            }
         });
 
         // ============ NAVIGATION ============
+        function navigateTo(section) {
+            if (!section) return;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            const navItem = document.querySelector(`.nav-item[data-section="${section}"]`);
+            if (navItem) navItem.classList.add('active');
+            document.getElementById('section-' + section)?.classList.add('active');
+            const titles = { 'properties': 'Propiedades', 'plugins': getContentType() === 'mod' ? 'Mods' : 'Plugins', 'manage-server': 'Gestionar Servidor' };
+            document.getElementById('section-title').textContent = titles[section] || section.charAt(0).toUpperCase() + section.slice(1);
+            if (section === 'console') { startConsolePolling(); } else { stopConsolePolling(); }
+            if (section === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); startPlayersPolling(); } else { stopPlayersPolling(); }
+            if (section === 'settings') { loadSettings(); }
+            if (section === 'properties') { loadSettings(); }
+            if (section === 'plugins') { loadPluginsSection(); }
+            if (section === 'files') { loadFiles(); }
+            if (section === 'manage-server') { loadManageServer(); }
+            if (section === 'dashboard') { initStatsChart(); }
+            localStorage.setItem('panel-section', section);
+        }
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
-                const section = this.dataset.section;
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                this.classList.add('active');
-                document.getElementById('section-' + section).classList.add('active');
-                const titles = { 'properties': 'Propiedades', 'plugins': getContentType() === 'mod' ? 'Mods' : 'Plugins', 'manage-server': 'Gestionar Servidor' };
-                document.getElementById('section-title').textContent = titles[section] || section.charAt(0).toUpperCase() + section.slice(1);
-                if (section === 'console') { startConsolePolling(); } else { stopConsolePolling(); }
-                if (section === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); startPlayersPolling(); } else { stopPlayersPolling(); }
-                if (section === 'settings') { loadSettings(); }
-                if (section === 'properties') { loadSettings(); }
-                if (section === 'plugins') { loadPluginsSection(); }
-                if (section === 'files') { loadFiles(); }
-                if (section === 'manage-server') { loadManageServer(); }
-                if (section === 'dashboard') { initStatsChart(); }
+                navigateTo(this.dataset.section);
             });
         });
 
