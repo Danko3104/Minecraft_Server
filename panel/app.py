@@ -349,6 +349,81 @@ def api_server_last_output():
         }), 500
 
 
+@app.route('/api/console/log', methods=['GET'])
+def api_console_log():
+    """
+    GET /api/console/log?lines=100
+    Retorna las últimas N líneas del archivo de log persistente.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        log_path = server_manager.get_log_path(active_server)
+        if not os.path.exists(log_path):
+            return jsonify({"success": True, "lines": [], "file": "console.log"})
+
+        num_lines = request.args.get('lines', 100, type=int)
+        num_lines = max(10, min(num_lines, 5000))
+
+        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            all_lines = f.readlines()
+
+        tail = all_lines[-num_lines:]
+        return jsonify({
+            "success": True,
+            "lines": [l.rstrip('\n\r') for l in tail],
+            "total_lines": len(all_lines),
+            "file": "console.log"
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/console/logs', methods=['GET'])
+def api_console_logs():
+    """
+    GET /api/console/logs
+    Lista los archivos de log disponibles (con rotación).
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        files = server_manager.get_log_files(active_server)
+        return jsonify({"success": True, "files": files})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/console/log/download', methods=['GET'])
+def api_console_log_download():
+    """
+    GET /api/console/log/download?name=console.log
+    Descarga un archivo de log.
+    """
+    try:
+        active_server = get_active_server()
+        if not active_server:
+            return jsonify({"success": False, "error": "No hay servidor activo"}), 400
+
+        log_name = request.args.get('name', 'console.log')
+        log_dir = os.path.join(server_manager.get_server_path(active_server), 'logs')
+        log_path = os.path.join(log_dir, log_name)
+
+        if not os.path.exists(log_path) or not log_path.startswith(log_dir):
+            return jsonify({"success": False, "error": "Archivo no encontrado"}), 404
+
+        return send_file(log_path, as_attachment=True, download_name=log_name)
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # =============================================================================
 # RUTAS DE CONFIGURACIÓN (SETTINGS)
 # =============================================================================

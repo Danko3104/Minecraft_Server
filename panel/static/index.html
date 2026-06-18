@@ -494,6 +494,7 @@
                             <div class="console-title"><i class="fas fa-terminal"></i> Consola del Servidor</div>
                             <div class="console-actions">
                                 <button id="btn-scroll-lock" onclick="toggleScroll()"><i class="fas fa-lock-open"></i> Auto-scroll</button>
+                                <button onclick="openLogViewer()"><i class="fas fa-history"></i> Logs</button>
                                 <button onclick="clearConsoleView()"><i class="fas fa-eraser"></i> Limpiar</button>
                             </div>
                         </div>
@@ -936,6 +937,28 @@
                 <button class="btn btn-danger" id="btn-plugin-warning-confirm"><i class="fas fa-trash-alt"></i> Eliminar incompatibles y actualizar</button>
                 <button class="btn btn-secondary" id="btn-plugin-warning-cancel"><i class="fas fa-times"></i> Cancelar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- LOG VIEWER MODAL -->
+    <div class="modal-overlay" id="modal-log-viewer" onclick="if(event.target===this) closeLogViewer()">
+        <div class="modal" style="max-width:900px;width:90%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h2 style="margin:0;"><i class="fas fa-history" style="color:#58a6ff;"></i> Historial de Logs</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <select id="log-file-selector" onchange="loadLogFile()" style="padding:4px 8px;border:1px solid #30363d;border-radius:4px;background:#161b22;color:#e6edf3;font-size:12px;"></select>
+                    <button class="btn btn-secondary btn-sm" onclick="downloadCurrentLog()"><i class="fas fa-download"></i></button>
+                    <button class="btn btn-secondary btn-sm" onclick="closeLogViewer()"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="loadLogFile(50)">50 líneas</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadLogFile(200)">200</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadLogFile(1000)">1000</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadLogFile(5000)">5000</button>
+                <span id="log-line-count" style="font-size:12px;color:#484f58;display:flex;align-items:center;margin-left:8px;"></span>
+            </div>
+            <div class="console-output" id="log-viewer-output" style="height:60vh;font-size:12px;"></div>
         </div>
     </div>
 
@@ -1634,6 +1657,82 @@
         function clearConsoleView() {
             document.getElementById('console-output').innerHTML = '';
             _consoleLineCount = 0;
+        }
+
+        // ============ LOG VIEWER ============
+        let _logCurrentLines = 100;
+
+        async function openLogViewer() {
+            const modal = document.getElementById('modal-log-viewer');
+            modal.style.display = 'flex';
+            const output = document.getElementById('log-viewer-output');
+            output.innerHTML = '<div style="padding:20px;text-align:center;color:#8b949e;"><i class="fas fa-spinner fa-spin"></i> Cargando logs...</div>';
+            try {
+                const res = await fetch('/api/console/logs');
+                const data = await res.json();
+                const selector = document.getElementById('log-file-selector');
+                selector.innerHTML = '';
+                if (data.success && data.files) {
+                    data.files.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f.name;
+                        opt.textContent = f.name + ' (' + f.size_display + ', ' + f.modified + ')';
+                        selector.appendChild(opt);
+                    });
+                }
+            } catch(e) {}
+            loadLogFile(_logCurrentLines);
+        }
+
+        async function loadLogFile(lines) {
+            if (lines) _logCurrentLines = lines;
+            const output = document.getElementById('log-viewer-output');
+            const selector = document.getElementById('log-file-selector');
+            const logName = selector.value || 'console.log';
+            try {
+                const res = await fetch('/api/console/log?lines=' + _logCurrentLines);
+                const data = await res.json();
+                if (data.success) {
+                    output.innerHTML = data.lines.map(l =>
+                        `<div style="padding:1px 8px;white-space:pre-wrap;word-break:break-all;">${escapeHtml(l)}</div>`
+                    ).join('') || '<div style="padding:20px;text-align:center;color:#484f58;">Log vacío</div>';
+                    output.scrollTop = output.scrollHeight;
+                    document.getElementById('log-line-count').textContent = data.total_lines + ' líneas totales, mostrando ' + data.lines.length;
+                } else {
+                    output.innerHTML = '<div style="padding:20px;text-align:center;color:#f85149;">Error: ' + (data.error || 'desconocido') + '</div>';
+                }
+            } catch(e) {
+                output.innerHTML = '<div style="padding:20px;text-align:center;color:#f85149;">Error al cargar: ' + e.message + '</div>';
+            }
+        }
+
+        function closeLogViewer() {
+            document.getElementById('modal-log-viewer').style.display = 'none';
+        }
+
+        async function downloadCurrentLog() {
+            const selector = document.getElementById('log-file-selector');
+            const logName = selector.value || 'console.log';
+            try {
+                const res = await fetch('/api/console/log/download?name=' + encodeURIComponent(logName));
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = logName;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                } else {
+                    toast('Error al descargar log', 'error');
+                }
+            } catch(e) { toast('Error de conexión', 'error'); }
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
         }
 
         // ============ PLAYERS ============

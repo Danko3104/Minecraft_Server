@@ -56,6 +56,7 @@ class ServerManager:
         self.rcon_password = "minecolab_panel"
         self.rcon_port = 25575
         self.last_output_lines: List[str] = []
+        self._log_file_handle = None
         self._lock = threading.Lock()
 
     def get_server_path(self, server_name: str) -> str:
@@ -208,23 +209,53 @@ class ServerManager:
             print(f"[ERROR] get_java_command: {e}")
             return ["java", "-jar", "server.jar", "--nogui"]
 
+    def _get_log_path(self, server_name: str) -> str:
+        server_path = self.get_server_path(server_name)
+        log_dir = os.path.join(server_path, 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+        return os.path.join(log_dir, 'console.log')
+
+    def _rotate_logs(self, server_name: str):
+        log_dir = os.path.join(self.get_server_path(server_name), 'logs')
+        if not os.path.exists(log_dir):
+            return
+        MAX_LOG_FILES = 3
+        base = os.path.join(log_dir, 'console.log')
+        for i in range(MAX_LOG_FILES - 1, 0, -1):
+            old = f'{base}.{i}'
+            new = f'{base}.{i + 1}'
+            if os.path.exists(old):
+                if os.path.exists(new):
+                    os.remove(new)
+                os.rename(old, new)
+        if os.path.exists(base):
+            os.rename(base, f'{base}.1')
+
     def _start_output_reader(self):
         """
         Inicia el hilo que lee la salida del proceso.
         """
         def read_output():
-            """Lee la salida del proceso y la guarda en last_output_lines."""
+            """Lee la salida del proceso y la guarda en last_output_lines y log file."""
             try:
                 for line in self.process.stdout:
                     line = line.strip()
                     if line:
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         self.last_output_lines.append(line)
                         print(f"[MINECRAFT] {line}")
+                        if self._log_file_handle and not self._log_file_handle.closed:
+                            self._log_file_handle.write(f'[{timestamp}] {line}\n')
+                            self._log_file_handle.flush()
                         # Mantener solo las últimas 200 líneas
                         if len(self.last_output_lines) > 200:
                             self.last_output_lines.pop(0)
             except Exception as e:
                 print(f"[ERROR] read_output: {e}")
+            finally:
+                if self._log_file_handle and not self._log_file_handle.closed:
+                    self._log_file_handle.close()
+                    self._log_file_handle = None
 
         output_thread = threading.Thread(target=read_output, daemon=True)
         output_thread.start()
@@ -499,6 +530,10 @@ class ServerManager:
 
             # Limpiar output anterior
             self.last_output_lines = []
+            # Rotar y abrir archivo de log
+            self._rotate_logs(server_name)
+            log_path = self._get_log_path(server_name)
+            self._log_file_handle = open(log_path, 'w', encoding='utf-8')
 
             with self._lock:
                 # Cambiar al directorio del servidor
@@ -693,6 +728,28 @@ class ServerManager:
         Retorna las últimas líneas de output del proceso.
         """
         return self.last_output_lines[-100:]
+
+    def get_log_path(self, server_name: str) -> str:
+        return self._get_log_path(server_name)
+
+    def get_log_files(self, server_name: str) -> list:
+        log_dir = os.path.join(self.get_server_path(server_name), 'logs')
+        if not os.path.exists(log_dir):
+            return []
+        files = []
+        for f in sorted(os.listdir(log_dir), reverse=True):
+            fpath = os.path.join(log_dir, f)
+            if os.path.isfile(fpath):
+                size = os.path.getsize(fpath)
+                mtime = os.path.getmtime(fpath)
+                from datetime import datetime as dt
+                files.append({
+                    "name": f,
+                    "size": size,
+                    "size_display": f"{size/1024:.0f} KB" if size < 1024*1024 else f"{size/1024/1024:.1f} MB",
+                    "modified": dt.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+                })
+        return files
 
     def send_command(self, command: str) -> str:
         """
