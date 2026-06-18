@@ -81,9 +81,9 @@
 
         /* MAIN */
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-primary); position: sticky; top: 0; z-index: 100; gap: 16px; }
-        .header-left { display: flex; align-items: center; gap: 16px; }
-        .header-left h2 { font-size: 20px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; margin: 16px 16px 0 16px; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--bg-secondary); position: sticky; top: 16px; z-index: 100; gap: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .header-left h2 { font-size: 22px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
         .server-select { padding: 8px 36px 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; min-width: 180px; }
         .server-select:focus { outline: none; border-color: #3fb950; }
         .btn-new-server { padding: 8px 16px; background: #3fb950; color: var(--bg-primary); border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
