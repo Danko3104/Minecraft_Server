@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="lang-es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,6 +41,11 @@
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+        .glass { background: rgba(255,255,255,0.04); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); }
+        [data-theme="light"] .glass { background: rgba(255,255,255,0.6); border-color: rgba(0,0,0,0.08); }
+        .glow-green { box-shadow: 0 0 20px rgba(63,185,80,0.15); }
+        .glow-blue { box-shadow: 0 0 20px rgba(88,166,255,0.15); }
+        .glow-red { box-shadow: 0 0 20px rgba(248,81,73,0.15); }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-secondary); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
@@ -149,8 +154,8 @@
         .signal-bar.red { background: #f85149; }
         .signal-bar.yellow { background: #d29922; }
         .signal-bar.green { background: #3fb950; }
-        .stat-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; transition: border-color 0.15s; }
-        .stat-card:hover { border-color: var(--border-color); }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; transition: border-color 0.15s, transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { border-color: var(--border-color); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
         .stat-card .stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
         .stat-card .stat-header i { font-size: 20px; color: #8b949e; }
         .stat-card .stat-label { font-size: 12px; font-weight: 500; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -193,28 +198,28 @@
         .resource-bar .bar-fill.red { background: #f85149; }
 
         /* CONSOLE */
-        .console-wrapper { background: #0d1117; border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden; }
-        .console-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-subtle); }
-        .console-header .console-title { font-size: 13px; font-weight: 600; color: #8b949e; display: flex; align-items: center; gap: 8px; }
+        .console-wrapper { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 12px; overflow: hidden; }
+        .console-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border-subtle); }
+        .console-header .console-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
         .console-actions { display: flex; gap: 8px; }
-        .console-actions button { padding: 4px 10px; background: var(--border-subtle); color: #8b949e; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.15s; font-family: 'Inter', sans-serif; }
+        .console-actions button { padding: 4px 10px; background: var(--border-subtle); color: var(--text-secondary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.15s; font-family: 'Inter', sans-serif; }
         .console-actions button:hover { background: var(--border-color); color: var(--text-primary); }
         .console-actions button.active { background: #3fb950; color: var(--bg-primary); border-color: #3fb950; }
-        .console-output { height: 400px; overflow-y: auto; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; background: #0d1117; }
+        .console-output { height: 400px; overflow-y: auto; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; background: var(--bg-primary); }
         .console-output .log-line { padding: 1px 0; white-space: pre-wrap; word-break: break-all; }
-        .console-output .log-line .timestamp { color: #484f58; }
-        .console-output .log-line .level-info { color: #8b949e; }
-        .console-output .log-line .level-warn { color: #d29922; }
-        .console-output .log-line .level-error { color: #f85149; }
-        .console-output .log-line .level-connect { color: #58a6ff; }
-        .console-output .log-line .level-player { color: #3fb950; }
-        .console-output .log-line .cmd-echo { color: #58a6ff; font-weight: 500; }
-        .console-input-area { display: flex; padding: 12px 16px; background: var(--bg-secondary); border-top: 1px solid var(--border-subtle); gap: 8px; }
+        .console-output .log-line .timestamp { color: var(--text-muted); }
+        .console-output .log-line .level-info { color: var(--text-secondary); }
+        .console-output .log-line .level-warn { color: var(--accent-yellow); }
+        .console-output .log-line .level-error { color: var(--accent-red); }
+        .console-output .log-line .level-connect { color: var(--accent-blue); }
+        .console-output .log-line .level-player { color: var(--accent-green); }
+        .console-output .log-line .cmd-echo { color: var(--accent-blue); font-weight: 500; }
+        .console-input-area { display: flex; padding: 12px 16px; background: var(--bg-card); border-top: 1px solid var(--border-subtle); gap: 8px; }
         .console-input-area .input-wrapper { flex: 1; position: relative; }
-        .console-input-area input { width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.15s; }
+        .console-input-area input { width: 100%; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.15s; }
         .console-input-area input:focus { border-color: #3fb950; }
         .console-input-area input::placeholder { color: #484f58; }
-        .console-suggestions { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 16px; background: var(--bg-secondary); border-top: 1px solid var(--border-subtle); }
+        .console-suggestions { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 16px; background: var(--bg-card); border-top: 1px solid var(--border-subtle); }
         .console-suggestions .chip { padding: 4px 10px; background: var(--border-subtle); border: 1px solid var(--border-color); border-radius: 4px; color: #8b949e; font-size: 11px; font-family: 'JetBrains Mono', monospace; cursor: pointer; transition: all 0.15s; }
         .console-suggestions .chip:hover { background: var(--border-color); color: var(--text-primary); }
 
@@ -266,7 +271,7 @@
         .subsection h3 { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
         .input-group { display: flex; gap: 8px; margin-bottom: 16px; }
-        .input-group input, .input-group select { flex: 1; padding: 10px 14px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; }
+        .input-group input, .input-group select { flex: 1; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; }
         .input-group input:focus, .input-group select:focus { border-color: #3fb950; }
 
         .data-table { width: 100%; border-collapse: collapse; }
@@ -283,7 +288,7 @@
         @media (max-width: 900px) { .settings-grid { grid-template-columns: 1fr; } }
         .setting-field { margin-bottom: 16px; }
         .setting-field label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; font-weight: 500; }
-        .setting-field input, .setting-field select { width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; }
+        .setting-field input, .setting-field select { width: 100%; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; }
         .setting-field input:focus, .setting-field select:focus { border-color: #3fb950; }
         .setting-field .toggle-group { display: flex; gap: 8px; }
         .setting-field .toggle-btn { padding: 8px 16px; background: var(--border-subtle); border: 1px solid var(--border-color); border-radius: 6px; color: #8b949e; cursor: pointer; font-size: 13px; transition: all 0.15s; font-family: 'Inter', sans-serif; }
@@ -302,24 +307,26 @@
         .update-card .step i { width: 16px; }
 
         /* MODALS */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: fadeIn 0.2s ease; }
         .modal-overlay.active { display: flex; }
-        .modal { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 32px; width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+        .modal { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 32px; width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); max-height: 90vh; overflow-y: auto; backdrop-filter: blur(2px); animation: modalSlideIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalSlideIn { from { opacity: 0; transform: translateY(-20px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         .modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
         .modal p { color: #8b949e; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
         .modal label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; font-weight: 500; }
-        .modal input, .modal select { width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 16px; }
+        .modal input, .modal select { width: 100%; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 16px; }
         .modal input:focus, .modal select:focus { border-color: #3fb950; }
         .modal .modal-actions { display: flex; gap: 12px; margin-top: 20px; }
         .modal .modal-actions button { flex: 1; }
         .modal .confirm-input { margin-top: 12px; }
-        .modal .confirm-input input { background: #0d1117; border-color: #f85149; }
+        .modal .confirm-input input { background: var(--bg-primary); border-color: #f85149; }
         .modal .confirm-input input:focus { border-color: #f85149; }
         .modal .danger-zone { border: 1px solid #f8514940; border-radius: 8px; padding: 16px; background: #f8514908; margin-bottom: 16px; }
         .modal .danger-zone h4 { color: #f85149; font-size: 14px; margin-bottom: 8px; }
 
         .modal .error-msg { background: #f8514915; border: 1px solid #f8514940; border-radius: 8px; padding: 12px; color: #f85149; font-size: 13px; margin-bottom: 16px; display: none; }
-        .modal .progress { display: flex; align-items: center; gap: 12px; padding: 16px; background: #0d1117; border-radius: 8px; margin-bottom: 16px; }
+        .modal .progress { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 16px; }
         .modal .spinner { width: 20px; height: 20px; border: 2px solid var(--border-color); border-top-color: #3fb950; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -338,7 +345,7 @@
         .manage-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
         .manage-field label i { color: #8b949e; margin-right: 6px; }
         .manage-input-group { display: flex; gap: 8px; align-items: center; }
-        .manage-input { flex: 1; padding: 10px 14px; background: #0d1117; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
+        .manage-input { flex: 1; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s; }
         .manage-input:focus { border-color: #3fb950; }
         .manage-hint { display: block; font-size: 11px; color: #484f58; margin-top: 4px; }
         .manage-divider { border: none; border-top: 1px solid var(--border-subtle); margin: 20px 0; }
@@ -440,6 +447,7 @@
                             </div>
                         </div>
                     </div>
+                    <span onclick="toggleLang()" style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text-secondary);padding:6px 10px;border-radius:8px;transition:all 0.15s;text-transform:uppercase;" id="lang-toggle" title="Cambiar idioma" onmouseover="this.style.background='var(--bg-card)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)'">ES</span>
                     <span onclick="toggleTheme()" style="cursor:pointer;font-size:16px;color:var(--text-secondary);padding:6px 8px;border-radius:8px;transition:all 0.15s;" id="theme-toggle-icon" title="Cambiar tema" onmouseover="this.style.background='var(--bg-card)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)'"><i class="fas fa-moon"></i></span>
                     <div class="status-badge">
                         <div class="status-dot" id="status-dot"></div>
@@ -727,7 +735,7 @@
                         <div class="update-card">
                             <h3 style="font-size:13px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-image"></i> Icono del Servidor</h3>
                             <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
-                                <div id="server-icon-preview" style="width:64px;height:64px;background:#0d1117;border:2px dashed var(--border-color);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#484f58;overflow:hidden;">
+                                <div id="server-icon-preview" style="width:64px;height:64px;background:var(--bg-primary);border:2px dashed var(--border-color);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#484f58;overflow:hidden;">
                                     <i class="fas fa-image"></i>
                                 </div>
                                 <div>
@@ -872,7 +880,7 @@
         <div class="modal" style="max-width:800px;width:90%;">
             <h2><i class="fas fa-code" style="color:#3fb950;"></i> <span id="file-editor-title">Editor</span></h2>
             <div style="margin:12px 0;max-height:60vh;overflow:auto;">
-                <textarea id="file-editor-content" style="width:100%;min-height:300px;background:#0d1117;color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:12px;font-family:'Consolas','Courier New',monospace;font-size:13px;resize:vertical;tab-size:2;"></textarea>
+                <textarea id="file-editor-content" style="width:100%;min-height:300px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;padding:12px;font-family:'Consolas','Courier New',monospace;font-size:13px;resize:vertical;tab-size:2;"></textarea>
             </div>
             <div style="display:flex;gap:8px;justify-content:flex-end;">
                 <span id="file-editor-status" style="flex:1;font-size:12px;color:#8b949e;display:flex;align-items:center;"></span>
@@ -957,7 +965,7 @@
     <div class="modal-overlay" id="modal-error-detail" onclick="if(event.target===this) closeErrorDetailModal()">
         <div class="modal" style="max-width:640px;">
             <h2><i class="fas fa-exclamation-circle" style="color:#f85149;"></i> Error</h2>
-            <div id="error-detail-content" style="color:#f85149;font-size:13px;background:#0d1117;padding:16px;border-radius:8px;max-height:400px;overflow-y:auto;font-family:'JetBrains Mono',monospace;white-space:pre-wrap;"></div>
+            <div id="error-detail-content" style="color:#f85149;font-size:13px;background:var(--bg-primary);padding:16px;border-radius:8px;max-height:400px;overflow-y:auto;font-family:'JetBrains Mono',monospace;white-space:pre-wrap;"></div>
             <div class="modal-actions">
                 <button class="btn btn-primary" onclick="closeErrorDetailModal()">Cerrar</button>
             </div>
@@ -1069,6 +1077,411 @@
         let uploadXhr = null;
         const SUGGESTED_COMMANDS = ['/list', '/whitelist list', '/weather clear', '/time set day', '/gamemode survival @a', '/gamemode creative @a', '/tp @p ~ ~ ~', '/kill @e[type=!player]', '/give @p diamond 1', '/difficulty peaceful'];
 
+        // ============ I18N / TRADUCCIONES ============
+        const i18n = {
+            es: {
+                lang_name: 'Español',
+                nav_dashboard: 'Dashboard',
+                nav_console: 'Consola',
+                nav_players: 'Jugadores',
+                nav_properties: 'Propiedades',
+                nav_settings: 'Configuración',
+                nav_manage: 'Gestionar Servidor',
+                nav_plugins: 'Plugins',
+                nav_files: 'Archivos',
+                mods: 'Mods',
+                header_new: 'Nuevo',
+                header_online: 'En línea',
+                header_offline: 'Fuera de línea',
+                start: 'Iniciar',
+                stop: 'Detener',
+                restart: 'Reiniciar',
+                running: 'En ejecución',
+                status_online: 'ONLINE',
+                status_offline: 'OFFLINE',
+                status_accepting: 'Aceptando conexiones',
+                status_stopped: 'Servidor detenido',
+                players_connected: 'Conectados',
+                players_max: 'máx',
+                session: 'Tiempo del servidor',
+                colab_remaining: 'Tiempo restante de Colab',
+                colab_less_1h: '¡Queda menos de 1 hora!',
+                server_address: 'Dirección del Servidor',
+                click_copy: '(click para copiar)',
+                tps: 'TPS',
+                ram: 'RAM',
+                cpu: 'CPU',
+                ticks_per_sec: 'Ticks por segundo',
+                ram_usage: 'Uso de memoria',
+                cpu_usage: 'Uso de procesador',
+                performance_chart: 'Rendimiento (última hora)',
+                auto_update: 'Auto-actualiza cada 60s',
+                console_title: 'Consola del Servidor',
+                console_placeholder: 'Escribe un comando...',
+                console_scroll: 'Auto-scroll',
+                console_logs: 'Logs',
+                console_clear: 'Limpiar',
+                filter_players: 'Filtrar jugadores...',
+                broadcast: 'Broadcast',
+                banned_title: 'Jugadores Baneados',
+                ban_player: 'Banear jugador',
+                whitelist_title: 'Whitelist',
+                whitelist_add: 'Agregar',
+                player_name: 'Nombre del jugador',
+                reason_optional: 'Motivo (opcional)',
+                cancel: 'Cancelar',
+                save: 'Guardar',
+                close: 'Cerrar',
+                refresh: 'Refrescar',
+                search: 'Buscar',
+                upload: 'Subir',
+                download: 'Descargar',
+                delete: 'Eliminar',
+                edit: 'Editar',
+                create: 'Crear',
+                no_servers: 'Sin servidores',
+                active_server: 'Servidor activo',
+                loading: 'Cargando...',
+                notifications: 'Notificaciones',
+                all: 'Todas',
+                none: 'Ninguna',
+                yes: 'Sí',
+                no: 'No',
+                confirm_restart: 'El servidor se detendrá y volverá a iniciar. El mundo no se perderá. ¿Estás seguro?',
+                confirm_delete: 'Esta acción eliminará permanentemente el servidor y todos sus archivos. No se puede deshacer.',
+                save_changes: 'Guardar cambios',
+                server_properties: 'Propiedades del Servidor',
+                server_motd: 'Nombre del servidor (MOTD)',
+                max_players: 'Máximo de jugadores',
+                difficulty: 'Dificultad',
+                gamemode: 'Modo de juego',
+                pvp: 'PVP',
+                monsters: 'Monstruos',
+                animals: 'Animales',
+                render_distance: 'Distancia de renderizado (chunks)',
+                simulation_distance: 'Distancia de simulación (chunks)',
+                view_distance: 'Distancia de visión (chunks)',
+                spawn_protection: 'Protección de spawn (radio)',
+                command_blocks: 'Bloques de comandos',
+                whitelist: 'Whitelist',
+                enabled: 'Activado',
+                disabled: 'Desactivado',
+                enabled_f: 'Activada',
+                disabled_f: 'Desactivada',
+                plugin_search_placeholder: 'Buscar plugins (ej: essentials, worldedit, luckperms)...',
+                mod_search_placeholder: 'Buscar mods...',
+                installed: 'Instalados',
+                upload_plugin: 'Subir .jar',
+                requires_restart: 'Requiere reinicio del servidor',
+                check_updates: 'Verificar Actualizaciones',
+                update_server: 'Actualización del Servidor',
+                current_version: 'Versión Actual',
+                search_updates: 'Buscar actualizaciones',
+                server_icon: 'Icono del Servidor',
+                upload_icon: 'Subir icono (64x64 PNG)',
+                icon_restart_note: 'Se requiere reinicio para que el servidor lo muestre',
+                upload_world: 'Subir Mundo',
+                upload_world_desc: 'Sube un archivo .zip o una carpeta completa con el mundo. Se hará backup automático del mundo actual antes de reemplazarlo.',
+                select_zip: 'Seleccionar .zip',
+                select_folder: 'Seleccionar Carpeta',
+                browser_notifs: 'Notificaciones del Navegador',
+                browser_notifs_desc: 'Recibe notificaciones en tu escritorio cuando el servidor inicia, se detiene, se sube un mundo o se crea un backup.',
+                notif_activate: 'Activar',
+                notif_not_active: 'No activadas',
+                backups: 'Copias de mundo de Minecraft',
+                backups_desc: 'Se hace un backup automático cada vez que se detiene el servidor. También puedes crear backups manualmente.',
+                create_backup: 'Crear backup ahora',
+                manage_server: 'Gestionar Servidor',
+                server_name: 'Nombre del servidor',
+                export_import: 'Exportar / Importar',
+                export_zip: 'Exportar ZIP',
+                import_zip: 'Importar ZIP',
+                delete_server: 'Eliminar servidor',
+                rename: 'Guardar',
+                name_hint: 'Solo letras, números, guiones y guiones bajos',
+                new_server: 'Nuevo Servidor',
+                new_server_desc: 'Crea un nuevo servidor de Minecraft. Se instalará automáticamente.',
+                creating_server: 'Creando servidor...',
+                select_type: 'Selecciona un tipo...',
+                select_version_first: 'Primero selecciona un tipo',
+                create_install: 'Crear e Instalar',
+                plugin_incompatible_title: 'Plugins/Mods incompatibles',
+                plugin_incompatible_desc: 'Los siguientes plugins/mods no tienen versión compatible con la versión destino. Se eliminarán ellos y sus dependencias huérfanas al continuar.',
+                delete_incompatible: 'Eliminar incompatibles y actualizar',
+                log_viewer: 'Historial de Logs',
+                lines: 'líneas',
+                switch_to: 'Servidor cambiado a',
+                active_server_label: 'Servidor activo:',
+                confirm_ban_title: 'Banear Jugador',
+                confirm_ban_desc: 'Ingresa el nombre del jugador y un motivo opcional.',
+                upload_progress: 'Subiendo mundo',
+                preparing: 'Preparando...',
+                view_detail: 'Ver detalle de partes',
+                files_title: 'Archivos del Servidor',
+                upload_file: 'Subir archivo',
+                new_folder: 'Nueva carpeta',
+                new_folder_prompt: 'Ingresa el nombre de la nueva carpeta:',
+                file_editor: 'Editor',
+                file_saved: 'Guardado',
+                file_saving: 'Guardando...',
+                toast_server_started: 'Servidor iniciado',
+                toast_server_stopped: 'Servidor detenido',
+                toast_backup_created: 'Backup creado',
+                toast_world_uploaded: 'Mundo subido correctamente',
+                toast_settings_saved: 'Cambios guardados. Se requiere reinicio para aplicar.',
+                players_section: 'Jugadores',
+                player: 'Jugador',
+                status: 'Estado',
+                actions: 'Acciones',
+                op: 'OP',
+                wl: 'WL',
+                banned: 'Baneado',
+                kick: 'Expulsar',
+                stats_modal_title: 'Estadísticas del Servidor',
+                confirm_restart_title: 'Reiniciar Servidor',
+                error_modal_title: 'Error',
+                colab_warning_5min: '¡Quedan menos de 5 minutos de Colab! Guarda tu progreso.',
+                colab_warning_1h: 'Queda menos de 1 hora de tiempo de Colab',
+                colab_warning_30min: 'Quedan menos de 30 minutos de Colab',
+                colab_warning_10min: '¡Quedan menos de 10 minutos de Colab!',
+                colab_warning_end: 'El tiempo de Colab ha terminado.',
+                language: 'Idioma',
+            },
+            en: {
+                lang_name: 'English',
+                nav_dashboard: 'Dashboard',
+                nav_console: 'Console',
+                nav_players: 'Players',
+                nav_properties: 'Properties',
+                nav_settings: 'Settings',
+                nav_manage: 'Manage Server',
+                nav_plugins: 'Plugins',
+                nav_files: 'Files',
+                mods: 'Mods',
+                header_new: 'New',
+                header_online: 'Online',
+                header_offline: 'Offline',
+                start: 'Start',
+                stop: 'Stop',
+                restart: 'Restart',
+                running: 'Running',
+                status_online: 'ONLINE',
+                status_offline: 'OFFLINE',
+                status_accepting: 'Accepting connections',
+                status_stopped: 'Server stopped',
+                players_connected: 'Connected',
+                players_max: 'max',
+                session: 'Session time',
+                colab_remaining: 'Colab time remaining',
+                colab_less_1h: 'Less than 1 hour remaining!',
+                server_address: 'Server Address',
+                click_copy: '(click to copy)',
+                tps: 'TPS',
+                ram: 'RAM',
+                cpu: 'CPU',
+                ticks_per_sec: 'Ticks per second',
+                ram_usage: 'Memory usage',
+                cpu_usage: 'CPU usage',
+                performance_chart: 'Performance (last hour)',
+                auto_update: 'Auto-refresh every 60s',
+                console_title: 'Server Console',
+                console_placeholder: 'Type a command...',
+                console_scroll: 'Auto-scroll',
+                console_logs: 'Logs',
+                console_clear: 'Clear',
+                filter_players: 'Filter players...',
+                broadcast: 'Broadcast',
+                banned_title: 'Banned Players',
+                ban_player: 'Ban player',
+                whitelist_title: 'Whitelist',
+                whitelist_add: 'Add',
+                player_name: 'Player name',
+                reason_optional: 'Reason (optional)',
+                cancel: 'Cancel',
+                save: 'Save',
+                close: 'Close',
+                refresh: 'Refresh',
+                search: 'Search',
+                upload: 'Upload',
+                download: 'Download',
+                delete: 'Delete',
+                edit: 'Edit',
+                create: 'Create',
+                no_servers: 'No servers',
+                active_server: 'Active server',
+                loading: 'Loading...',
+                notifications: 'Notifications',
+                all: 'All',
+                none: 'None',
+                yes: 'Yes',
+                no: 'No',
+                confirm_restart: 'The server will stop and restart. The world will not be lost. Are you sure?',
+                confirm_delete: 'This action will permanently delete the server and all its files. This cannot be undone.',
+                save_changes: 'Save changes',
+                server_properties: 'Server Properties',
+                server_motd: 'Server name (MOTD)',
+                max_players: 'Max players',
+                difficulty: 'Difficulty',
+                gamemode: 'Game mode',
+                pvp: 'PVP',
+                monsters: 'Monsters',
+                animals: 'Animals',
+                render_distance: 'Render distance (chunks)',
+                simulation_distance: 'Simulation distance (chunks)',
+                view_distance: 'View distance (chunks)',
+                spawn_protection: 'Spawn protection (radius)',
+                command_blocks: 'Command blocks',
+                whitelist: 'Whitelist',
+                enabled: 'Enabled',
+                disabled: 'Disabled',
+                enabled_f: 'Enabled',
+                disabled_f: 'Disabled',
+                plugin_search_placeholder: 'Search plugins (e.g.: essentials, worldedit, luckperms)...',
+                mod_search_placeholder: 'Search mods...',
+                installed: 'Installed',
+                upload_plugin: 'Upload .jar',
+                requires_restart: 'Requires server restart',
+                check_updates: 'Check Updates',
+                update_server: 'Server Update',
+                current_version: 'Current Version',
+                search_updates: 'Search updates',
+                server_icon: 'Server Icon',
+                upload_icon: 'Upload icon (64x64 PNG)',
+                icon_restart_note: 'Server restart required for it to show',
+                upload_world: 'Upload World',
+                upload_world_desc: 'Upload a .zip file or a complete folder with the world. An automatic backup will be made before replacing.',
+                select_zip: 'Select .zip',
+                select_folder: 'Select Folder',
+                browser_notifs: 'Browser Notifications',
+                browser_notifs_desc: 'Receive desktop notifications when the server starts, stops, a world is uploaded, or a backup is made.',
+                notif_activate: 'Activate',
+                notif_not_active: 'Not active',
+                backups: 'Minecraft World Backups',
+                backups_desc: 'An automatic backup is made every time the server stops. You can also create manual backups.',
+                create_backup: 'Create backup now',
+                manage_server: 'Manage Server',
+                server_name: 'Server name',
+                export_import: 'Export / Import',
+                export_zip: 'Export ZIP',
+                import_zip: 'Import ZIP',
+                delete_server: 'Delete server',
+                rename: 'Rename',
+                name_hint: 'Only letters, numbers, hyphens and underscores',
+                new_server: 'New Server',
+                new_server_desc: 'Create a new Minecraft server. It will be installed automatically.',
+                creating_server: 'Creating server...',
+                select_type: 'Select a type...',
+                select_version_first: 'First select a type',
+                create_install: 'Create & Install',
+                plugin_incompatible_title: 'Incompatible Plugins/Mods',
+                plugin_incompatible_desc: 'The following plugins/mods do not have a compatible version for the target version. They and their orphaned dependencies will be removed.',
+                delete_incompatible: 'Delete incompatible and update',
+                log_viewer: 'Log History',
+                lines: 'lines',
+                switch_to: 'Switched to server',
+                active_server_label: 'Active server:',
+                confirm_ban_title: 'Ban Player',
+                confirm_ban_desc: 'Enter the player name and an optional reason.',
+                upload_progress: 'Uploading world',
+                preparing: 'Preparing...',
+                view_detail: 'View chunk detail',
+                files_title: 'Server Files',
+                upload_file: 'Upload file',
+                new_folder: 'New folder',
+                new_folder_prompt: 'Enter the name of the new folder:',
+                file_editor: 'Editor',
+                file_saved: 'Saved',
+                file_saving: 'Saving...',
+                toast_server_started: 'Server started',
+                toast_server_stopped: 'Server stopped',
+                toast_backup_created: 'Backup created',
+                toast_world_uploaded: 'World uploaded successfully',
+                toast_settings_saved: 'Settings saved. Restart required to apply.',
+                players_section: 'Players',
+                player: 'Player',
+                status: 'Status',
+                actions: 'Actions',
+                op: 'OP',
+                wl: 'WL',
+                banned: 'Banned',
+                kick: 'Kick',
+                stats_modal_title: 'Server Statistics',
+                confirm_restart_title: 'Restart Server',
+                error_modal_title: 'Error',
+                colab_warning_5min: 'Less than 5 minutes of Colab remaining! Save your progress.',
+                colab_warning_1h: 'Less than 1 hour of Colab remaining',
+                colab_warning_30min: 'Less than 30 minutes of Colab remaining',
+                colab_warning_10min: 'Less than 10 minutes of Colab remaining!',
+                colab_warning_end: 'Colab time has ended.',
+                language: 'Language',
+            }
+        };
+        let currentLang = localStorage.getItem('panel-lang') || 'es';
+        function t(key) { return i18n[currentLang] && i18n[currentLang][key] !== undefined ? i18n[currentLang][key] : i18n['es'][key] || key; }
+        function toggleLang() {
+            currentLang = currentLang === 'es' ? 'en' : 'es';
+            localStorage.setItem('panel-lang', currentLang);
+            document.documentElement.className = 'lang-' + currentLang;
+            document.getElementById('lang-toggle').textContent = currentLang.toUpperCase();
+            applyTranslations();
+        }
+        function applyTranslations() {
+            document.documentElement.lang = currentLang;
+            // Nav
+            document.querySelector('.nav-item[data-section="dashboard"] .nav-text').textContent = t('nav_dashboard');
+            document.querySelector('.nav-item[data-section="console"] .nav-text').textContent = t('nav_console');
+            document.querySelector('.nav-item[data-section="players"] .nav-text').textContent = t('nav_players');
+            document.querySelector('.nav-item[data-section="properties"] .nav-text').textContent = t('nav_properties');
+            document.querySelector('.nav-item[data-section="settings"] .nav-text').textContent = t('nav_settings');
+            document.querySelector('.nav-item[data-section="manage-server"] .nav-text').textContent = t('nav_manage');
+            document.querySelector('.nav-item[data-section="plugins"] .nav-text').textContent = t('nav_plugins');
+            document.querySelector('.nav-item[data-section="files"] .nav-text').textContent = t('nav_files');
+            // Header
+            document.querySelector('.btn-new-server').innerHTML = '<i class="fas fa-plus"></i> ' + t('header_new');
+            document.getElementById('lang-toggle').textContent = currentLang.toUpperCase();
+            // Dashboard
+            document.getElementById('btn-start').innerHTML = '<i class="fas fa-play"></i> ' + t('start');
+            document.getElementById('btn-stop').innerHTML = '<i class="fas fa-stop"></i> ' + t('stop');
+            document.getElementById('btn-restart').innerHTML = '<i class="fas fa-sync-alt"></i> ' + t('restart');
+            // Console
+            document.getElementById('console-input').placeholder = t('console_placeholder');
+            document.querySelector('#section-console .console-title').innerHTML = '<i class="fas fa-terminal"></i> ' + t('console_title');
+            document.getElementById('btn-scroll-lock').innerHTML = '<i class="fas fa-lock-open"></i> ' + t('console_scroll');
+            var logBtn = document.querySelector('.console-actions button[onclick*="openLogViewer"]');
+            if (logBtn) logBtn.innerHTML = '<i class="fas fa-history"></i> ' + t('console_logs');
+            // Players section
+            var filterInput = document.getElementById('players-filter');
+            if (filterInput) filterInput.placeholder = t('filter_players');
+            var broadcastBtn = document.querySelector('button[onclick*="broadcastMessage"]');
+            if (broadcastBtn) broadcastBtn.innerHTML = '<i class="fas fa-bullhorn"></i> ' + t('broadcast');
+            document.querySelector('#section-players .subsection:first-child h3').innerHTML = '<i class="fas fa-users"></i> ' + t('players_section)') + '...';
+            // Settings - properties
+            var propsLabel = document.querySelector('#section-properties h3');
+            if (propsLabel) propsLabel.innerHTML = '<i class="fas fa-sliders-h"></i> ' + t('server_properties');
+            // Footer
+            var footerName = document.querySelector('.sidebar-footer .server-name');
+            if (footerName) footerName.textContent = t('active_server');
+            // Update section labels
+            updatePluginsNav();
+            // Section title in nav
+            var activeSection = document.querySelector('.section.active');
+            if (activeSection) {
+                var sectionId = activeSection.id.replace('section-', '');
+                var titles = { 'properties': t('nav_properties'), 'plugins': t('nav_plugins'), 'manage-server': t('nav_manage'), 'console': t('nav_console'), 'players': t('nav_players'), 'settings': t('nav_settings'), 'files': t('nav_files'), 'dashboard': t('nav_dashboard') };
+                document.getElementById('section-title').textContent = titles[sectionId] || sectionId;
+            }
+            // Load status text again if server is running
+            if (state && state.running !== undefined) {
+                var dot = document.getElementById('status-dot');
+                var text = document.getElementById('status-text');
+                if (state.running) {
+                    text.textContent = t('header_online');
+                } else {
+                    text.textContent = t('header_offline');
+                }
+            }
+        }
+
         // ============ INIT ============
         document.addEventListener('DOMContentLoaded', () => {
             loadServerTypes();
@@ -1082,6 +1495,7 @@
             document.getElementById('btn-start').disabled = true;
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('btn-restart').disabled = true;
+            applyTranslations();
             var savedSection = localStorage.getItem('panel-section');
             if (savedSection && savedSection !== 'dashboard') {
                 navigateTo(savedSection);
@@ -1132,10 +1546,10 @@
                 const text = document.getElementById('status-text');
                 if (data.minecraft_running) {
                     dot.className = 'status-dot online pulse';
-                    text.textContent = 'En línea';
+                    text.textContent = t('header_online');
                 } else {
                     dot.className = 'status-dot';
-                    text.textContent = 'Fuera de línea';
+                    text.textContent = t('header_offline');
                 }
 
                 // Renderizar tabs de servidores
@@ -1190,24 +1604,24 @@
                         placeholder.className = 'no-servers';
                         placeholder.style.cssText = 'font-size:13px;color:#484f58;padding:8px 0;';
                     }
-                    placeholder.textContent = 'Sin servidores';
+                    placeholder.textContent = t('no_servers');
                     tabsContainer.appendChild(placeholder);
                 } else if (placeholder) {
                     placeholder.remove();
                 }
 
-                document.getElementById('sidebar-active-server').textContent = data.active_server || 'Ninguno';
+                document.getElementById('sidebar-active-server').textContent = data.active_server || t('no_servers');
 
                 const cardStatus = document.getElementById('card-status');
                 if (data.minecraft_running) {
-                    cardStatus.textContent = 'ONLINE';
+                    cardStatus.textContent = t('status_online');
                     cardStatus.className = 'stat-value green';
-                    document.getElementById('card-status-sub').textContent = 'Aceptando conexiones';
+                    document.getElementById('card-status-sub').textContent = t('status_accepting');
                     updateSignalBars(20, true);
                 } else {
-                    cardStatus.textContent = 'OFFLINE';
+                    cardStatus.textContent = t('status_offline');
                     cardStatus.className = 'stat-value red';
-                    document.getElementById('card-status-sub').textContent = 'Servidor detenido';
+                    document.getElementById('card-status-sub').textContent = t('status_stopped');
                     updateSignalBars(0, false);
                 }
 
@@ -1217,16 +1631,16 @@
                 if (data.minecraft_running) {
                     state.running = true;
                     btnStart.disabled = true;
-                    btnStart.innerHTML = '<i class="fas fa-check-circle"></i> En ejecución';
+                    btnStart.innerHTML = '<i class="fas fa-check-circle"></i> ' + t('running');
                     btnStop.disabled = false;
-                    btnStop.innerHTML = '<i class="fas fa-stop"></i> Detener';
+                    btnStop.innerHTML = '<i class="fas fa-stop"></i> ' + t('stop');
                     btnRestart.disabled = false;
                 } else {
                     state.running = false;
                     btnStart.disabled = false;
-                    btnStart.innerHTML = '<i class="fas fa-play"></i> Iniciar';
+                    btnStart.innerHTML = '<i class="fas fa-play"></i> ' + t('start');
                     btnStop.disabled = true;
-                    btnStop.innerHTML = '<i class="fas fa-stop"></i> Detener';
+                    btnStop.innerHTML = '<i class="fas fa-stop"></i> ' + t('stop');
                     btnRestart.disabled = true;
                 }
 
@@ -1264,28 +1678,28 @@
             el.textContent = formatTime(remaining);
             if (remaining < 3600) {
                 el.className = 'stat-value red';
-                sub.textContent = '¡Queda menos de 1 hora!';
+                sub.textContent = t('colab_less_1h');
             } else {
                 el.className = 'stat-value';
-                sub.textContent = 'Tiempo restante de Colab';
+                sub.textContent = t('colab_remaining');
             }
             if (state.colabNotified && remaining < 300 && remaining > 0 && !state.colabNotified['5min']) {
                 state.colabNotified['5min'] = true;
-                sendNotification('⚠️ MineColab', '¡Quedan menos de 5 minutos de Colab! Guarda tu progreso.', 'colab_warning');
+                sendNotification('⚠️ MineColab', t('colab_warning_5min'), 'colab_warning');
             } else if (!state.colabNotified && remaining < 3600 && remaining > 0 && !state.colabNotified['60min']) {
                 state.colabNotified = state.colabNotified || {};
                 state.colabNotified['60min'] = true;
-                sendNotification('MineColab', 'Queda menos de 1 hora de tiempo de Colab (' + formatTime(remaining) + ')', 'colab_warning');
+                sendNotification('MineColab', t('colab_warning_1h') + ' (' + formatTime(remaining) + ')', 'colab_warning');
             } else if (state.colabNotified && remaining < 1800 && remaining > 0 && !state.colabNotified['30min']) {
                 state.colabNotified['30min'] = true;
-                sendNotification('⚠️ MineColab', 'Quedan menos de 30 minutos de Colab', 'colab_warning');
+                sendNotification('⚠️ MineColab', t('colab_warning_30min'), 'colab_warning');
             } else if (state.colabNotified && remaining < 600 && remaining > 0 && !state.colabNotified['10min']) {
                 state.colabNotified['10min'] = true;
-                sendNotification('⚠️ MineColab', '¡Quedan menos de 10 minutos de Colab!', 'colab_warning');
+                sendNotification('⚠️ MineColab', t('colab_warning_10min'), 'colab_warning');
             }
             if (remaining === 0 && state.colabNotified && !state.colabNotified['end']) {
                 state.colabNotified['end'] = true;
-                sendNotification('⛔ MineColab', 'El tiempo de Colab ha terminado.', 'colab_warning');
+                sendNotification('⛔ MineColab', t('colab_warning_end'), 'colab_warning');
             }
         }
 
@@ -1301,15 +1715,15 @@
 
             if (info) {
                 navItem.style.display = '';
-                const label = info.category === 'mod' ? 'Mods' : 'Plugins';
+                const label = info.category === 'mod' ? t('mods') : t('nav_plugins');
                 const icon = info.category === 'mod' ? 'fas fa-cubes' : 'fas fa-puzzle-piece';
                 navItem.querySelector('.nav-text').textContent = label;
                 navItem.querySelector('i').className = icon;
                 document.getElementById('plugins-section-label').textContent = label;
-                document.getElementById('plugins-installed-label').textContent = label + ' Instalados';
+                document.getElementById('plugins-installed-label').textContent = label + ' ' + t('installed');
                 document.getElementById('plugin-search-input').placeholder = info.category === 'mod'
-                    ? 'Buscar mods...'
-                    : 'Buscar plugins (ej: essentials, worldedit, luckperms)...';
+                    ? t('mod_search_placeholder')
+                    : t('plugin_search_placeholder');
             } else {
                 navItem.style.display = 'none';
                 section.classList.remove('active');
@@ -1357,8 +1771,8 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    toast('Servidor cambiado a ' + name, 'success');
-                    sendNotification('MineColab', 'Servidor activo: ' + name, 'server_start');
+                    toast(t('switch_to') + ' ' + name, 'success');
+                    sendNotification('MineColab', t('active_server_label') + ' ' + name, 'server_start');
                     document.querySelectorAll('.server-tab').forEach(t => {
                         t.classList.toggle('active', t.textContent.trim() === name);
                     });
@@ -2165,6 +2579,13 @@
                 document.documentElement.setAttribute('data-theme', 'light');
                 icon.innerHTML = '<i class="fas fa-sun"></i>';
             }
+            // Init language
+            var savedLang = localStorage.getItem('panel-lang');
+            if (savedLang === 'en' || savedLang === 'es') currentLang = savedLang;
+            document.documentElement.className = 'lang-' + currentLang;
+            document.documentElement.lang = currentLang;
+            var langToggle = document.getElementById('lang-toggle');
+            if (langToggle) langToggle.textContent = currentLang.toUpperCase();
         })();
 
         // ============ EXPORT / IMPORT ============
