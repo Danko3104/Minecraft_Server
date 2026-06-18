@@ -83,6 +83,11 @@
         .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border-subtle); }
         .sidebar-footer .server-name { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
         .sidebar-footer .server-value { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+        .sidebar-footer .server-icon-wrap { display: flex; align-items: center; gap: 12px; }
+        .sidebar-footer .server-icon { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border-subtle); }
+        .sidebar.collapsed .sidebar-footer .server-icon { width: 32px; height: 32px; }
+        .sidebar.collapsed .sidebar-footer .server-icon-wrap { justify-content: center; }
+        .sidebar.collapsed .sidebar-footer .server-icon-wrap .footer-text { display: none; }
 
         /* MAIN */
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
@@ -414,9 +419,12 @@
                 </div>
             </nav>
             <div class="sidebar-footer">
-                <div class="footer-text">
-                    <div class="server-name">Servidor activo</div>
-                    <div class="server-value" id="sidebar-active-server">---</div>
+                <div class="server-icon-wrap">
+                    <img class="server-icon" id="sidebar-server-icon" src="" alt="icon" onerror="this.style.display='none'">
+                    <div class="footer-text">
+                        <div class="server-name">Servidor activo</div>
+                        <div class="server-value" id="sidebar-active-server">---</div>
+                    </div>
                 </div>
                 <div class="footer-row" style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:center;">
                 </div>
@@ -1258,6 +1266,132 @@
                 cat_security: 'Seguridad',
                 btn_apply: 'Aplicar',
                 btn_applied: 'Aplicado',
+                na_time: '--:--',
+                select_type_placeholder: 'Selecciona un tipo...',
+                select_version_placeholder: 'Selecciona una versión...',
+                no_versions: 'Sin versiones disponibles',
+                error_loading: 'Error al cargar',
+                starting: 'Iniciando...',
+                stopping: 'Deteniendo...',
+                searching: 'Buscando...',
+                not_available: 'No disponible',
+                connected: 'Conectado',
+                disconnected: 'Desconectado',
+                no_results: 'Sin resultados',
+                no_players_yet: 'Aún no ha entrado ningún jugador',
+                no_banned: 'No hay jugadores baneados',
+                no_whitelist: 'Sin jugadores en whitelist',
+                empty_folder: 'Carpeta vacía',
+                copied: '¡Copiado!',
+                copy_error: 'Error al copiar',
+                name_required: 'Nombre requerido',
+                name_pattern: 'Solo letras, números, guiones',
+                select_type_version: 'Selecciona tipo y versión',
+                installing_ellipsis: 'Instalando...',
+                install_complete: '¡Instalación completada!',
+                server_starting: 'Servidor iniciándose',
+                server_started_toast: 'Servidor iniciado',
+                server_stopped_toast: 'Servidor detenido',
+                server_not_running: 'El servidor no está corriendo',
+                server_not_active: 'No hay servidor activo',
+                name_empty: 'El nombre no puede estar vacío',
+                name_same: 'El nombre es el mismo',
+                name_invalid_chars: 'El nombre solo puede contener letras, números, guiones y guiones bajos',
+                server_renamed: 'Servidor renombrado',
+                rename_error: 'Error al renombrar',
+                stop_first: 'Detén el servidor antes de eliminarlo',
+                confirm_delete_server: '¿Estás seguro de eliminar el servidor "{name}"?\n\nEsta acción eliminará TODOS los archivos permanentemente. No se puede deshacer.',
+                server_deleted: 'Servidor eliminado',
+                delete_error: 'Error al eliminar',
+                props_saved: 'Propiedades guardadas. Reinicia el servidor para aplicar los cambios.',
+                props_save_error: 'Error al guardar',
+                reload_confirm: '¿Ejecutar /reload? Esto recargará plugins y config sin reiniciar. No recomendado en producción.',
+                cmd_sent: 'Comando enviado',
+                update_available_title: 'Actualización disponible',
+                backup_before_update: 'Hacer backup completo (zip) antes de actualizar',
+                update_to: 'Actualizar a',
+                up_to_date: 'Tienes la última versión',
+                checking_compatibility: 'Verificando compatibilidad de plugins...',
+                stopping_server_step: 'Deteniendo servidor...',
+                backing_up_world_step: 'Haciendo backup del mundo...',
+                backing_up_server_step: 'Haciendo backup completo del servidor...',
+                downloading_paper: 'Descargando Paper',
+                restarting_server_step: 'Reiniciando servidor...',
+                update_complete: '¡Actualización completada!',
+                update_error: 'Error al actualizar',
+                processing_world: 'Procesando mundo...',
+                compressing: 'Comprimiendo...',
+                upload_cancelled: 'Subida cancelada',
+                upload_error: 'Error en la subida',
+                logged_in_players: 'Jugadores conectados',
+                confirm_kick: 'Motivo de expulsión para {player}:',
+                confirm_ban_reason: 'Motivo de baneo para {player}:',
+                confirm_whitelist_remove: '¿Quitar a {player} de la whitelist?',
+                confirm_delete_player: '¿Eliminar el registro de "{player}" permanentemente?\nNo podrá recuperarse a menos que el jugador vuelva a entrar.',
+                okay: 'OK',
+                msg_sent: 'Mensaje enviado',
+                write_msg: 'Escribe un mensaje',
+                unban: 'Desbanear',
+                remove: 'Quitar',
+                write_name: 'Escribe un nombre',
+                search_term_required: 'Escribe un término de búsqueda',
+                no_results_for: 'Sin resultados para',
+                no_plugins_installed: 'No hay plugins instalados. Busca e instala desde arriba.',
+                no_mods_installed: 'No hay mods instalados. Busca e instala desde arriba.',
+                install: 'Instalar',
+                install_plugin: 'Instalar Plugin',
+                install_mod: 'Instalar Mod',
+                download_count: 'descargas',
+                no_description: 'Sin descripción',
+                incompatible: 'No compatible',
+                loading_logs: 'Cargando logs...',
+                log_empty: 'Log vacío',
+                total_lines: 'líneas totales',
+                showing: 'mostrando',
+                log_download_error: 'Error al descargar log',
+                log_load_error: 'Error al cargar',
+                stats_loading: 'Cargando estadísticas...',
+                stats_load_error: 'Error al cargar estadísticas',
+                root: 'raíz',
+                file_load_error: 'Error al cargar archivos',
+                file_read_error: 'No se pudo leer',
+                file_saved_toast: 'Archivo guardado',
+                connection_error: 'Error de conexión',
+                notif_unsupported: 'No soportado',
+                notif_enabled: 'Activadas',
+                notif_blocked: 'Bloqueadas (configura el navegador)',
+                notif_denied: 'Permiso denegado para notificaciones',
+                notif_all_enabled: 'Todas las notificaciones activadas',
+                notif_all_disabled: 'Todas las notificaciones desactivadas',
+                notif_label_starting: 'Servidor iniciando',
+                notif_label_ready: 'Servidor listo para entrar',
+                notif_label_stopped: 'Servidor detenido',
+                notif_label_error: 'Error del servidor',
+                notif_label_world: 'Mundo subido',
+                notif_label_backup: 'Backup creado/restaurado',
+                notif_label_colab: 'Advertencia de tiempo Colab',
+                notif_label_plugins: 'Plugins',
+                notif_label_browser: 'Notificaciones del navegador',
+                mb_short: 'MB',
+                cpu_percent: '%',
+                chart_ram: 'RAM (MB)',
+                chart_cpu: 'CPU (%)',
+                chart_players: 'Jugadores',
+                chart_ram_title: 'MB',
+                chart_cpu_players_title: '% / Jug',
+                uploading: 'Subiendo',
+                upload_chunk: 'Chunk',
+                files: 'archivos',
+                file_singular: 'archivo',
+                importing: 'Importando servidor...',
+                export_success: 'Servidor exportado',
+                export_error: 'Error al exportar servidor',
+                import_prompt: 'Nombre para el servidor importado:',
+                select_all: 'Todas',
+                deselect_all: 'Ninguna',
+                search_plugins: 'Buscar',
+                admin_label: 'Administrando:',
+                no_active_server: 'No hay servidor activo. Selecciona uno primero.',
             },
             en: {
                 lang_name: 'English',
@@ -1433,6 +1567,132 @@
                 cat_security: 'Security',
                 btn_apply: 'Apply',
                 btn_applied: 'Applied',
+                na_time: '--:--',
+                select_type_placeholder: 'Select a type...',
+                select_version_placeholder: 'Select a version...',
+                no_versions: 'No versions available',
+                error_loading: 'Error loading',
+                starting: 'Starting...',
+                stopping: 'Stopping...',
+                searching: 'Searching...',
+                not_available: 'Not available',
+                connected: 'Connected',
+                disconnected: 'Disconnected',
+                no_results: 'No results',
+                no_players_yet: 'No players have ever joined',
+                no_banned: 'No banned players',
+                no_whitelist: 'No whitelisted players',
+                empty_folder: 'Empty folder',
+                copied: 'Copied!',
+                copy_error: 'Error copying',
+                name_required: 'Name required',
+                name_pattern: 'Only letters, numbers, hyphens',
+                select_type_version: 'Select type and version',
+                installing_ellipsis: 'Installing...',
+                install_complete: 'Installation complete!',
+                server_starting: 'Server starting',
+                server_started_toast: 'Server started',
+                server_stopped_toast: 'Server stopped',
+                server_not_running: 'The server is not running',
+                server_not_active: 'No active server',
+                name_empty: 'Name cannot be empty',
+                name_same: 'Name is the same',
+                name_invalid_chars: 'Name can only contain letters, numbers, hyphens and underscores',
+                server_renamed: 'Server renamed',
+                rename_error: 'Error renaming',
+                stop_first: 'Stop the server before deleting it',
+                confirm_delete_server: 'Are you sure you want to delete the server "{name}"?\n\nThis action will delete ALL files permanently. Cannot be undone.',
+                server_deleted: 'Server deleted',
+                delete_error: 'Error deleting',
+                props_saved: 'Properties saved. Restart the server to apply changes.',
+                props_save_error: 'Error saving',
+                reload_confirm: 'Run /reload? This will reload plugins and config without restarting. Not recommended in production.',
+                cmd_sent: 'Command sent',
+                update_available_title: 'Update available',
+                backup_before_update: 'Make full backup (zip) before updating',
+                update_to: 'Update to',
+                up_to_date: 'You have the latest version',
+                checking_compatibility: 'Checking plugin compatibility...',
+                stopping_server_step: 'Stopping server...',
+                backing_up_world_step: 'Backing up world...',
+                backing_up_server_step: 'Backing up full server...',
+                downloading_paper: 'Downloading Paper',
+                restarting_server_step: 'Restarting server...',
+                update_complete: 'Update complete!',
+                update_error: 'Update error',
+                processing_world: 'Processing world...',
+                compressing: 'Compressing...',
+                upload_cancelled: 'Upload cancelled',
+                upload_error: 'Upload error',
+                logged_in_players: 'Logged in players',
+                confirm_kick: 'Kick reason for {player}:',
+                confirm_ban_reason: 'Ban reason for {player}:',
+                confirm_whitelist_remove: 'Remove {player} from whitelist?',
+                confirm_delete_player: 'Delete record for "{player}" permanently?\nIt cannot be recovered unless the player re-joins.',
+                okay: 'OK',
+                msg_sent: 'Message sent',
+                write_msg: 'Write a message',
+                unban: 'Unban',
+                remove: 'Remove',
+                write_name: 'Write a name',
+                search_term_required: 'Write a search term',
+                no_results_for: 'No results for',
+                no_plugins_installed: 'No plugins installed. Search and install from above.',
+                no_mods_installed: 'No mods installed. Search and install from above.',
+                install: 'Install',
+                install_plugin: 'Install Plugin',
+                install_mod: 'Install Mod',
+                download_count: 'downloads',
+                no_description: 'No description',
+                incompatible: 'Incompatible',
+                loading_logs: 'Loading logs...',
+                log_empty: 'Log empty',
+                total_lines: 'total lines',
+                showing: 'showing',
+                log_download_error: 'Error downloading log',
+                log_load_error: 'Error loading',
+                stats_loading: 'Loading stats...',
+                stats_load_error: 'Error loading stats',
+                root: 'root',
+                file_load_error: 'Error loading files',
+                file_read_error: 'Could not read',
+                file_saved_toast: 'File saved',
+                connection_error: 'Connection error',
+                notif_unsupported: 'Not supported',
+                notif_enabled: 'Enabled',
+                notif_blocked: 'Blocked (configure browser)',
+                notif_denied: 'Permission denied for notifications',
+                notif_all_enabled: 'All notifications enabled',
+                notif_all_disabled: 'All notifications disabled',
+                notif_label_starting: 'Server starting',
+                notif_label_ready: 'Server ready to join',
+                notif_label_stopped: 'Server stopped',
+                notif_label_error: 'Server error',
+                notif_label_world: 'World uploaded',
+                notif_label_backup: 'Backup created/restored',
+                notif_label_colab: 'Colab time warning',
+                notif_label_plugins: 'Plugins',
+                notif_label_browser: 'Browser notifications',
+                mb_short: 'MB',
+                cpu_percent: '%',
+                chart_ram: 'RAM (MB)',
+                chart_cpu: 'CPU (%)',
+                chart_players: 'Players',
+                chart_ram_title: 'MB',
+                chart_cpu_players_title: '% / Pl',
+                uploading: 'Uploading',
+                upload_chunk: 'Chunk',
+                files: 'files',
+                file_singular: 'file',
+                importing: 'Importing server...',
+                export_success: 'Server exported',
+                export_error: 'Error exporting server',
+                import_prompt: 'Name for the imported server:',
+                select_all: 'All',
+                deselect_all: 'None',
+                search_plugins: 'Search',
+                admin_label: 'Managing:',
+                no_active_server: 'No active server. Select one first.',
             }
         };
         let currentLang = localStorage.getItem('panel-lang') || 'es';
@@ -1533,8 +1793,8 @@
             const navItem = document.querySelector(`.nav-item[data-section="${section}"]`);
             if (navItem) navItem.classList.add('active');
             document.getElementById('section-' + section)?.classList.add('active');
-            const titles = { 'properties': 'Propiedades', 'plugins': getContentType() === 'mod' ? 'Mods' : 'Plugins', 'manage-server': 'Gestionar Servidor' };
-            document.getElementById('section-title').textContent = titles[section] || section.charAt(0).toUpperCase() + section.slice(1);
+            const titles = { 'properties': t('nav_properties'), 'plugins': getContentType() === 'mod' ? t('mods') : t('nav_plugins'), 'manage-server': t('nav_manage'), 'console': t('nav_console'), 'players': t('nav_players'), 'settings': t('nav_settings'), 'files': t('nav_files'), 'dashboard': t('nav_dashboard') };
+            document.getElementById('section-title').textContent = titles[section] || section;
             if (section === 'console') { startConsolePolling(); } else { stopConsolePolling(); }
             if (section === 'players') { loadPlayers(); loadBanned(); loadWhitelist(); startPlayersPolling(); } else { stopPlayersPolling(); }
             if (section === 'settings') { loadSettings(); }
@@ -1632,6 +1892,13 @@
                 }
 
                 document.getElementById('sidebar-active-server').textContent = data.active_server || t('no_servers');
+                var iconEl = document.getElementById('sidebar-server-icon');
+                if (data.active_server) {
+                    iconEl.style.display = '';
+                    iconEl.src = '/api/servers/' + encodeURIComponent(data.active_server) + '/icon?_=' + Date.now();
+                } else {
+                    iconEl.style.display = 'none';
+                }
 
                 const cardStatus = document.getElementById('card-status');
                 if (data.minecraft_running) {
@@ -1672,13 +1939,13 @@
                             const mx = pd.max || 20;
                             state.maxPlayers = mx;
                             document.getElementById('card-players').textContent = online + ' / ' + mx;
-                            document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
+                            document.getElementById('card-players-sub').textContent = t('players_connected') + ' (' + t('players_max') + ' ' + mx + ')';
                             document.getElementById('sidebar-player-count').textContent = online;
                         }).catch(() => {});
                     } else {
                         const mx = state.maxPlayers || 20;
                         document.getElementById('card-players').textContent = '0 / ' + mx;
-                        document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
+                        document.getElementById('card-players-sub').textContent = t('players_connected') + ' (' + t('players_max') + ' ' + mx + ')';
                         document.getElementById('sidebar-player-count').textContent = '0';
                     }
                 }
@@ -1773,7 +2040,7 @@
         }
 
         function formatTime(sec) {
-            if (!sec && sec !== 0) return '--:--';
+            if (!sec && sec !== 0) return t('na_time');
             const h = Math.floor(sec / 3600);
             const m = Math.floor((sec % 3600) / 60);
             const s = Math.floor(sec % 60);
@@ -1948,7 +2215,7 @@
                 const ramMb = data.ram_mb || 0;
                 const ramEl = document.getElementById('card-ram');
                 const ramCard = document.getElementById('stat-ram-card');
-                ramEl.textContent = ramMb + ' MB';
+                ramEl.textContent = ramMb + ' ' + t('mb_short');
                 if (ramMb < 1024) {
                     ramEl.className = 'stat-value green';
                 } else if (ramMb < 2048) {
@@ -1961,7 +2228,7 @@
                 const cpu = data.cpu_percent || 0;
                 const cpuEl = document.getElementById('card-cpu');
                 const cpuCard = document.getElementById('stat-cpu-card');
-                cpuEl.textContent = cpu + '%';
+                cpuEl.textContent = cpu + t('cpu_percent');
                 if (cpu < 50) {
                     cpuEl.className = 'stat-value green';
                 } else if (cpu < 80) {
@@ -2523,7 +2790,7 @@
                 const data = await res.json();
                 serverTypes = data.types || [];
                 const sel = document.getElementById('input-server-type');
-                sel.innerHTML = '<option value="">Selecciona un tipo...</option>';
+                sel.innerHTML = '<option value="">' + t('select_type_placeholder') + '</option>';
                 serverTypes.forEach(t => {
                     const opt = document.createElement('option');
                     opt.value = t; opt.textContent = t;
@@ -2535,13 +2802,13 @@
         async function onServerTypeChange() {
             const type = document.getElementById('input-server-type').value;
             const verSel = document.getElementById('input-server-version');
-            if (!type) { verSel.innerHTML = '<option value="">Primero selecciona un tipo</option>'; verSel.disabled = true; return; }
+            if (!type) { verSel.innerHTML = '<option value="">' + t('select_version_first') + '</option>'; verSel.disabled = true; return; }
             verSel.disabled = true;
-            verSel.innerHTML = '<option value="">Cargando...</option>';
+            verSel.innerHTML = '<option value="">' + t('loading') + '</option>';
             try {
                 const res = await fetch('/api/software/versions?type=' + encodeURIComponent(type));
                 const data = await res.json();
-                verSel.innerHTML = '<option value="">Selecciona una versión...</option>';
+                verSel.innerHTML = '<option value="">' + t('select_version_placeholder') + '</option>';
                 if (data.versions && data.versions.length > 0) {
                     data.versions.forEach(v => {
                         const opt = document.createElement('option');
@@ -2550,11 +2817,11 @@
                     });
                     verSel.disabled = false;
                 } else {
-                    verSel.innerHTML = '<option value="">Sin versiones disponibles</option>';
+                    verSel.innerHTML = '<option value="">' + t('no_versions') + '</option>';
                     verSel.disabled = false;
                 }
             } catch(e) {
-                verSel.innerHTML = '<option value="">Error al cargar</option>';
+                verSel.innerHTML = '<option value="">' + t('error_loading') + '</option>';
                 verSel.disabled = false;
             }
         }
@@ -2654,9 +2921,9 @@
             statsChart = new Chart(ctx, {
                 type: 'line',
                 data: { labels: [], datasets: [
-                    { label: 'RAM (MB)', data: [], borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.1)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
-                    { label: 'CPU (%)', data: [], borderColor: '#d29922', backgroundColor: 'rgba(210,153,34,0.1)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y1' },
-                    { label: 'Jugadores', data: [], borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.1)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y1' }
+                    { label: t('chart_ram'), data: [], borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.1)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 },
+                    { label: t('chart_cpu'), data: [], borderColor: '#d29922', backgroundColor: 'rgba(210,153,34,0.1)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y1' },
+                    { label: t('chart_players'), data: [], borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.1)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y1' }
                 ]},
                 options: {
                     responsive: true, maintainAspectRatio: false,
@@ -2664,8 +2931,8 @@
                     plugins: { legend: { labels: { color: '#8b949e', font: { size: 11 } } } },
                     scales: {
                         x: { ticks: { color: '#484f58', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#21262d' } },
-                        y: { ticks: { color: '#484f58', font: { size: 10 } }, grid: { color: '#21262d' }, title: { display: true, text: 'MB', color: '#58a6ff' } },
-                        y1: { position: 'right', ticks: { color: '#484f58', font: { size: 10 } }, grid: { display: false }, title: { display: true, text: '% / Jug', color: '#d29922' } }
+                        y: { ticks: { color: '#484f58', font: { size: 10 } }, grid: { color: '#21262d' }, title: { display: true, text: t('chart_ram_title'), color: '#58a6ff' } },
+                        y1: { position: 'right', ticks: { color: '#484f58', font: { size: 10 } }, grid: { display: false }, title: { display: true, text: t('chart_cpu_players_title'), color: '#d29922' } }
                     }
                 }
             });
