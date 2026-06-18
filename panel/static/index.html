@@ -4031,11 +4031,15 @@
 
         function getNotifPrefs() {
             var raw = localStorage.getItem('minecolab_notif_prefs');
+            var stored = {};
             if (raw) {
-                try { return JSON.parse(raw); } catch(e) {}
+                try { stored = JSON.parse(raw); } catch(e) {}
             }
             var prefs = {};
-            NOTIF_TYPES.forEach(function(t) { prefs[t.id] = t.default; });
+            NOTIF_TYPES.forEach(function(t) {
+                if (t.id === '_browser') return;
+                prefs[t.id] = stored.hasOwnProperty(t.id) ? stored[t.id] : t.default;
+            });
             localStorage.setItem('minecolab_notif_prefs', JSON.stringify(prefs));
             return prefs;
         }
@@ -4063,7 +4067,7 @@
                         '<span class="notif-toggle' + (browserOn ? ' on' : '') + '"></span>' +
                     '</div>';
                 }
-                var on = prefs[t.id] !== false;
+                var on = prefs.hasOwnProperty(t.id) ? prefs[t.id] : t.default;
                 return '<div class="notif-option" onclick="setNotifPref(\'' + t.id + '\', ' + (!on) + ')">' +
                     '<span class="n-icon"><i class="fas ' + t.icon + '"></i></span>' +
                     '<span class="n-label">' + t.label + '</span>' +

@@ -582,6 +582,14 @@ class ServerManager:
                     "error": "Error al preparar server.properties"
                 }
 
+            # Restaurar icono del servidor si existe backup
+            backup_icon = os.path.join(server_path, '.server-icon-backup.png')
+            icon_path = os.path.join(server_path, 'server-icon.png')
+            if os.path.exists(backup_icon) and not os.path.exists(icon_path):
+                import shutil
+                shutil.copy2(backup_icon, icon_path)
+                print(f"[INFO] Icono del servidor restaurado desde backup")
+
             # Obtener comando
             command = self.get_java_command(server_name)
 

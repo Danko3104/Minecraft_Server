@@ -597,9 +597,29 @@ def api_settings_server_icon():
             if not f.filename.lower().endswith('.png'):
                 return jsonify({"success": False, "error": "Solo archivos .png"}), 400
 
+            f.seek(0, os.SEEK_END)
+            fsize = f.tell()
+            f.seek(0)
+            if fsize > 1024 * 1024:
+                return jsonify({"success": False, "error": "El icono debe ser menor a 1 MB"}), 400
+
+            from PIL import Image
+            import io
+            try:
+                img = Image.open(f)
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+                if img.size != (64, 64):
+                    img = img.resize((64, 64), Image.LANCZOS)
+                buf = io.BytesIO()
+                img.save(buf, format='PNG')
+                buf.seek(0)
+            except Exception:
+                return jsonify({"success": False, "error": "El archivo no es una imagen PNG válida"}), 400
+
             os.makedirs(os.path.dirname(icon_path), exist_ok=True)
-            f.save(icon_path)
-            # Guardar copia de respaldo para restaurar en cada inicio
+            with open(icon_path, 'wb') as fout:
+                fout.write(buf.read())
             import shutil
             backup_icon = os.path.join(os.path.dirname(icon_path), '.server-icon-backup.png')
             shutil.copy2(icon_path, backup_icon)
