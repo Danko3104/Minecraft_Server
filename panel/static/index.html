@@ -412,6 +412,7 @@
 
         /* CUSTOM SELECT */
         .custom-select { position: relative; display: block; }
+        .modal .custom-select { margin-bottom: 16px; }
         .custom-select select { display: none; }
         .custom-select-trigger { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(13,17,23,0.45); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text-primary); font-size: 13px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; min-height: 37px; user-select: none; transform: translateZ(0); }
         .custom-select-trigger:hover { border-color: rgba(255,255,255,0.12); }
@@ -421,6 +422,8 @@
         .custom-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 999; background: rgba(22,27,34,0.7); backdrop-filter: blur(36px); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 4px; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.3); transform: translateZ(0); }
         .custom-select.open .custom-select-dropdown { display: block; animation: selectDropIn 0.15s ease; }
         @keyframes selectDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-select.disabled .custom-select-trigger { opacity: 0.4; cursor: not-allowed; }
+        .custom-select.disabled .custom-select-dropdown { display: none !important; }
         .custom-select-option { padding: 8px 12px; cursor: pointer; color: var(--text-secondary); border-radius: 8px; font-size: 13px; transition: background 0.15s, color 0.15s; }
         .custom-select-option:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
         .custom-select-option.selected { color: #3fb950; background: rgba(63,185,80,0.08); }
@@ -3057,15 +3060,17 @@
                     opt.value = t; opt.textContent = t;
                     sel.appendChild(opt);
                 });
+                refreshCustomSelect(sel);
             } catch(e) { console.error('load types error:', e); }
         }
 
         async function onServerTypeChange() {
             const type = document.getElementById('input-server-type').value;
             const verSel = document.getElementById('input-server-version');
-            if (!type) { verSel.innerHTML = '<option value="">' + t('select_version_first') + '</option>'; verSel.disabled = true; return; }
+            if (!type) { verSel.innerHTML = '<option value="">' + t('select_version_first') + '</option>'; verSel.disabled = true; refreshCustomSelect(verSel); return; }
             verSel.disabled = true;
             verSel.innerHTML = '<option value="">' + t('loading') + '</option>';
+            refreshCustomSelect(verSel);
             try {
                 const res = await fetch('/api/software/versions?type=' + encodeURIComponent(type));
                 const data = await res.json();
@@ -3081,9 +3086,11 @@
                     verSel.innerHTML = '<option value="">' + t('no_versions') + '</option>';
                     verSel.disabled = false;
                 }
+                refreshCustomSelect(verSel);
             } catch(e) {
                 verSel.innerHTML = '<option value="">' + t('error_loading') + '</option>';
                 verSel.disabled = false;
+                refreshCustomSelect(verSel);
             }
         }
 
@@ -3092,7 +3099,8 @@
             document.getElementById('form-new-server').reset();
             document.getElementById('input-server-version').disabled = true;
             document.getElementById('modal-new-error').style.display = 'none';
-
+            refreshCustomSelect(document.getElementById('input-server-type'));
+            refreshCustomSelect(document.getElementById('input-server-version'));
         }
 
         // ============ SIDEBAR TOGGLE ============
@@ -3483,20 +3491,39 @@
         }
 
         function initCustomSelects() {
-            document.querySelectorAll('.setting-field select').forEach(select => {
+            document.querySelectorAll('select:not(#log-file-selector)').forEach(select => {
                 if (select._customSelect) return;
                 select._customSelect = true;
+                buildCustomSelect(select);
+            });
 
-                const wrapper = document.createElement('div');
-                wrapper.className = 'custom-select';
+            document.addEventListener('click', function() {
+                document.querySelectorAll('.custom-select.open').forEach(function(el) {
+                    el.classList.remove('open');
+                });
+            });
+        }
 
-                const trigger = document.createElement('div');
-                trigger.className = 'custom-select-trigger';
-                trigger.innerHTML = '<span>' + (select.options[select.selectedIndex]?.text || select.value) + '</span><svg class="arrow" width="12" height="12" viewBox="0 0 12 12"><path d="M6 8L1 3h10z"/></svg>';
+        function buildCustomSelect(select) {
+            const existing = select.previousElementSibling;
+            if (existing && existing.classList.contains('custom-select')) {
+                existing.remove();
+            }
 
-                const dropdown = document.createElement('div');
-                dropdown.className = 'custom-select-dropdown';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'custom-select';
+            if (select.disabled) wrapper.classList.add('disabled');
 
+            const trigger = document.createElement('div');
+            trigger.className = 'custom-select-trigger';
+            const selectedText = select.options[select.selectedIndex]?.text || select.value || select.options[0]?.text || '';
+            trigger.innerHTML = '<span>' + selectedText + '</span><svg class="arrow" width="12" height="12" viewBox="0 0 12 12"><path d="M6 8L1 3h10z"/></svg>';
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'custom-select-dropdown';
+
+            function rebuildOptions() {
+                dropdown.innerHTML = '';
                 [...select.options].forEach(opt => {
                     const optEl = document.createElement('div');
                     optEl.className = 'custom-select-option' + (opt.selected ? ' selected' : '');
@@ -3504,6 +3531,7 @@
                     optEl.dataset.value = opt.value;
                     optEl.addEventListener('click', function(e) {
                         e.stopPropagation();
+                        if (select.disabled) return;
                         select.value = this.dataset.value;
                         select.dispatchEvent(new Event('change', { bubbles: true }));
                         trigger.firstChild.textContent = this.textContent;
@@ -3513,31 +3541,69 @@
                     });
                     dropdown.appendChild(optEl);
                 });
+                // Sync trigger text
+                const curr = select.options[select.selectedIndex];
+                if (curr) trigger.firstChild.textContent = curr.text;
+            }
 
-                trigger.addEventListener('click', function(e) {
+            rebuildOptions();
+
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (select.disabled) return;
+                wrapper.classList.toggle('open');
+            });
+
+            wrapper.appendChild(trigger);
+            wrapper.appendChild(dropdown);
+            select.parentNode.insertBefore(wrapper, select);
+            select.style.display = 'none';
+
+            select.addEventListener('change', function() {
+                const opt = this.options[this.selectedIndex];
+                if (opt) trigger.firstChild.textContent = opt.text;
+                wrapper.classList.toggle('disabled', this.disabled);
+                dropdown.querySelectorAll('.custom-select-option').forEach(function(o) {
+                    o.classList.toggle('selected', o.dataset.value === select.value);
+                });
+            });
+
+            // Watch for disabled changes via MutationObserver
+            const observer = new MutationObserver(function() {
+                wrapper.classList.toggle('disabled', select.disabled);
+            });
+            observer.observe(select, { attributes: true, attributeFilter: ['disabled'] });
+        }
+
+        function refreshCustomSelect(select) {
+            if (!select._customSelect) return;
+            const wrapper = select.previousElementSibling;
+            if (!wrapper || !wrapper.classList.contains('custom-select')) return;
+            wrapper.classList.toggle('disabled', select.disabled);
+            // Rebuild options
+            const dropdown = wrapper.querySelector('.custom-select-dropdown');
+            const trigger = wrapper.querySelector('.custom-select-trigger');
+            if (!dropdown || !trigger) return;
+            dropdown.innerHTML = '';
+            [...select.options].forEach(opt => {
+                const optEl = document.createElement('div');
+                optEl.className = 'custom-select-option' + (opt.selected ? ' selected' : '');
+                optEl.textContent = opt.text;
+                optEl.dataset.value = opt.value;
+                optEl.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    wrapper.classList.toggle('open');
+                    if (select.disabled) return;
+                    select.value = this.dataset.value;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    trigger.firstChild.textContent = this.textContent;
+                    dropdown.querySelectorAll('.custom-select-option').forEach(function(o) { o.classList.remove('selected'); });
+                    this.classList.add('selected');
+                    wrapper.classList.remove('open');
                 });
-
-                wrapper.appendChild(trigger);
-                wrapper.appendChild(dropdown);
-                select.parentNode.insertBefore(wrapper, select);
-                select.style.display = 'none';
-
-                select.addEventListener('change', function() {
-                    const opt = this.options[this.selectedIndex];
-                    trigger.firstChild.textContent = opt.text;
-                    dropdown.querySelectorAll('.custom-select-option').forEach(function(o) {
-                        o.classList.toggle('selected', o.dataset.value === select.value);
-                    });
-                });
+                dropdown.appendChild(optEl);
             });
-
-            document.addEventListener('click', function() {
-                document.querySelectorAll('.custom-select.open').forEach(function(el) {
-                    el.classList.remove('open');
-                });
-            });
+            const curr = select.options[select.selectedIndex];
+            if (curr) trigger.firstChild.textContent = curr.text;
         }
 
         async function saveServerProperties() {
