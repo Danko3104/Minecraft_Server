@@ -1254,7 +1254,7 @@ class ServerManager:
             if was_running:
                 self.start(server_name)
 
-            return {"success": True, "message": f"Mundo '{new_level_name}' subido correctamente"}
+            return {"success": True, "message": f"Mundo '{new_level_name}' subido correctamente", "world_name": new_level_name}
         except Exception as e:
             print(f"[ERROR] upload_world: {e}")
             return {"success": False, "error": str(e)}

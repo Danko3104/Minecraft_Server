@@ -156,6 +156,10 @@
         .server-select:focus { outline: none; border-color: #3fb950; box-shadow: 0 0 0 3px rgba(63,185,80,0.15), 0 0 20px rgba(63,185,80,0.05); }
         .btn-new-server { padding: 8px 16px; background: #3fb950; color: var(--bg-primary); border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
         .btn-new-server:hover { background: #4ade80; transform: scale(1.03); }
+        .server-nav { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+        .server-nav-btn { width: 28px; height: 28px; border: none; background: transparent; color: #8b949e; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; flex-shrink: 0; }
+        .server-nav-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+        .server-nav-btn:disabled { opacity: 0.3; cursor: default; }
         .server-tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
         .server-tab { padding: 8px 16px; background: transparent; color: #8b949e; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; transition: all 0.2s ease; font-family: 'Inter', sans-serif; display:inline-flex; align-items:center; gap:4px; position: relative; border-radius: 6px 6px 0 0; }
         .server-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); transform: translateY(-2px); }
@@ -496,6 +500,26 @@
         .modal .danger-zone h4 { color: #f85149; font-size: 14px; margin-bottom: 8px; }
 
         .modal .error-msg { background: #f8514915; border: 1px solid #f8514940; border-radius: 8px; padding: 12px; color: #f85149; font-size: 13px; margin-bottom: 16px; display: none; }
+
+        /* UPLOAD BOTTOM BAR (minimizado, estilo Drive) */
+        .upload-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999; background: rgba(22,27,34,0.45); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border-top: 1px solid rgba(255,255,255,0.1); box-shadow: 0 -8px 48px rgba(0,0,0,0.4); padding: 12px 20px; display: none; align-items: center; gap: 16px; animation: uploadBarIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; transform: translateZ(0); }
+        [data-theme="light"] .upload-bar { background: rgba(255,255,255,0.7); border-top-color: rgba(0,0,0,0.08); }
+        @keyframes uploadBarIn { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .upload-bar .ub-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(88,166,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #58a6ff; font-size: 16px; }
+        .upload-bar .ub-icon.done { background: rgba(63,185,80,0.12); color: #3fb950; }
+        .upload-bar .ub-icon.error { background: rgba(248,81,73,0.12); color: #f85149; }
+        .upload-bar .ub-body { flex: 1; min-width: 0; }
+        .upload-bar .ub-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .upload-bar .ub-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+        .upload-bar .ub-track { flex: 1; height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
+        .upload-bar .ub-track-fill { height: 100%; background: linear-gradient(90deg,#58a6ff,#3fb950); border-radius: 2px; transition: width 0.3s ease; }
+        .upload-bar .ub-track-fill.error { background: #f85149; }
+        .upload-bar .ub-pct { font-size: 11px; color: #8b949e; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 32px; text-align: right; }
+        .upload-bar .ub-close { width: 28px; height: 28px; border: none; background: transparent; color: #8b949e; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; flex-shrink: 0; }
+        .upload-bar .ub-close:hover { background: rgba(248,81,73,0.15); color: #f85149; }
+
+        .modal .minimize-btn { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: none; background: transparent; color: #8b949e; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; }
+        .modal .minimize-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
         .modal .progress { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-primary); border-radius: 8px; margin-bottom: 16px; }
         .modal .spinner { width: 20px; height: 20px; border: 2px solid var(--border-color); border-top-color: #3fb950; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -609,6 +633,10 @@
             <header class="header">
                 <div class="header-left">
                     <h2 id="section-title">Dashboard</h2>
+                    <div class="server-nav" id="server-nav" style="display:none;">
+                        <button class="server-nav-btn" onclick="prevServer()" title="Servidor anterior"><i class="fas fa-chevron-left"></i></button>
+                        <button class="server-nav-btn" onclick="nextServer()" title="Siguiente servidor"><i class="fas fa-chevron-right"></i></button>
+                    </div>
                     <div class="server-tabs" id="server-tabs"></div>
                     <button class="btn-new-server" onclick="openNewServerModal()"><i class="fas fa-plus"></i> Nuevo</button>
                 </div>
@@ -1163,6 +1191,7 @@
     <!-- MODAL: PROGRESO DE SUBIDA -->
     <div class="modal-overlay" id="modal-upload-progress" onclick="">
         <div class="modal" style="max-width:480px;">
+            <button class="minimize-btn" id="btn-minimize-upload" onclick="event.stopPropagation();minimizeUpload()" title="Minimizar"><i class="fas fa-minus"></i></button>
             <h2><i class="fas fa-cloud-upload-alt" style="color:#58a6ff;"></i> Subiendo mundo</h2>
             <div style="margin:16px 0;">
                 <div style="display:flex;justify-content:space-between;font-size:13px;color:#8b949e;margin-bottom:8px;">
@@ -1187,6 +1216,19 @@
                 <button class="btn btn-secondary" id="btn-cancel-upload" onclick="cancelUpload()" style="display:none;"><i class="fas fa-times"></i> Cancelar</button>
             </div>
         </div>
+    </div>
+
+    <!-- UPLOAD BOTTOM BAR (minimizado) -->
+    <div class="upload-bar" id="upload-bar" onclick="restoreUpload()">
+        <div class="ub-icon" id="ub-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+        <div class="ub-body">
+            <div class="ub-name" id="ub-name">Subiendo mundo...</div>
+            <div class="ub-progress">
+                <div class="ub-track"><div class="ub-track-fill" id="ub-track-fill" style="width:0%"></div></div>
+                <span class="ub-pct" id="ub-pct">0%</span>
+            </div>
+        </div>
+        <button class="ub-close" id="ub-close" onclick="event.stopPropagation();dismissUploadBar()" title="Cerrar"><i class="fas fa-times"></i></button>
     </div>
 
     <!-- PLUGIN COMPATIBILITY WARNING MODAL -->
@@ -1265,6 +1307,8 @@
         let commandHistory = [];
         let historyIndex = -1;
         let uploadXhr = null;
+        let uploadState = { active: false, minimized: false, pct: 0, filename: 'Preparando...', done: false, error: false, worldName: '' };
+        let previousOnline = {};
         const SUGGESTED_COMMANDS = ['/list', '/whitelist list', '/weather clear', '/time set day', '/gamemode survival @a', '/gamemode creative @a', '/tp @p ~ ~ ~', '/kill @e[type=!player]', '/give @p diamond 1', '/difficulty peaceful'];
 
         // ============ I18N / TRADUCCIONES ============
@@ -2085,6 +2129,7 @@
                     placeholder.remove();
                 }
 
+                document.getElementById('server-nav').style.display = currentNames.length > 1 ? '' : 'none';
                 document.getElementById('sidebar-active-server').textContent = data.active_server || t('no_servers');
                 var iconEl = document.getElementById('sidebar-server-icon');
                 if (data.active_server) {
@@ -2125,6 +2170,8 @@
                     btnStop.innerHTML = '<i class="fas fa-stop"></i> ' + t('stop');
                     btnRestart.disabled = true;
                 }
+
+                updateUploadButtons();
 
                 if (data.active_server) {
                     if (data.minecraft_running) {
@@ -2273,8 +2320,43 @@
             } catch(e) { toast('Error de conexión', 'error'); }
         }
 
+        // ============ SERVER NAVIGATION ============
+        function getServerList() {
+            var tabs = document.querySelectorAll('.server-tab');
+            var list = [];
+            tabs.forEach(function(t) { if (t.getAttribute('data-server')) list.push(t.getAttribute('data-server')); });
+            return list;
+        }
+
+        function getActiveIndex(list) {
+            var active = document.querySelector('.server-tab.active');
+            if (!active) return -1;
+            var name = active.getAttribute('data-server');
+            return list.indexOf(name);
+        }
+
+        function prevServer() {
+            var list = getServerList();
+            if (list.length < 2) return;
+            var idx = getActiveIndex(list);
+            if (idx < 0) { selectServer(list[0]); return; }
+            selectServer(list[(idx - 1 + list.length) % list.length]);
+        }
+
+        function nextServer() {
+            var list = getServerList();
+            if (list.length < 2) return;
+            var idx = getActiveIndex(list);
+            if (idx < 0) { selectServer(list[0]); return; }
+            selectServer(list[(idx + 1) % list.length]);
+        }
+
         // ============ SERVER CONTROL ============
         async function startServer() {
+            if (uploadState.active && !uploadState.done) {
+                toast('Espera a que termine la subida del mundo', 'warning');
+                return;
+            }
             const btn = document.getElementById('btn-start');
             state.isStarting = true;
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
@@ -2897,7 +2979,26 @@
             try {
                 const res = await fetch('/api/players');
                 const data = await res.json();
-                if (data.success && data.players) renderPlayers(data);
+                if (data.success && data.players) {
+                    if (state.running) {
+                        var currentOnline = {};
+                        data.players.forEach(function(p) { if (p.online) currentOnline[p.name] = true; });
+                        for (var _name in currentOnline) {
+                            if (!previousOnline[_name]) {
+                                toast('Entró: ' + _name, 'info');
+                                sendNotification('Entró ' + _name, 'al juego', 'player_joinleave');
+                            }
+                        }
+                        for (var _name in previousOnline) {
+                            if (!currentOnline[_name]) {
+                                toast('Salió: ' + _name, 'warning');
+                                sendNotification('Salió ' + _name, 'del juego', 'player_joinleave');
+                            }
+                        }
+                        previousOnline = currentOnline;
+                    }
+                    renderPlayers(data);
+                }
             } catch(e) { console.error('loadPlayers error:', e); }
         }
 
@@ -3817,12 +3918,24 @@
             const file = input.files[0];
             if (!file) { input.value = ''; return; }
 
+            uploadState.active = true;
+            uploadState.minimized = false;
+            uploadState.done = false;
+            uploadState.error = false;
+            document.getElementById('upload-progress-filename').style.color = '#8b949e';
+            document.getElementById('upload-progress-bar').style.background = 'linear-gradient(90deg,#58a6ff,#3fb950)';
+            document.getElementById('btn-cancel-upload').style.display = '';
+            document.getElementById('btn-minimize-upload').style.display = '';
+            document.getElementById('upload-bar').style.display = 'none';
+            updateUploadButtons();
+            const syncInt = setInterval(function() {
+                if (uploadState.active) _syncUploadUI();
+                else clearInterval(syncInt);
+            }, 500);
+
             clearChunkDetail();
             const oldErr = document.getElementById('upload-error-msg');
             if (oldErr) oldErr.remove();
-            document.getElementById('upload-progress-filename').style.color = '#8b949e';
-            document.getElementById('upload-progress-bar').style.background = 'linear-gradient(90deg,#58a6ff,#3fb950)';
-            document.getElementById('btn-cancel-upload').style.display = 'none';
 
             const totalMB = (file.size / 1048576).toFixed(1);
             document.getElementById('modal-upload-progress').style.display = 'flex';
@@ -3918,17 +4031,20 @@
                                 document.getElementById('btn-cancel-upload').style.display = 'none';
                                 pollUploadStatus(_d.upload_id, uploadId, input, totalChunks, totalMB, 1);
                             } else {
+                                var worldName = _d.world_name;
+                                uploadState.worldName = worldName || '';
+                                var doneMsg = worldName ? "Mundo '" + worldName + "' subido correctamente" : 'Mundo subido correctamente';
                                 document.getElementById('upload-progress-bar').style.width = '100%';
                                 document.getElementById('upload-progress-percent').textContent = '100%';
                                 document.getElementById('upload-progress-files').textContent = totalChunks + ' / ' + totalChunks + ' chunks';
                                 document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
-                                document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                                document.getElementById('upload-progress-filename').textContent = doneMsg;
                                 setTimeout(function() {
-                                    document.getElementById('modal-upload-progress').style.display = 'none';
-                                }, 1000);
+                                    _uploadCleanup();
+                                }, 1500);
                                 const status = document.getElementById('upload-status');
-                                toast('Mundo subido correctamente (' + totalChunks + ' chunks)', 'success');
-                                sendNotification('MineColab', 'Mundo subido correctamente (ZIP)', 'world_upload');
+                                toast(doneMsg + ' (' + totalChunks + ' chunks)', 'success');
+                                sendNotification('MineColab', doneMsg, 'world_upload');
                                 status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                                 setTimeout(function() { status.innerHTML = ''; }, 5000);
                                 input.value = '';
@@ -3980,7 +4096,7 @@
                             headers: {'Content-Type':'application/json'},
                             body: JSON.stringify({upload_id: uploadId})
                         }).catch(function(){});
-                        document.getElementById('modal-upload-progress').style.display = 'none';
+                        _uploadCleanup();
                         toast('Subida cancelada', 'warning');
                         input.value = '';
                     });
@@ -4014,15 +4130,18 @@
                     var data;
                     try { data = JSON.parse(xhr.responseText); } catch(e) { data = { success: false, error: 'Respuesta inválida' }; }
                     if (data.success) {
+                        var worldName = data.world_name;
+                        uploadState.worldName = worldName || '';
+                        var doneMsg = worldName ? "Mundo '" + worldName + "' subido correctamente" : 'Mundo subido correctamente';
                         document.getElementById('upload-progress-bar').style.width = '100%';
                         document.getElementById('upload-progress-percent').textContent = '100%';
                         document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
-                        document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                        document.getElementById('upload-progress-filename').textContent = doneMsg;
                         setTimeout(function() {
-                            document.getElementById('modal-upload-progress').style.display = 'none';
-                        }, 1000);
-                        toast('Mundo subido correctamente', 'success');
-                        sendNotification('MineColab', 'Mundo subido correctamente (ZIP)', 'world_upload');
+                            _uploadCleanup();
+                        }, 1500);
+                        toast(doneMsg, 'success');
+                        sendNotification('MineColab', doneMsg, 'world_upload');
                         status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                     } else {
                         showUploadError(data.error || 'Error al subir mundo ZIP', 'status HTTP: ' + xhr.status);
@@ -4130,7 +4249,11 @@
                 uploadXhr = null;
             }
             document.getElementById('modal-upload-progress').style.display = 'none';
+            document.getElementById('upload-bar').style.display = 'none';
             document.getElementById('upload-status').innerHTML = '';
+            uploadState.active = false;
+            uploadState.done = true;
+            updateUploadButtons();
         }
 
         function pollUploadStatus(uploadId, chunkId, input, totalChunks, totalMB, fileCount) {
@@ -4157,17 +4280,20 @@
                         document.getElementById('upload-progress-filename').textContent = data.progress || 'Procesando...';
                         if (data.status === 'done') {
                             clearInterval(poll);
+                            var worldName = data.result && data.result.world_name;
+                            uploadState.worldName = worldName || '';
+                            var doneMsg = worldName ? "Mundo '" + worldName + "' subido correctamente" : 'Mundo subido correctamente';
                             document.getElementById('upload-progress-bar').style.width = '100%';
                             document.getElementById('upload-progress-percent').textContent = '100%';
                             document.getElementById('upload-progress-files').textContent = totalChunks + ' / ' + totalChunks + ' chunks';
                             document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
-                            document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                            document.getElementById('upload-progress-filename').textContent = doneMsg;
                             setTimeout(function() {
-                                document.getElementById('modal-upload-progress').style.display = 'none';
-                            }, 1000);
+                                _uploadCleanup();
+                            }, 1500);
                             var st = document.getElementById('upload-status');
-                            toast('Mundo subido correctamente (' + fileCount + ' archivos, ' + totalChunks + ' chunks)', 'success');
-                            sendNotification('MineColab', 'Mundo subido correctamente (' + fileCount + ' archivos)', 'world_upload');
+                            toast(doneMsg + ' (' + fileCount + ' archivos, ' + totalChunks + ' chunks)', 'success');
+                            sendNotification('MineColab', doneMsg, 'world_upload');
                             st.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                             setTimeout(function() { st.innerHTML = ''; }, 5000);
                             input.value = '';
@@ -4206,6 +4332,81 @@
             if (oldErr) oldErr.remove();
             container.appendChild(errEl);
             document.getElementById('upload-status').innerHTML = '<i class="fas fa-times" style="color:#f85149;"></i> Error';
+            uploadState.error = true;
+            uploadState.done = true;
+            _syncUploadUI();
+        }
+
+        // ============ UPLOAD MINIMIZE / BOTTOM BAR ============
+        function _syncUploadUI() {
+            const bar = document.getElementById('upload-bar');
+            const name = document.getElementById('ub-name');
+            const pct = document.getElementById('ub-pct');
+            const fill = document.getElementById('ub-track-fill');
+            const icon = document.getElementById('ub-icon');
+            const modalPct = document.getElementById('upload-progress-percent').textContent;
+            const modalName = document.getElementById('upload-progress-filename').textContent;
+            const modalBar = document.getElementById('upload-progress-bar').style.width;
+            pct.textContent = modalPct;
+            name.textContent = modalName;
+            fill.style.width = modalBar;
+            icon.innerHTML = uploadState.error
+                ? '<i class="fas fa-times-circle"></i>'
+                : uploadState.done
+                    ? '<i class="fas fa-check-circle"></i>'
+                    : '<i class="fas fa-cloud-upload-alt"></i>';
+            icon.className = 'ub-icon' + (uploadState.error ? ' error' : '') + (uploadState.done ? ' done' : '');
+            fill.className = 'ub-track-fill' + (uploadState.error ? ' error' : '');
+            document.getElementById('ub-close').style.display = (uploadState.done && !uploadState.error) ? 'none' : '';
+        }
+
+        function minimizeUpload() {
+            if (!uploadState.active) return;
+            uploadState.minimized = true;
+            document.getElementById('modal-upload-progress').style.display = 'none';
+            document.getElementById('upload-bar').style.display = 'flex';
+            _syncUploadUI();
+        }
+
+        function dismissUploadBar() {
+            document.getElementById('upload-bar').style.display = 'none';
+            document.getElementById('modal-upload-progress').style.display = 'none';
+            document.getElementById('upload-status').innerHTML = '';
+            uploadState.active = false;
+            uploadState.done = true;
+            updateUploadButtons();
+        }
+
+        function restoreUpload() {
+            if (uploadState.done) return;
+            uploadState.minimized = false;
+            document.getElementById('upload-bar').style.display = 'none';
+            document.getElementById('modal-upload-progress').style.display = 'flex';
+        }
+
+        function _uploadCleanup() {
+            document.getElementById('modal-upload-progress').style.display = 'none';
+            uploadState.active = false;
+            uploadState.done = true;
+            updateUploadButtons();
+            if (document.getElementById('upload-bar').style.display === 'flex') {
+                _syncUploadUI();
+                setTimeout(function() {
+                    document.getElementById('upload-bar').style.display = 'none';
+                }, 3000);
+            } else {
+                document.getElementById('upload-bar').style.display = 'none';
+            }
+        }
+
+        function updateUploadButtons() {
+            const btnStart = document.getElementById('btn-start');
+            if (uploadState.active && !uploadState.done) {
+                btnStart.disabled = true;
+            } else if (!state.running && !state.isStarting) {
+                btnStart.disabled = false;
+                btnStart.innerHTML = '<i class="fas fa-play"></i> ' + t('start');
+            }
         }
 
         function uploadWorldFolder(input) {
@@ -4217,12 +4418,24 @@
             const files = input.files;
             if (!files || files.length === 0) return;
 
+            uploadState.active = true;
+            uploadState.minimized = false;
+            uploadState.done = false;
+            uploadState.error = false;
+            document.getElementById('upload-progress-filename').style.color = '#8b949e';
+            document.getElementById('upload-progress-bar').style.background = 'linear-gradient(90deg,#58a6ff,#3fb950)';
+            document.getElementById('btn-cancel-upload').style.display = '';
+            document.getElementById('btn-minimize-upload').style.display = '';
+            document.getElementById('upload-bar').style.display = 'none';
+            updateUploadButtons();
+            const syncInt = setInterval(function() {
+                if (uploadState.active) _syncUploadUI();
+                else clearInterval(syncInt);
+            }, 500);
+
             clearChunkDetail();
             const oldErr = document.getElementById('upload-error-msg');
             if (oldErr) oldErr.remove();
-            document.getElementById('upload-progress-filename').style.color = '#8b949e';
-            document.getElementById('upload-progress-bar').style.background = 'linear-gradient(90deg,#58a6ff,#3fb950)';
-            document.getElementById('btn-cancel-upload').style.display = 'none';
 
             document.getElementById('modal-upload-progress').style.display = 'flex';
             document.getElementById('upload-progress-bar').style.width = '0%';
@@ -4363,17 +4576,20 @@
                                             pollUploadStatus(_d.upload_id, uploadId, input, totalChunks, totalMB, files.length);
                                         } else {
                                             // Ya terminó (upload sincrónico para archivos chicos)
+                                            var worldName = _d.world_name;
+                                            uploadState.worldName = worldName || '';
+                                            var doneMsg = worldName ? "Mundo '" + worldName + "' subido correctamente" : 'Mundo subido correctamente';
                                             document.getElementById('upload-progress-bar').style.width = '100%';
                                             document.getElementById('upload-progress-percent').textContent = '100%';
                                             document.getElementById('upload-progress-files').textContent = totalChunks + ' / ' + totalChunks + ' chunks';
                                             document.getElementById('upload-progress-size').textContent = totalMB + ' MB / ' + totalMB + ' MB';
-                                            document.getElementById('upload-progress-filename').textContent = 'Mundo subido correctamente';
+                                            document.getElementById('upload-progress-filename').textContent = doneMsg;
                                             setTimeout(function() {
-                                                document.getElementById('modal-upload-progress').style.display = 'none';
-                                            }, 1000);
+                                                _uploadCleanup();
+                                            }, 1500);
                                             const status = document.getElementById('upload-status');
-                                            toast('Mundo subido correctamente (' + files.length + ' archivos, ' + totalChunks + ' chunks)', 'success');
-                                            sendNotification('MineColab', 'Mundo subido correctamente (' + files.length + ' archivos)', 'world_upload');
+                                            toast(doneMsg + ' (' + files.length + ' archivos, ' + totalChunks + ' chunks)', 'success');
+                                            sendNotification('MineColab', doneMsg, 'world_upload');
                                             status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                                             setTimeout(function() { status.innerHTML = ''; }, 5000);
                                             input.value = '';
@@ -4426,7 +4642,7 @@
                                         headers: {'Content-Type':'application/json'},
                                         body: JSON.stringify({upload_id: uploadId})
                                     }).catch(function(){});
-                                    document.getElementById('modal-upload-progress').style.display = 'none';
+                                    _uploadCleanup();
                                     toast('Subida cancelada', 'warning');
                                     input.value = '';
                                 });
@@ -4462,9 +4678,12 @@
                                 try {
                                     const data = JSON.parse(xhr.responseText);
                                     if (data.success) {
-                                        document.getElementById('modal-upload-progress').style.display = 'none';
-                                        toast('Mundo subido correctamente (' + files.length + ' archivos comprimidos)', 'success');
-                                        sendNotification('MineColab', 'Mundo subido correctamente (' + files.length + ' archivos)', 'world_upload');
+                                        var worldName = data.world_name;
+                                        uploadState.worldName = worldName || '';
+                                        var doneMsg = worldName ? "Mundo '" + worldName + "' subido correctamente" : 'Mundo subido correctamente';
+                                        _uploadCleanup();
+                                        toast(doneMsg + ' (' + files.length + ' archivos comprimidos)', 'success');
+                                        sendNotification('MineColab', doneMsg, 'world_upload');
                                         status.innerHTML = '<i class="fas fa-check" style="color:#3fb950;"></i> Subido';
                                     } else {
                                         showUploadError(data.error || 'Error al subir mundo', 'status HTTP: ' + xhr.status);
@@ -4504,7 +4723,7 @@
 
                             xhr.addEventListener('abort', function() {
                                 uploadXhr = null;
-                                document.getElementById('modal-upload-progress').style.display = 'none';
+                                _uploadCleanup();
                                 toast('Subida cancelada', 'warning');
                                 input.value = '';
                             });
@@ -5221,6 +5440,7 @@
             { id: 'server_stop', icon: 'fa-stop', label: 'Servidor detenido', default: true },
             { id: 'server_error', icon: 'fa-exclamation-triangle', label: 'Error del servidor', default: true },
             { id: 'world_upload', icon: 'fa-cloud-upload-alt', label: 'Mundo subido', default: true },
+            { id: 'player_joinleave', icon: 'fa-users', label: 'Entrada/Salida de jugadores', default: true },
             { id: 'world_backup', icon: 'fa-archive', label: 'Backup creado/restaurado', default: true },
             { id: 'colab_warning', icon: 'fa-hourglass-half', label: 'Advertencia de tiempo Colab', default: true },
             { id: 'plugin', icon: 'fa-puzzle-piece', label: 'Plugins', default: false },
@@ -5377,7 +5597,7 @@
         window.searchPlugins = searchPlugins; window.installPlugin = installPlugin; window.loadInstalledPlugins = loadInstalledPlugins;
         window.uninstallPlugin = uninstallPlugin;
         window.loadFiles = loadFiles; window.loadSettings = loadSettings; window.showErrorDetail = showErrorDetail; window.closeErrorDetailModal = closeErrorDetailModal;
-        window.hideModalError = hideModalError; window.selectServer = selectServer;
+        window.hideModalError = hideModalError; window.selectServer = selectServer; window.prevServer = prevServer; window.nextServer = nextServer;
         window.requestNotifPermission = requestNotifPermission; window.toggleNotifications = toggleNotifications;
     </script>
 </body>
