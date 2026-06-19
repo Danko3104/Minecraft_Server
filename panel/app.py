@@ -358,19 +358,24 @@ def api_server_stats():
         tps_values = []
         tps_resp = server_manager.send_command('tps')
         import re
+        # Strip Minecraft color codes (§ + hex digit, §k, §l, §m, §n, §o, §r)
+        def strip_color_codes(text):
+            return re.sub(r'§[0-9a-fk-or]', '', text)
         if tps_resp and tps_resp != "Comando enviado":
-            numbers = re.findall(r'\b\d+\.\d+\b', tps_resp)
+            clean = strip_color_codes(tps_resp)
+            numbers = re.findall(r'\d+\.\d+', clean)
             if len(numbers) >= 3:
                 tps_values = [float(v) for v in numbers[:3]]
             else:
-                numbers = re.findall(r'\b(\d+)\b', tps_resp)
+                numbers = re.findall(r'\d+', clean)
                 filtered = [float(v) for v in numbers if 0 <= float(v) <= 20.0]
                 if len(filtered) >= 3:
                     tps_values = filtered[:3]
         if not tps_values:
             for line in reversed(server_manager.get_last_output()):
                 if 'tps' in line.lower():
-                    m = re.findall(r'\b\d+\.\d+\b', line)
+                    clean = strip_color_codes(line)
+                    m = re.findall(r'\d+\.\d+', clean)
                     if len(m) >= 3:
                         tps_values = [float(v) for v in m[:3]]
                         break
