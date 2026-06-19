@@ -209,7 +209,7 @@
         .section { display: none; }
         .section.active { display: block; animation: sectionIn 0.3s ease-out; will-change: transform, opacity; }
         @keyframes sectionIn { from { opacity: 0; } to { opacity: 1; } }
-        #page-bg { position: fixed; inset: 0; z-index: -1; opacity: 0.12; pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh; min-width: 100vw; image-rendering: -webkit-optimize-contrast; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        #page-bg { position: fixed; inset: 0; z-index: -1; opacity: 0.12; pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; min-height: 100vh; min-width: 100vw; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
         #page-bg::after { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4) 100%); pointer-events: none; }
         [data-theme="light"] #page-bg::after { background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.1) 100%); }
         [data-theme="light"] #page-bg { opacity: 0.05; }
@@ -1962,7 +1962,7 @@
             applyTranslations();
             setInterval(checkServerReady, 3000);
             var pageBg = document.getElementById('page-bg');
-            if (pageBg) { pageBg.style.backgroundImage = 'url(/static/backgrounds/dashboard.jpg)'; }
+            if (pageBg) { pageBg.style.backgroundImage = 'url("/static/backgrounds/dashboard.jpg")'; }
             var savedSection = localStorage.getItem('panel-section');
             if (savedSection && savedSection !== 'dashboard') {
                 navigateTo(savedSection);
@@ -1993,7 +1993,7 @@
             var bgMap = { 'dashboard':'/static/backgrounds/dashboard.jpg','console':'/static/backgrounds/consola.jpg','players':'/static/backgrounds/jugadores.jpg','properties':'/static/backgrounds/propiedades.jpg','settings':'/static/backgrounds/configuracion.jpg','manage-server':'/static/backgrounds/gestionar_servidor.jpg','plugins':'/static/backgrounds/plugins.jpg','files':'/static/backgrounds/archivos.jpg' };
             var pageBg = document.getElementById('page-bg');
             if (pageBg && bgMap[section]) {
-                pageBg.style.backgroundImage = 'url(' + bgMap[section] + ')';
+                pageBg.style.backgroundImage = 'url("' + bgMap[section] + '")';
             }
         }
         document.querySelectorAll('.nav-item').forEach(item => {
