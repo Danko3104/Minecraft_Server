@@ -1114,7 +1114,11 @@
                         </div>
                         <div class="setting-field">
                             <label>Dificultad</label>
-                            <select id="prop-difficulty">
+                            <div class="custom-select" id="cs-difficulty">
+                                <div class="custom-select-trigger"><span>Normal</span><svg class="arrow" width="12" height="12" viewBox="0 0 12 12"><path d="M6 8L1 3h10z"/></svg></div>
+                                <div class="custom-select-dropdown"></div>
+                            </div>
+                            <select id="prop-difficulty" style="display:none">
                                 <option value="peaceful">Peaceful</option>
                                 <option value="easy">Easy</option>
                                 <option value="normal" selected>Normal</option>
@@ -1123,13 +1127,18 @@
                         </div>
                         <div class="setting-field">
                             <label>Modo de juego</label>
-                            <select id="prop-gamemode">
-                                <option value="survival">Survival</option>
+                            <div class="custom-select" id="cs-gamemode">
+                                <div class="custom-select-trigger"><span>Survival</span><svg class="arrow" width="12" height="12" viewBox="0 0 12 12"><path d="M6 8L1 3h10z"/></svg></div>
+                                <div class="custom-select-dropdown"></div>
+                            </div>
+                            <select id="prop-gamemode" style="display:none">
+                                <option value="survival" selected>Survival</option>
                                 <option value="creative">Creative</option>
                                 <option value="adventure">Adventure</option>
                                 <option value="spectator">Spectator</option>
                             </select>
                         </div>
+                        <script>(function(){['prop-difficulty','prop-gamemode'].forEach(function(id){var s=document.getElementById(id);if(s)s._customSelect=true;});})();</script>
                         <div class="setting-field">
                             <label>PVP</label>
                             <div class="toggle-group">
@@ -2280,6 +2289,7 @@
             setupConsoleInput();
             setupToggles();
             initCustomSelects();
+            initPropCustomSelects();
             document.getElementById('btn-start').disabled = true;
             document.getElementById('btn-stop').disabled = true;
             document.getElementById('btn-restart').disabled = true;
@@ -3996,6 +4006,59 @@
             document.addEventListener('click', function() {
                 document.querySelectorAll('.custom-select.open').forEach(function(el) {
                     el.classList.remove('open');
+
+                });
+            });
+        }
+
+        function initPropCustomSelects() {
+            ['cs-difficulty','cs-gamemode'].forEach(function(csId) {
+                var cs = document.getElementById(csId);
+                if (!cs || cs.dataset.initialized) return;
+                cs.dataset.initialized = '1';
+                var sel = cs.nextElementSibling;
+                if (!sel || sel.tagName !== 'SELECT') return;
+                var trigger = cs.querySelector('.custom-select-trigger');
+                var dropdown = cs.querySelector('.custom-select-dropdown');
+                if (!trigger || !dropdown) return;
+
+                function populate() {
+                    dropdown.innerHTML = '';
+                    [...sel.options].forEach(function(opt) {
+                        var el = document.createElement('div');
+                        el.className = 'custom-select-option' + (opt.selected ? ' selected' : '');
+                        el.textContent = opt.text;
+                        el.dataset.value = opt.value;
+                        el.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (sel.disabled) return;
+                            sel.value = this.dataset.value;
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            trigger.firstChild.textContent = this.textContent;
+                            dropdown.querySelectorAll('.custom-select-option').forEach(function(o) { o.classList.remove('selected'); });
+                            this.classList.add('selected');
+                            cs.classList.remove('open');
+                        });
+                        dropdown.appendChild(el);
+                    });
+                    var curr = sel.options[sel.selectedIndex];
+                    if (curr) trigger.firstChild.textContent = curr.text;
+                }
+                populate();
+
+                trigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (sel.disabled) return;
+                    if (!cs.classList.contains('open')) populate();
+                    cs.classList.toggle('open');
+                });
+
+                sel.addEventListener('change', function() {
+                    var opt = this.options[this.selectedIndex];
+                    if (opt) trigger.firstChild.textContent = opt.text;
+                    dropdown.querySelectorAll('.custom-select-option').forEach(function(o) {
+                        o.classList.toggle('selected', o.dataset.value === sel.value);
+                    });
                 });
             });
         }
