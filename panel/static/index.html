@@ -3848,13 +3848,6 @@
                     document.getElementById('prop-spawn-protection').value = data.properties['spawn-protection'] || '16';
                     setToggle('prop-command-blocks', data.properties['enable-command-block'] === 'true');
                     setToggle('prop-white-list', data.properties['white-list'] === 'true');
-                    ['prop-difficulty', 'prop-gamemode'].forEach(function(id) {
-                        var sel = document.getElementById(id);
-                        if (sel && !sel._customSelect) {
-                            sel._customSelect = true;
-                            buildCustomSelect(sel);
-                        }
-                    });
                     document.querySelectorAll('.custom-select').forEach(function(w) {
                         var s = w.nextElementSibling;
                         if (s && s.tagName === 'SELECT') {
@@ -3865,6 +3858,17 @@
                     });
                 }
             } catch(e) { console.error('load settings error:', e); }
+
+            ['prop-difficulty', 'prop-gamemode'].forEach(function(id) {
+                var sel = document.getElementById(id);
+                if (sel) {
+                    var prev = sel.previousElementSibling;
+                    if (!prev || !prev.classList.contains('custom-select')) {
+                        sel._customSelect = true;
+                        buildCustomSelect(sel);
+                    }
+                }
+            });
 
             try {
                 const res = await fetch('/api/settings/paper-version');
