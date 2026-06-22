@@ -98,8 +98,12 @@
         @keyframes navBorderGrow { from { height: 0; opacity: 0; } to { height: 60%; opacity: 1; } }
         .shimmer { background: linear-gradient(90deg, var(--bg-card) 25%, var(--border-subtle) 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
 
+        /* SIDEBAR OVERLAY (mobile) */
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 199; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .sidebar-overlay.open { display: block; }
+
         /* SIDEBAR */
-        .sidebar { width: 260px; background: rgba(22,27,34,0.3); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border-right: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; transition: width 0.25s ease, background 0.3s; transform: translateZ(0); }
+        .sidebar { width: 260px; background: rgba(22,27,34,0.3); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border-right: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s; transform: translateZ(0); }
         [data-theme="light"] .sidebar { background: rgba(255,255,255,0.4); }
         .sidebar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(63,185,80,0.03) 0%, transparent 40%); pointer-events: none; }
         .sidebar::-webkit-scrollbar { width: 4px; }
@@ -551,20 +555,114 @@
         .manage-danger label { color: #f85149; }
         .manage-danger label i { color: #f85149; }
 
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .sidebar { width: 60px; }
-            .sidebar-logo h1, .sidebar-nav .nav-text, .sidebar-footer .server-name, .sidebar-footer .server-value { display: none; }
-            .sidebar-logo { justify-content: center; padding: 16px; }
-            .sidebar-nav { padding: 12px 8px; }
-            .nav-item { justify-content: center; padding: 12px; }
-            .nav-item i { margin: 0; }
-            .header { padding: 12px 16px; flex-wrap: wrap; }
-            .header-left h2 { font-size: 16px; }
+        /* HAMBURGER MENU */
+        .hamburger { display: none; background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; padding: 6px; border-radius: 8px; transition: all 0.15s; flex-shrink: 0; }
+        .hamburger:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+
+        /* RESPONSIVE - TABLET & MOBILE */
+        @media (max-width: 1024px) {
+            .header { padding: 10px 16px; margin: 10px 10px 0 10px; }
             .content { padding: 16px; }
             .stats-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
             .settings-grid { grid-template-columns: 1fr; }
+            .props-grid { grid-template-columns: 1fr; }
+            .header-left h2 { font-size: 18px; }
+            .server-tabs { overflow-x: auto; }
+            .sidebar-footer .server-icon { width: 32px; height: 32px; }
+        }
+
+        @media (max-width: 768px) {
+            .hamburger { display: inline-flex; align-items: center; justify-content: center; }
+            .sidebar { position: fixed; top: 0; left: 0; z-index: 200; height: 100vh; transform: translateX(-100%); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .sidebar-logo h1 { display: block; }
+            .sidebar-nav .nav-text,
+            .sidebar-footer .server-name,
+            .sidebar-footer .server-value { display: block; }
+            .sidebar-logo { justify-content: flex-start; padding: 20px; }
+            .sidebar-nav { padding: 12px; }
+            .nav-item { justify-content: flex-start; padding: 12px 16px; }
+            .nav-item i { margin-right: 12px; }
+            .header { padding: 8px 12px; gap: 8px; margin: 8px 8px 0 8px; border-radius: 12px; }
+            .header-left { gap: 8px; flex-wrap: wrap; }
+            .header-left h2 { font-size: 15px; }
+            .header-right { gap: 8px; }
+            .content { padding: 12px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .stats-grid .stat-card { padding: 14px; }
+            .stat-card .stat-value { font-size: 22px; }
+            .settings-grid { grid-template-columns: 1fr; }
+            .props-grid { grid-template-columns: 1fr; }
             .players-grid { grid-template-columns: 1fr; }
+            .btn-group { flex-direction: column; }
+            .btn-group .btn { width: 100%; justify-content: center; }
+            .input-group { flex-direction: column; }
+            .input-group input,
+            .input-group select { width: 100%; }
+            .ip-card { padding: 16px; }
+            .ip-card .ip-value { font-size: 15px; word-break: break-all; }
+            .console-wrapper { border-radius: 12px; }
+            .console-output { height: 250px; padding: 12px; font-size: 12px; }
+            .console-input-area { flex-direction: column; padding: 10px 12px; }
+            .console-input-area .input-wrapper input { padding: 10px 12px 10px 36px; font-size: 12px; }
+            .console-input-area .input-wrapper .input-prefix { left: 12px; }
+            .console-header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+            .console-actions { flex-wrap: wrap; }
+            .console-suggestions { padding: 6px 12px; }
+            .console-suggestions .chip { font-size: 10px; padding: 3px 8px; }
+            .control-card { padding: 16px; }
+            .subsection { padding: 14px; }
+            .update-card { padding: 16px; }
+            .version-display { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .section.active > .control-card,
+            .section.active > .update-card { animation: none; }
+            .settings-grid > .update-card { padding: 16px; }
+            .modal { padding: 20px; max-width: 94vw; }
+            .modal h2 { font-size: 17px; }
+            .modal-actions { flex-direction: column; }
+            .modal-actions button { width: 100%; }
+            .data-table { font-size: 12px; }
+            .data-table th,
+            .data-table td { padding: 6px 8px; }
+            .data-table .actions-cell { flex-wrap: wrap; }
+            .server-manage-card { padding: 16px; }
+            .manage-input-group { flex-direction: column; align-items: stretch; }
+            .manage-input-group .btn { width: 100%; }
+            .btn-new-server { padding: 6px 12px; font-size: 12px; }
+            .server-nav { gap: 0; }
+            .server-tab { padding: 6px 10px; font-size: 12px; }
+            .status-badge { padding: 4px 10px; font-size: 12px; }
+            .notif-dropdown { right: -40px; width: 260px; }
+            .setting-field .toggle-group { width: 100%; }
+            .setting-field .toggle-btn { flex: 1; text-align: center; }
+            .upload-bar { padding: 10px 12px; }
+            .toast-container { bottom: 12px; right: 12px; left: 12px; }
+            .toast { max-width: 100%; font-size: 12px; padding: 12px 16px; }
+            .two-col { flex-direction: column; }
+            .sidebar-footer { padding: 12px 16px; }
+            #file-breadcrumb { font-size: 12px; }
+            .stat-card:hover { transform: none; }
+            .nav-item:hover { transform: none; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .header-left h2 { font-size: 14px; }
+            .header { margin: 4px 4px 0 4px; padding: 6px 10px; }
+            .content { padding: 8px; }
+            .control-card { padding: 12px; }
+            .console-output { height: 200px; }
+            .sidebar { width: 85vw; max-width: 300px; }
+            .modal { padding: 16px; }
+            .player-card { padding: 12px; }
+            .player-card .avatar { width: 28px; height: 28px; }
+            .ip-card .ip-value { font-size: 13px; }
+            .data-table th,
+            .data-table td { padding: 4px 6px; font-size: 11px; }
+            .stat-card .stat-value { font-size: 18px; }
+            .stat-card .stat-header i { font-size: 16px; }
+            .btn { font-size: 13px; padding: 8px 14px; }
+            .setting-field input, .setting-field select { font-size: 12px; padding: 6px 10px; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -573,8 +671,10 @@
     <div class="particles"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <div style="display:none;visibility:hidden;position:absolute;width:0;height:0;"></div>
     <div class="container">
+        <!-- SIDEBAR OVERLAY (mobile) -->
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
         <!-- SIDEBAR -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-logo" onclick="toggleSidebar()" style="cursor:pointer;">
                 <div class="logo-icon"><i class="fas fa-cube"></i></div>
                 <h1>Mine<span>Colab</span></h1>
@@ -632,6 +732,9 @@
             <!-- HEADER -->
             <header class="header">
                 <div class="header-left">
+                    <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menú">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <h2 id="section-title">Dashboard</h2>
                     <div class="server-nav" id="server-nav" style="display:none;">
                         <button class="server-nav-btn" onclick="prevServer()" title="Servidor anterior"><i class="fas fa-chevron-left"></i></button>
@@ -3205,13 +3308,39 @@
         }
 
         // ============ SIDEBAR TOGGLE ============
+        function isMobile() { return window.innerWidth < 768; }
+
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('collapsed');
-            localStorage.setItem('panel-sidebar', sidebar.classList.contains('collapsed') ? 'collapsed' : '');
+            if (isMobile()) {
+                sidebar.classList.toggle('mobile-open');
+                document.getElementById('sidebar-overlay').classList.toggle('open');
+                document.body.style.overflow = sidebar.classList.contains('mobile-open') ? 'hidden' : '';
+            } else {
+                sidebar.classList.toggle('collapsed');
+                localStorage.setItem('panel-sidebar', sidebar.classList.contains('collapsed') ? 'collapsed' : '');
+            }
         }
+
+        function closeMobileSidebar() {
+            if (isMobile()) {
+                document.querySelector('.sidebar').classList.remove('mobile-open');
+                document.getElementById('sidebar-overlay').classList.remove('open');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Close mobile sidebar on nav click
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.nav-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    if (isMobile()) closeMobileSidebar();
+                });
+            });
+        });
+
         (function initSidebar() {
-            if (localStorage.getItem('panel-sidebar') === 'collapsed') {
+            if (localStorage.getItem('panel-sidebar') === 'collapsed' && !isMobile()) {
                 document.querySelector('.sidebar').classList.add('collapsed');
             }
         })();
