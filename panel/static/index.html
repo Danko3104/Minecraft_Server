@@ -552,7 +552,7 @@
         .custom-select.open .custom-select-trigger { border-color: #3fb950; box-shadow: 0 0 0 3px rgba(63,185,80,0.15); }
         .custom-select-trigger .arrow { width: 12px; height: 12px; fill: #8b949e; transition: transform 0.2s; flex-shrink: 0; margin-left: 8px; }
         .custom-select.open .custom-select-trigger .arrow { transform: rotate(180deg); }
-        .custom-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 999; background: #1c2128; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 4px; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04); }
+        .custom-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 9999; background: #1c2128; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 4px; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04); }
         .custom-select.open .custom-select-dropdown { display: block; animation: selectDropIn 0.15s ease; }
         @keyframes selectDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         .custom-select.disabled .custom-select-trigger { opacity: 0.4; cursor: not-allowed; }
