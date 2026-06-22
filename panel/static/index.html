@@ -3290,7 +3290,7 @@
                 }
             } catch(e) {
                 console.error('loadPlayers error:', e);
-                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f85149;padding:20px;">Error de conexión al cargar jugadores</td></tr>';
+                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f85149;padding:20px;">Error: ' + e.message + '</td></tr>';
             }
         }
 
