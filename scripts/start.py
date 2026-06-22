@@ -429,18 +429,19 @@ def start_oracle_tunnel():
     Inicia túnel SSH reverso hacia Oracle Cloud VM.
     Retorna el proceso Popen o None si falla.
     """
-    global oracle_tunnel_process
+    global oracle_tunnel_process, ORACLE_KEY_PATH
 
     try:
         if not os.path.exists(ORACLE_KEY_PATH):
-            print(f"[ERROR] Llave SSH no encontrada en minecraft/")
+            print(f"[INFO] Buscando llave SSH en minecraft/...")
             _found = [f for f in os.listdir(os.path.join(DRIVE_MOUNT, 'minecraft')) if f.endswith('.key') or f.endswith('.pem')] if os.path.isdir(os.path.join(DRIVE_MOUNT, 'minecraft')) else []
             if _found:
-                print(f"[INFO] Llaves encontradas en minecraft/: {_found}")
+                ORACLE_KEY_PATH = os.path.join(os.path.join(DRIVE_MOUNT, 'minecraft'), _found[0])
+                print(f"[INFO] Usando llave encontrada: {ORACLE_KEY_PATH}")
             else:
                 print("[ERROR] No hay archivos .key ni .pem en minecraft/")
                 print("[ERROR] Sube tu llave SSH (.key) a la carpeta minecraft/ en Drive")
-            return None
+                return None
 
         # Fijar permisos de la llave
         subprocess.run(['chmod', '600', ORACLE_KEY_PATH], capture_output=True)
