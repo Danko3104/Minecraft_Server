@@ -3266,10 +3266,10 @@
             try {
                 const res = await fetch('/api/players');
                 const data = await res.json();
-                if (data.success && data.players) {
+                if (data.success) {
                     if (state.running) {
                         var currentOnline = {};
-                        data.players.forEach(function(p) { if (p.online) currentOnline[p.name] = true; });
+                        (data.players || []).forEach(function(p) { if (p.online) currentOnline[p.name] = true; });
                         for (var _name in currentOnline) {
                             if (!previousOnline[_name]) {
                                 toast('Entró: ' + _name, 'info');
@@ -3285,8 +3285,13 @@
                         previousOnline = currentOnline;
                     }
                     renderPlayers(data);
+                } else {
+                    document.getElementById('players-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f85149;padding:20px;">Error: ' + (data.error || 'No se pudieron cargar los jugadores') + '</td></tr>';
                 }
-            } catch(e) { console.error('loadPlayers error:', e); }
+            } catch(e) {
+                console.error('loadPlayers error:', e);
+                document.getElementById('players-tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f85149;padding:20px;">Error de conexión al cargar jugadores</td></tr>';
+            }
         }
 
         document.getElementById('players-filter')?.addEventListener('input', function() {
