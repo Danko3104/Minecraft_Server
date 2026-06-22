@@ -3869,6 +3869,7 @@
                 if (prev && prev.classList.contains('custom-select')) {
                     prev.remove();
                     sel.style.display = '';
+                    sel._customSelect = false;
                 }
             });
 
@@ -3992,10 +3993,17 @@
 
         function initCustomSelects() {
             document.querySelectorAll('select:not(#log-file-selector):not(.native-prop-select)').forEach(select => {
-                if (select._customSelect) return;
+                if (select._customSelect) {
+                    var prev = select.previousElementSibling;
+                    if (prev && prev.classList.contains('custom-select')) return;
+                    select._customSelect = false;
+                }
                 select._customSelect = true;
                 buildCustomSelect(select);
             });
+
+            if (window._customSelectInitialized) return;
+            window._customSelectInitialized = true;
 
             document.addEventListener('click', function(e) {
                 if (e.target.closest('.custom-select')) return;
