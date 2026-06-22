@@ -9,6 +9,7 @@
     <title>MineColab Panel</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Crect x='5' y='7' width='12' height='9' rx='2' fill='%23f9a8d4'/%3E%3Crect x='3' y='8' width='2' height='3' rx='1' fill='%23f472b6'/%3E%3Crect x='17' y='8' width='2' height='3' rx='1' fill='%23f472b6'/%3E%3Crect x='3' y='12' width='2' height='2' rx='1' fill='%23f472b6'/%3E%3Crect x='17' y='12' width='2' height='2' rx='1' fill='%23f472b6'/%3E%3Crect x='8' y='10' width='2' height='2' rx='1' fill='%231c1917'/%3E%3Crect x='12' y='10' width='2' height='2' rx='1' fill='%231c1917'/%3E%3Crect x='10' y='12' width='2' height='1' fill='%23f472b6'/%3E%3Crect x='6' y='6' width='2' height='1' rx='1' fill='%23f472b6'/%3E%3Crect x='14' y='6' width='2' height='1' rx='1' fill='%23f472b6'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preload" as="image" href="/static/backgrounds/dashboard.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -256,6 +257,8 @@
         .content { padding: 24px 32px; flex: 1; position: relative; }
 
         /* SECTIONS */
+        #page-bg { position: fixed; inset: 0; z-index: -1; opacity: 0.08; pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: background-image 0.5s ease; }
+        #page-bg::after { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%); pointer-events: none; }
         .section { display: none; }
         .section.active { display: block; animation: sectionIn 0.35s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform, opacity; }
         @keyframes sectionIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -689,6 +692,8 @@
         }
 
         @media (max-width: 768px) {
+            #page-bg { opacity: 0.04; background-color: var(--bg-primary); }
+            #page-bg::after { background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%); }
             .hamburger { display: inline-flex; align-items: center; justify-content: center; }
             .sidebar { position: fixed; top: 0; left: 0; z-index: 200; height: 100vh; transform: translateX(-100%); }
             .sidebar.mobile-open { transform: translateX(0); }
@@ -1499,6 +1504,7 @@
 
     <!-- TOAST CONTAINER -->
     <div class="toast-container" id="toast-container"></div>
+    <div id="page-bg"></div>
 </div>
 
     <script>
@@ -2238,6 +2244,8 @@
             document.getElementById('btn-restart').disabled = true;
             applyTranslations();
             setInterval(checkServerReady, 3000);
+            var pageBg = document.getElementById('page-bg');
+            if (pageBg) { pageBg.style.backgroundImage = 'url("/static/backgrounds/dashboard.jpg")'; }
             var savedSection = localStorage.getItem('panel-section');
             if (savedSection && savedSection !== 'dashboard') {
                 navigateTo(savedSection);
@@ -2265,6 +2273,11 @@
             if (section === 'manage-server') { loadManageServer(); }
             if (section === 'dashboard') { initStatsChart(); }
             localStorage.setItem('panel-section', section);
+            var bgMap = { 'dashboard':'/static/backgrounds/dashboard.jpg','console':'/static/backgrounds/consola.jpg','players':'/static/backgrounds/jugadores.jpg','properties':'/static/backgrounds/propiedades.jpg','settings':'/static/backgrounds/configuracion.jpg','manage-server':'/static/backgrounds/gestionar_servidor.jpg','plugins':'/static/backgrounds/plugins.jpg','files':'/static/backgrounds/archivos.jpg' };
+            var pageBg = document.getElementById('page-bg');
+            if (pageBg && bgMap[section]) {
+                pageBg.style.backgroundImage = 'url("' + bgMap[section] + '")';
+            }
         }
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
