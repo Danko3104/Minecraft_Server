@@ -2949,6 +2949,7 @@
                     if (lastProgress < 0) lastProgress = 100;
                     if (_lastChunkyPct !== 100) {
                         _lastChunkyPct = 100;
+                        sendNotification('Chunky', 'Pre-generación de chunks completada', 'chunky_done');
                         fetch('/api/server/chunky-progress', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({percent:100,running:false})}).catch(()=>{});
                     }
                     break;
@@ -5852,6 +5853,7 @@
             { id: 'world_upload', icon: 'fa-cloud-upload-alt', label: 'Mundo subido', default: true },
             { id: 'player_joinleave', icon: 'fa-users', label: 'Entrada/Salida de jugadores', default: true },
             { id: 'world_backup', icon: 'fa-archive', label: 'Backup creado/restaurado', default: true },
+            { id: 'chunky_done', icon: 'fa-cubes', label: 'Chunky pre-generación completada', default: true },
             { id: 'colab_warning', icon: 'fa-hourglass-half', label: 'Advertencia de tiempo Colab', default: true },
             { id: 'plugin', icon: 'fa-puzzle-piece', label: 'Plugins', default: false },
             { id: '_browser', icon: 'fa-globe', label: 'Notificaciones del navegador', default: true },
