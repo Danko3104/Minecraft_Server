@@ -455,7 +455,6 @@ def start_oracle_tunnel():
             '-o', 'ServerAliveInterval=30',
             '-o', 'ServerAliveCountMax=3',
             '-o', 'Compression=yes',
-            '-o', 'CompressionLevel=1',
             '-o', 'ExitOnForwardFailure=yes',
             '-N',
             '-R', f'{ORACLE_REMOTE_PORT}:localhost:{ORACLE_LOCAL_PORT}',
@@ -475,7 +474,12 @@ def start_oracle_tunnel():
             return oracle_tunnel_process
         else:
             stderr_out = oracle_tunnel_process.stderr.read().decode('utf-8', errors='ignore')
-            print(f"[ERROR] Túnel SSH Oracle falló al iniciar: {stderr_out[:200]}")
+            print(f"[ERROR] Túnel SSH Oracle falló al iniciar: {stderr_out[:300]}")
+            if 'remote port forwarding failed' in stderr_out:
+                print("[AYUDA] El puerto 25565 ya está en uso en el servidor Oracle.")
+                print("[AYUDA] Conéctate por SSH a Oracle y ejecuta: sudo lsof -i :25565")
+                print("[AYUDA] Si hay un proceso usando el puerto, detenlo con: sudo kill <PID>")
+                print("[AYUDA] Luego reinicia el túnel desde Colab.")
             oracle_tunnel_process = None
             return None
 
