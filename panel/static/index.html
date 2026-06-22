@@ -544,7 +544,7 @@
         .file-action-btn.file-delete:hover { background: rgba(248,81,73,0.3); color: #f85149; box-shadow: 0 0 16px rgba(248,81,73,0.2); transform: translateY(-1px); }
 
         /* CUSTOM SELECT */
-        .custom-select { position: relative; display: block; }
+        .custom-select { position: relative; display: block; z-index: 1; }
         .modal .custom-select { margin-bottom: 16px; }
         .custom-select + select { display: none !important; }
         .custom-select-trigger { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(22,27,34,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text-primary); font-size: 13px; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; min-height: 37px; user-select: none; transform: translateZ(0); }
@@ -552,7 +552,7 @@
         .custom-select.open .custom-select-trigger { border-color: #3fb950; box-shadow: 0 0 0 3px rgba(63,185,80,0.15); }
         .custom-select-trigger .arrow { width: 12px; height: 12px; fill: #8b949e; transition: transform 0.2s; flex-shrink: 0; margin-left: 8px; }
         .custom-select.open .custom-select-trigger .arrow { transform: rotate(180deg); }
-        .custom-select-dropdown { position: absolute !important; top: calc(100% + 4px); left: 0; right: 0; z-index: 99999; background: #1a1a1a !important; border: 1px solid #22c55e; border-radius: 6px; padding: 4px; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
+        .custom-select-dropdown { position: absolute !important; top: calc(100% + 4px); left: 0; right: 0; z-index: 99999; background: #161b22 !important; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 4px; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.6); }
         .custom-select.open .custom-select-dropdown { display: block; animation: selectDropIn 0.15s ease; }
         @keyframes selectDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         .custom-select.disabled .custom-select-trigger { opacity: 0.4; cursor: not-allowed; }
@@ -3859,14 +3859,12 @@
                 }
             } catch(e) { console.error('load settings error:', e); }
 
-            ['prop-difficulty', 'prop-gamemode'].forEach(function(id) {
-                var sel = document.getElementById(id);
-                if (sel) {
-                    var prev = sel.previousElementSibling;
-                    if (!prev || !prev.classList.contains('custom-select')) {
-                        sel._customSelect = true;
-                        buildCustomSelect(sel);
-                    }
+            // Clean up any existing custom-select wrapper for native selects
+            document.querySelectorAll('.native-prop-select').forEach(function(sel) {
+                var prev = sel.previousElementSibling;
+                if (prev && prev.classList.contains('custom-select')) {
+                    prev.remove();
+                    sel.style.display = '';
                 }
             });
 
@@ -3988,7 +3986,7 @@
         }
 
         function initCustomSelects() {
-            document.querySelectorAll('select:not(#log-file-selector)').forEach(select => {
+            document.querySelectorAll('select:not(#log-file-selector):not(.native-prop-select)').forEach(select => {
                 if (select._customSelect) return;
                 select._customSelect = true;
                 buildCustomSelect(select);
