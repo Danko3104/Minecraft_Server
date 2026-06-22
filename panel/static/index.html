@@ -57,20 +57,19 @@
         @keyframes bgShift { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         [data-theme="light"] body::before { opacity: 0.4; }
         body::after { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.015'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
-        /* Partículas flotantes */
+        /* Partículas Minecraft */
         body .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-        body .particles span { position: absolute; display: block; width: 3px; height: 3px; background: rgba(63,185,80,0.15); border-radius: 50%; animation: particleFloat linear infinite; }
-        body .particles span:nth-child(1) { left: 10%; top: 20%; animation-duration: 18s; animation-delay: 0s; width: 2px; height: 2px; }
-        body .particles span:nth-child(2) { left: 20%; top: 60%; animation-duration: 22s; animation-delay: 2s; width: 4px; height: 4px; background: rgba(88,166,255,0.12); }
-        body .particles span:nth-child(3) { left: 35%; top: 10%; animation-duration: 16s; animation-delay: 1s; }
-        body .particles span:nth-child(4) { left: 45%; top: 80%; animation-duration: 20s; animation-delay: 3s; width: 3px; height: 3px; background: rgba(210,153,34,0.1); }
-        body .particles span:nth-child(5) { left: 55%; top: 30%; animation-duration: 24s; animation-delay: 0.5s; width: 2px; height: 2px; }
-        body .particles span:nth-child(6) { left: 65%; top: 70%; animation-duration: 19s; animation-delay: 4s; width: 4px; height: 4px; background: rgba(63,185,80,0.1); }
-        body .particles span:nth-child(7) { left: 75%; top: 15%; animation-duration: 21s; animation-delay: 1.5s; }
-        body .particles span:nth-child(8) { left: 85%; top: 50%; animation-duration: 17s; animation-delay: 2.5s; width: 2px; height: 2px; background: rgba(88,166,255,0.15); }
-        body .particles span:nth-child(9) { left: 92%; top: 85%; animation-duration: 23s; animation-delay: 0.8s; width: 3px; height: 3px; }
-        body .particles span:nth-child(10) { left: 5%; top: 45%; animation-duration: 15s; animation-delay: 3.5s; width: 4px; height: 4px; background: rgba(210,153,34,0.08); }
-        @keyframes particleFloat { 0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) translateX(40px) scale(0); opacity: 0; } }
+        body .particles .mc-particle { position: absolute; bottom: -10px; pointer-events: none; will-change: transform, opacity; }
+        body .particles .mc-particle.block { border-radius: 2px; box-shadow: 0 0 2px rgba(255,255,255,0.05); }
+        body .particles .mc-particle.xp { border-radius: 50%; box-shadow: 0 0 6px currentColor, 0 0 12px currentColor; }
+        body .particles .mc-particle.heart { border-radius: 50%; }
+        body .particles .mc-particle.ench { border-radius: 50%; box-shadow: 0 0 4px currentColor; }
+        body .particles .mc-particle.flame { border-radius: 50% 0 50% 50%; }
+        @keyframes particleFloatMC { 0% { transform: translateY(0) translateX(0) rotate(0deg) scale(1); opacity: 0; } 5% { opacity: 0.7; } 85% { opacity: 0.5; } 100% { transform: translateY(-105vh) translateX(var(--drift, 30px)) rotate(var(--spin, 180deg)) scale(0.3); opacity: 0; } }
+        @keyframes xpFloat { 0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; } 10% { opacity: 0.9; } 80% { opacity: 0.6; } 100% { transform: translateY(-100vh) translateX(var(--drift, 20px)) scale(0.5); opacity: 0; } }
+        @keyframes heartFloat { 0% { transform: translateY(0) translateX(0) scale(0.5); opacity: 0; } 10% { opacity: 0.8; transform: translateY(-5px) translateX(0) scale(1); } 50% { opacity: 0.8; } 100% { transform: translateY(-80vh) translateX(var(--drift, 15px)) scale(0.5); opacity: 0; } }
+        @keyframes enchFloat { 0% { transform: translateY(0) translateX(0) scale(0.5) rotate(0deg); opacity: 0; } 10% { opacity: 0.9; } 70% { opacity: 0.7; } 100% { transform: translateY(-90vh) translateX(var(--drift, -20px)) scale(0.2) rotate(360deg); opacity: 0; } }
+        @keyframes flameFloat { 0% { transform: translateY(0) translateX(0) scale(0.8); opacity: 0; } 10% { opacity: 0.9; } 60% { opacity: 0.5; } 100% { transform: translateY(-60vh) translateX(var(--drift, 10px)) scale(0.1); opacity: 0; } }
         .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px); border: 1px solid rgba(255,255,255,0.08); transform: translateZ(0); }
         [data-theme="light"] .glass { background: rgba(255,255,255,0.6); border-color: rgba(0,0,0,0.08); }
         .glow-green { box-shadow: 0 0 20px rgba(63,185,80,0.15); }
@@ -759,7 +758,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
-    <div class="particles"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="particles" id="mc-particles"></div>
     <div style="display:none;visibility:hidden;position:absolute;width:0;height:0;"></div>
     <div class="container">
         <!-- SIDEBAR OVERLAY (mobile) -->
@@ -3498,6 +3497,47 @@
             } catch(e) { toast('Error de conexión', 'error'); }
             event.target.value = '';
         }
+
+        // ============ PARTICLES MINECRAFT ============
+        function initMinecraftParticles() {
+            const container = document.getElementById('mc-particles');
+            if (!container) return;
+            const TYPES = [
+                { name: 'block', colors: ['#8B6B4B','#6B8B4B','#7B8B6B','#4B6B8B','#8B7B4B','#5B8B8B','#6B6B6B','#4B4B4B'], sizes: [3,5], anim: 'particleFloatMC', count: 6, interval: 400 },
+                { name: 'xp', colors: ['#3fb950','#4ade80','#2ecc71'], sizes: [4,8], anim: 'xpFloat', count: 3, interval: 600 },
+                { name: 'heart', colors: ['#f472b6','#ec4899','#ff6b9d'], sizes: [5,8], anim: 'heartFloat', count: 2, interval: 900 },
+                { name: 'ench', colors: ['#a78bfa','#8b5cf6','#c084fc','#7c3aed'], sizes: [2,4], anim: 'enchFloat', count: 4, interval: 500 },
+                { name: 'flame', colors: ['#f59e0b','#f97316','#ef4444','#fbbf24'], sizes: [4,7], anim: 'flameFloat', count: 2, interval: 700 }
+            ];
+            let timeouts = [];
+            function createParticle(type) {
+                const el = document.createElement('div');
+                const size = type.sizes[0] + Math.random() * (type.sizes[1] - type.sizes[0]);
+                const color = type.colors[Math.floor(Math.random() * type.colors.length)];
+                const x = 5 + Math.random() * 90;
+                const dur = 8 + Math.random() * 10;
+                const drift = (Math.random() - 0.5) * 50;
+                el.className = 'mc-particle ' + type.name;
+                el.style.cssText = `left:${x}%;width:${size}px;height:${type.name==='flame'?size*1.3:size}px;background:${color};color:${color};--drift:${drift}px;--spin:${Math.random()*360}deg;animation:${type.anim} ${dur}s linear forwards;`;
+                container.appendChild(el);
+                setTimeout(function() { if (el.parentNode) el.remove(); }, dur * 1000 + 100);
+            }
+            function spawnLoop(type) {
+                for (let i = 0; i < type.count; i++) {
+                    setTimeout(function() { createParticle(type); }, Math.random() * type.interval);
+                }
+                const id = setInterval(function() {
+                    createParticle(type);
+                }, type.interval);
+                timeouts.push(id);
+            }
+            TYPES.forEach(function(t) { spawnLoop(t); });
+            return function stop() { timeouts.forEach(function(id) { clearInterval(id); }); container.innerHTML = ''; };
+        }
+        let _stopParticles = null;
+        document.addEventListener('DOMContentLoaded', function() {
+            _stopParticles = initMinecraftParticles();
+        });
 
         // ============ STATS CHART ============
         let statsChart = null;
