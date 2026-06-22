@@ -446,6 +446,16 @@ def start_oracle_tunnel():
         # Fijar permisos de la llave
         subprocess.run(['chmod', '600', ORACLE_KEY_PATH], capture_output=True)
 
+        # Intentar limpiar el puerto remoto si hay un túnel viejo
+        print(f"[INFO] Limpiando puerto remoto {ORACLE_REMOTE_PORT}...")
+        subprocess.run([
+            'ssh', '-i', ORACLE_KEY_PATH,
+            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'ConnectTimeout=10',
+            f'{ORACLE_USER}@{ORACLE_HOST}',
+            f'sudo fuser -k {ORACLE_REMOTE_PORT}/tcp 2>/dev/null; sudo pkill -f "ssh.*{ORACLE_REMOTE_PORT}" 2>/dev/null; exit 0'
+        ], capture_output=True)
+
         print(f"[INFO] Iniciando túnel SSH hacia {ORACLE_HOST}...")
 
         cmd = [
