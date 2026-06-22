@@ -572,6 +572,8 @@
         }
 
         @media (max-width: 768px) {
+            #page-bg { opacity: 0.04; background-size: contain; background-color: var(--bg-primary); }
+            #page-bg::after { background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%); }
             .hamburger { display: inline-flex; align-items: center; justify-content: center; }
             .sidebar { position: fixed; top: 0; left: 0; z-index: 200; height: 100vh; transform: translateX(-100%); }
             .sidebar.mobile-open { transform: translateX(0); }
