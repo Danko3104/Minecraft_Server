@@ -553,7 +553,7 @@
         .custom-select.open .custom-select-trigger { border-color: #3fb950; box-shadow: 0 0 0 3px rgba(63,185,80,0.15); }
         .custom-select-trigger .arrow { width: 12px; height: 12px; fill: #8b949e; transition: transform 0.2s; flex-shrink: 0; margin-left: 8px; }
         .custom-select.open .custom-select-trigger .arrow { transform: rotate(180deg); }
-        .custom-select-dropdown { position: fixed !important; top: auto; left: auto; z-index: 1001; background: #0d1117 !important; border: 1px solid rgba(63,185,80,0.3); border-radius: 10px; padding: 4px; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.6); pointer-events: all; }
+        .custom-select-dropdown { position: absolute !important; top: calc(100% + 4px); left: 0; right: 0; z-index: 1001; background: #0d1117 !important; border: 1px solid rgba(63,185,80,0.3); border-radius: 10px; padding: 4px; display: none; max-height: 200px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.6); pointer-events: all; }
         .custom-select.open .custom-select-dropdown { display: block; animation: selectDropIn 0.15s ease; }
         @keyframes selectDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
         .custom-select.disabled .custom-select-trigger { opacity: 0.4; cursor: not-allowed; }
@@ -564,8 +564,7 @@
         .custom-select-option.selected { color: #3fb950; background: rgba(63,185,80,0.08); }
         [data-theme="light"] .custom-select-trigger { background: #ffffff; border: 1px solid rgba(0,0,0,0.12); }
         [data-theme="light"] .custom-select-dropdown { background: #ffffff !important; border-color: rgba(0,0,0,0.12); }
-        .dropdown-overlay { position: fixed; inset: 0; z-index: 1000; display: none; }
-        .dropdown-overlay.open { display: block; }
+
         [data-theme="light"] .custom-select-option:hover { background: rgba(0,0,0,0.04); }
         [data-theme="light"] .custom-select-option.selected { background: rgba(26,127,55,0.06); color: #1a7f37; }
 
@@ -600,7 +599,7 @@
         [data-theme="light"] .setting-field select option { background: #ffffff; color: #1f2328; }
         .props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         @media (max-width: 900px) { .props-grid { grid-template-columns: 1fr; } }
-        .setting-field .toggle-group { display: flex; gap: 0; background: rgba(255,255,255,0.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 12px; padding: 4px; border: 1px solid rgba(255,255,255,0.06); width: fit-content; position: relative; z-index: 1; }
+        .setting-field .toggle-group { display: flex; gap: 0; background: rgba(255,255,255,0.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 12px; padding: 4px; border: 1px solid rgba(255,255,255,0.06); width: fit-content; }
         [data-theme="light"] .setting-field .toggle-group { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.06); }
         .setting-field .toggle-btn { padding: 6px 16px; background: transparent; border: none; border-radius: 8px; color: #8b949e; cursor: pointer; font-size: 12px; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); font-family: 'Inter', sans-serif; font-weight: 500; position: relative; overflow: hidden; }
         .setting-field .toggle-btn.active { background: rgba(63,185,80,0.2); color: #3fb950; box-shadow: 0 0 16px rgba(63,185,80,0.15), inset 0 0 8px rgba(63,185,80,0.05); backdrop-filter: blur(4px); }
@@ -1376,8 +1375,6 @@
             </div>
         </div>
     </div>
-
-    <div class="dropdown-overlay" id="select-overlay"></div>
 
     <!-- MODAL: NUEVO SERVIDOR -->
     <div class="modal-overlay" id="modal-new-server" onclick="if(event.target===this) closeNewServerModal()">
@@ -4006,19 +4003,10 @@
             if (window._customSelectInitialized) return;
             window._customSelectInitialized = true;
 
-            document.addEventListener('click', function(e) {
-                if (e.target.closest('.custom-select')) return;
+            document.addEventListener('click', function() {
                 document.querySelectorAll('.custom-select.open').forEach(function(el) {
                     el.classList.remove('open');
                 });
-                document.getElementById('select-overlay').classList.remove('open');
-            });
-
-            document.getElementById('select-overlay').addEventListener('click', function() {
-                document.querySelectorAll('.custom-select.open').forEach(function(el) {
-                    el.classList.remove('open');
-                });
-                this.classList.remove('open');
             });
         }
 
@@ -4056,7 +4044,6 @@
                         dropdown.querySelectorAll('.custom-select-option').forEach(function(o) { o.classList.remove('selected'); });
                         this.classList.add('selected');
                         wrapper.classList.remove('open');
-                        document.getElementById('select-overlay').classList.remove('open');
                     });
                     dropdown.appendChild(optEl);
                 });
@@ -4070,15 +4057,7 @@
             trigger.addEventListener('click', function(e) {
                 e.stopPropagation();
                 if (select.disabled) return;
-                var opening = !wrapper.classList.contains('open');
                 wrapper.classList.toggle('open');
-                if (opening) {
-                    var rect = trigger.getBoundingClientRect();
-                    dropdown.style.top = (rect.bottom + 4) + 'px';
-                    dropdown.style.left = rect.left + 'px';
-                    dropdown.style.width = rect.width + 'px';
-                }
-                document.getElementById('select-overlay').classList.toggle('open', wrapper.classList.contains('open'));
             });
 
             wrapper.appendChild(trigger);
@@ -4126,7 +4105,6 @@
                     dropdown.querySelectorAll('.custom-select-option').forEach(function(o) { o.classList.remove('selected'); });
                     this.classList.add('selected');
                     wrapper.classList.remove('open');
-                    document.getElementById('select-overlay').classList.remove('open');
                 });
                 dropdown.appendChild(optEl);
             });
