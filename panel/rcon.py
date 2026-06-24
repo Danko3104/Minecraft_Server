@@ -12,9 +12,6 @@ class RCONClient:
         self.host = host
         self.port = port or int(os.environ.get('MINECOLAB_RCON_PORT', '25575'))
         self.password = password or os.environ.get('MINECOLAB_RCON_PASSWORD', 'minecolab_panel')
-        self.host = host
-        self.port = port
-        self.password = password
         self.socket = None
         self.request_id = 0
 

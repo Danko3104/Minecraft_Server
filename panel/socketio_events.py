@@ -5,15 +5,12 @@ Requiere autenticación JWT para todas las operaciones.
 
 import time
 import threading
-import os
 import jwt
 
 
 def _get_secret():
-    key = os.environ.get('MINECOLAB_JWT_SECRET')
-    if key:
-        return key
-    return None
+    from panel.routes.auth import SECRET_KEY
+    return SECRET_KEY or None
 
 
 def _verify_token_from_args(data):

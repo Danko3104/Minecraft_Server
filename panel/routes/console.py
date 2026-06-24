@@ -32,7 +32,7 @@ def console_command():
             return jsonify({"success": False, "error": "No hay servidor activo"}), 400
 
         try:
-            rcon = RCONClient()
+            rcon = RCONClient(password=server_manager.rcon_password)
             if rcon.connect():
                 response = rcon.send_command(command)
                 rcon.disconnect()
@@ -54,7 +54,7 @@ def console_players():
 
         resp = None
         try:
-            rcon = RCONClient()
+            rcon = RCONClient(password=server_manager.rcon_password)
             if rcon.connect():
                 resp = rcon.send_command('/list')
                 rcon.disconnect()
