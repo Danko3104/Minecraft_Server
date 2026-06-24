@@ -2232,7 +2232,12 @@
             if (filterInput) filterInput.placeholder = t('filter_players');
             var broadcastBtn = document.querySelector('button[onclick*="broadcastMessage"]');
             if (broadcastBtn) broadcastBtn.innerHTML = '<i class="fas fa-bullhorn"></i> ' + t('broadcast');
-            document.querySelector('#section-players .subsection:first-child h3').innerHTML = '<i class="fas fa-users"></i> ' + t('players_section)') + '...';
+            var playersH3 = document.querySelector('#section-players .subsection:first-child h3');
+            if (playersH3) {
+                var ps = document.getElementById('players-summary');
+                playersH3.innerHTML = '<i class="fas fa-users"></i> ' + t('players_section');
+                if (ps) playersH3.appendChild(ps);
+            }
             // Settings - properties
             var propsLabel = document.querySelector('#section-properties h3');
             if (propsLabel) propsLabel.innerHTML = '<i class="fas fa-sliders-h"></i> ' + t('server_properties');
@@ -3202,14 +3207,18 @@
             const online = data.online_count || 0;
             const total = data.total || 0;
 
-            document.getElementById('sidebar-player-count').textContent = online;
-            document.getElementById('card-players').textContent = online + ' / ' + mx;
-            document.getElementById('card-players-sub').textContent = 'Conectados (máx ' + mx + ')';
+            var spc = document.getElementById('sidebar-player-count');
+            if (spc) spc.textContent = online;
+            var cp = document.getElementById('card-players');
+            if (cp) cp.textContent = online + ' / ' + mx;
+            var cps = document.getElementById('card-players-sub');
+            if (cps) cps.textContent = 'Conectados (máx ' + mx + ')';
 
-            const filter = (document.getElementById('players-filter').value || '').toLowerCase();
+            const filterInput = document.getElementById('players-filter');
+            const filter = filterInput ? (filterInput.value || '').toLowerCase() : '';
             const tbody = document.getElementById('players-tbody');
             const summary = document.getElementById('players-summary');
-            summary.textContent = online + ' conectado' + (online !== 1 ? 's' : '') + ' | ' + total + ' total';
+            if (summary) summary.textContent = online + ' conectado' + (online !== 1 ? 's' : '') + ' | ' + total + ' total';
 
             let filtered = state.allPlayers;
             if (filter) filtered = filtered.filter(p => p.name.toLowerCase().includes(filter));

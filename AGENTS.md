@@ -67,6 +67,7 @@ Minecraft_Server/
 
 | Commit | Descripción |
 |--------|-------------|
+| *(pendiente)* | fix: players-summary destruido por applyTranslations causaba "Cannot set properties of null" |
 | `fece675` | fix: limpiar puerto 25565 en Oracle antes de iniciar túnel nuevo |
 | `93dcfc5` | fix: eliminar CompressionLevel no soportado y mejorar mensaje error túnel Oracle |
 | `94be672` | feat: notificación cuando Chunky termina de pre-generar chunks |
@@ -74,6 +75,7 @@ Minecraft_Server/
 | `f4fe5d4` | fix: mostrar mensaje de error real en loadPlayers en vez de genérico |
 | `53d381a` | fix: loadPlayers maneja error y data vacía en vez de colgarse en "Cargando..." |
 | `e57042b` | fix: icono servidor con fallback SVG y tunnel reconoce key dinámicamente |
+| `f7ca167` | fix: revertir DIFICULTAD y MODO DE JUEGO a select nativo en propiedades |
 | `db706bd` | fix: eliminar overlay, dropdown absolute con z-index 1001 + wrapper 9999, trigger sólido |
 | `e573f86` | fix: trigger sólido, dropdown fixed con posición JS |
 | `6e3e775` | fix: .custom-select.open z-index a 9999 para superar cualquier stacking context |
