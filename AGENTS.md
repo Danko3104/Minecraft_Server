@@ -68,7 +68,7 @@ Minecraft_Server/
 | Commit | Descripción |
 |--------|-------------|
 | `52abfba` | fix: players-summary destruido por applyTranslations causaba "Cannot set properties of null" |
-| *(pendiente)* | fix: convertir DIFICULTAD y MODO DE JUEGO a custom-select con fondo sólido |
+| `9fbabd6` | fix: convertir DIFICULTAD y MODO DE JUEGO a custom-select con fondo sólido |
 | `fece675` | fix: limpiar puerto 25565 en Oracle antes de iniciar túnel nuevo |
 | `93dcfc5` | fix: eliminar CompressionLevel no soportado y mejorar mensaje error túnel Oracle |
 | `94be672` | feat: notificación cuando Chunky termina de pre-generar chunks |
