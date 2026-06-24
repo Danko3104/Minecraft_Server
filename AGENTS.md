@@ -68,7 +68,7 @@ Minecraft_Server/
 | Commit | Descripción |
 |--------|-------------|
 | `52abfba` | fix: players-summary destruido por applyTranslations causaba "Cannot set properties of null" |
-| *(pendiente)* | feat: auto-actualizar plugins al actualizar Paper + opcion saltar incompatibles |
+| `5a71673` | feat: auto-actualizar plugins al actualizar Paper + opcion saltar incompatibles |
 | `b2df867` | fix: revertir DIFICULTAD y MODO DE JUEGO a select nativo + crossfade fondos |
 | `9ec7212` | fix: forzar reconstrucción custom-select dificultad/gamemode y fondo sólido |
 | `9fbabd6` | fix: convertir DIFICULTAD y MODO DE JUEGO a custom-select con fondo sólido |
