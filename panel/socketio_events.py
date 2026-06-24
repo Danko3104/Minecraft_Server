@@ -1,18 +1,58 @@
 """
 Eventos WebSocket para comunicación en tiempo real con el panel.
+Requiere autenticación JWT para todas las operaciones.
 """
 
 import time
 import threading
+import os
+import jwt
+
+
+def _get_secret():
+    key = os.environ.get('MINECOLAB_JWT_SECRET')
+    if key:
+        return key
+    return None
+
+
+def _verify_token_from_args(data):
+    secret = _get_secret()
+    if not secret:
+        return False
+    token = None
+    if isinstance(data, dict):
+        token = data.get('token')
+    if not token:
+        return False
+    try:
+        jwt.decode(token, secret, algorithms=["HS256"])
+        return True
+    except Exception:
+        return False
 
 
 def register_socketio_events(socketio):
     from flask import request
-    from flask_socketio import emit
+    from flask_socketio import emit, disconnect
 
     @socketio.on('connect')
     def handle_connect():
-        print(f"[SOCKETIO] Cliente conectado: {request.sid}")
+        sid = request.sid
+        token = request.args.get('token', '')
+        secret = _get_secret()
+        authed = False
+        if secret and token:
+            try:
+                jwt.decode(token, secret, algorithms=["HS256"])
+                authed = True
+            except Exception:
+                pass
+        if not authed and secret:
+            print(f"[SOCKETIO] Conexión rechazada (sin token): {sid}")
+            disconnect()
+            return
+        print(f"[SOCKETIO] Cliente conectado: {sid}")
         emit('connected', {'message': 'Conectado al MineColab Panel'})
 
     @socketio.on('disconnect')
@@ -25,6 +65,9 @@ def register_socketio_events(socketio):
 
     @socketio.on('console:subscribe')
     def handle_console_subscribe(data):
+        if not _verify_token_from_args(data):
+            emit('error', {'message': 'Token requerido'})
+            return
         from panel.server_manager import server_manager
         sid = request.sid
         print(f"[SOCKETIO] Cliente {sid} suscrito a consola")
@@ -48,6 +91,9 @@ def register_socketio_events(socketio):
 
     @socketio.on('server:status')
     def handle_server_status(data):
+        if not _verify_token_from_args(data):
+            emit('error', {'message': 'Token requerido'})
+            return
         from panel.server_manager import server_manager
         from panel.drive import get_active_server
         running = server_manager.is_running()

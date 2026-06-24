@@ -60,13 +60,24 @@ Minecraft_Server/
 - Túnel Oracle Cloud (SSH reverso: 64.181.171.17:25565)
 - Túnel Cloudflare (trycloudflare.com para acceso web)
 - Notificaciones push en el navegador
-- Autenticación JWT en endpoints críticos
+- Autenticación JWT en endpoints críticos (backend listo, frontend no implementado)
 - Recomendaciones de configuración (server.properties)
+
+## Seguridad
+- **JWT Secret:** Se genera automáticamente con `secrets.token_hex(32)` si no se define `MINECOLAB_JWT_SECRET`. Los tokens se invalidan al reiniciar.
+- **RCON Password:** Configurable via `MINECOLAB_RCON_PASSWORD`; por defecto se genera aleatoriamente con `os.urandom(16).hex()`.
+- **WebSocket:** Verifica token JWT en cada evento (enviado como `{token: '...'}` en el payload).
+- **Zip-slip:** Validación de paths maliciosos (`../`, absolute paths) en ZIPs subidos vía `upload_world`.
+- **Backup prune:** Mantiene últimos 5 backups en vez de solo 1.
+- **XSS:** Nombres de jugadores, archivos y backups sanitizados con `escapeHtml()` y `escapeJs()` en el frontend.
+- **SSH Tunnel:** `StrictHostKeyChecking=accept-new` + `UserKnownHostsFile` en vez de `no`.
+- **Auth middleware:** POST/PUT/DELETE requieren JWT; GET exento (frontend no envía tokens aún).
 
 ## Últimos Cambios Realizados (Commits)
 
 | Commit | Descripción |
 |--------|-------------|
+| `HEAD` | feat: fixes de seguridad — JWT secret auto-generado, RCON random, zip-slip, WS auth, SSH hostkey, XSS, backup prune |
 | `52abfba` | fix: players-summary destruido por applyTranslations causaba "Cannot set properties of null" |
 | `5a71673` | feat: auto-actualizar plugins al actualizar Paper + opcion saltar incompatibles |
 | `b2df867` | fix: revertir DIFICULTAD y MODO DE JUEGO a select nativo + crossfade fondos |

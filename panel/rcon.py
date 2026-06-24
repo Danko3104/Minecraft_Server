@@ -5,9 +5,13 @@ Permite enviar comandos y recibir respuestas en tiempo real.
 
 import socket
 import struct
+import os
 
 class RCONClient:
-    def __init__(self, host='localhost', port=25575, password='minecolab_panel'):
+    def __init__(self, host='localhost', port=None, password=None):
+        self.host = host
+        self.port = port or int(os.environ.get('MINECOLAB_RCON_PORT', '25575'))
+        self.password = password or os.environ.get('MINECOLAB_RCON_PASSWORD', 'minecolab_panel')
         self.host = host
         self.port = port
         self.password = password

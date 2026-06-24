@@ -53,8 +53,8 @@ class ServerManager:
         self.process: Optional[subprocess.Popen] = None
         self.start_time: Optional[datetime] = None
         self.intentional_stop = False
-        self.rcon_password = "minecolab_panel"
-        self.rcon_port = 25575
+        self.rcon_password = os.environ.get('MINECOLAB_RCON_PASSWORD', os.urandom(16).hex())
+        self.rcon_port = int(os.environ.get('MINECOLAB_RCON_PORT', '25575'))
         self.last_output_lines: List[str] = []
         self._log_file_handle = None
         self._lock = threading.Lock()
@@ -883,13 +883,13 @@ class ServerManager:
             shutil.make_archive(backup_path[:-4], 'zip', world_path)
             print(f"[INFO] Backup comprimido creado: {backup_path}")
 
-            # Prune: mantener solo el último backup
+            # Prune: mantener últimos 5 backups
             world_backups = [
                 e for e in os.listdir(backups_dir)
                 if e.startswith(server_name + '_world_') and e.endswith('.zip') and os.path.isfile(os.path.join(backups_dir, e))
             ]
             world_backups.sort(reverse=True)
-            for old in world_backups[1:]:
+            for old in world_backups[5:]:
                 old_path = os.path.join(backups_dir, old)
                 os.remove(old_path)
                 print(f"[INFO] Backup antiguo eliminado: {old}")
@@ -1091,6 +1091,10 @@ class ServerManager:
             temp_dir = tempfile.mkdtemp()
             try:
                 with zipfile.ZipFile(zip_path, 'r') as zf:
+                    for info in zf.infolist():
+                        name = info.filename.replace('\\', '/')
+                        if name.startswith('/') or '..' in name.split('/'):
+                            raise Exception(f"Zip-slip detectado: {info.filename}")
                     zf.extractall(temp_dir)
 
                 items = [i for i in os.listdir(temp_dir) if not i.startswith('.')]

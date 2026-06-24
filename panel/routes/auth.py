@@ -4,6 +4,7 @@ Maneja login con contraseña y tokens JWT.
 """
 
 import os
+import secrets
 from datetime import datetime, timedelta
 from functools import wraps
 import jwt
@@ -13,7 +14,12 @@ from panel.drive import get_global_config
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
-SECRET_KEY = os.environ.get('MINECOLAB_JWT_SECRET', 'minecolab-secret-key-change-in-production')
+_SECRET_KEY = os.environ.get('MINECOLAB_JWT_SECRET')
+if _SECRET_KEY:
+    SECRET_KEY = _SECRET_KEY
+else:
+    SECRET_KEY = secrets.token_hex(32)
+    print("[WARN] MINECOLAB_JWT_SECRET no configurado. Usando secreto auto-generado. Los tokens se invalidarán al reiniciar.")
 TOKEN_EXPIRY_HOURS = 24
 
 

@@ -13,7 +13,7 @@ import threading
 from flask import Flask, jsonify, request, send_from_directory, send_file
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-from panel.routes.auth import check_token
+from panel.routes.auth import check_token, SECRET_KEY as JWT_SECRET_KEY
 
 from panel.drive import (
     get_active_server,
@@ -37,7 +37,7 @@ from panel.routes.dashboard import dashboard_bp
 # =============================================================================
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('MINECOLAB_JWT_SECRET', 'minecolab-secret-key-change-in-production')
+app.config['SECRET_KEY'] = JWT_SECRET_KEY
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB para mundos grandes
 
 # CORS habilitado para todos los orígenes (necesario para Colab)

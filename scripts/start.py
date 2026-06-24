@@ -450,7 +450,8 @@ def start_oracle_tunnel():
         print(f"[INFO] Limpiando puerto remoto {ORACLE_REMOTE_PORT}...")
         subprocess.run([
             'ssh', '-i', ORACLE_KEY_PATH,
-            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'StrictHostKeyChecking=accept-new',
+            '-o', 'UserKnownHostsFile=' + os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'minecraft', 'known_hosts'),
             '-o', 'ConnectTimeout=10',
             f'{ORACLE_USER}@{ORACLE_HOST}',
             f'sudo fuser -k {ORACLE_REMOTE_PORT}/tcp 2>/dev/null; sudo pkill -f "ssh.*{ORACLE_REMOTE_PORT}" 2>/dev/null; exit 0'
@@ -461,7 +462,8 @@ def start_oracle_tunnel():
         cmd = [
             'ssh',
             '-i', ORACLE_KEY_PATH,
-            '-o', 'StrictHostKeyChecking=no',
+            '-o', 'StrictHostKeyChecking=accept-new',
+            '-o', 'UserKnownHostsFile=' + os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'minecraft', 'known_hosts'),
             '-o', 'ServerAliveInterval=30',
             '-o', 'ServerAliveCountMax=3',
             '-o', 'Compression=yes',

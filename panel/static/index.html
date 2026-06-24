@@ -3207,6 +3207,9 @@
             d.textContent = text;
             return d.innerHTML;
         }
+        function escapeJs(str) {
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '\\u003C');
+        }
 
         // ============ PLAYERS ============
         function startPlayersPolling() {
@@ -3246,8 +3249,11 @@
             }
 
             tbody.innerHTML = filtered.map(p => {
-                const avatarUrl = 'https://mc-heads.net/avatar/' + p.name + '/24';
-                const avatarFallback = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Crect fill=%22%2321262d%22 width=%2224%22 height=%2224%22/%3E%3Ctext x=%2212%22 y=%2216%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2212%22%3E' + p.name[0].toUpperCase() + '%3C/text%3E%3C/svg%3E';
+                const safeName = escapeHtml(p.name);
+                const jsName = escapeJs(p.name);
+                const avatarUrl = 'https://mc-heads.net/avatar/' + encodeURIComponent(p.name) + '/24';
+                const initial = p.name.charAt(0).toUpperCase();
+                const avatarFallback = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22%3E%3Crect fill=%22%2321262d%22 width=%2224%22 height=%2224%22/%3E%3Ctext x=%2212%22 y=%2216%22 text-anchor=%22middle%22 fill=%22%238b949e%22 font-size=%2212%22%3E' + initial + '%3C/text%3E%3C/svg%3E';
 
                 const onlineBadge = p.online ? '<span class="badge badge-online">Conectado</span>' : '<span class="badge badge-offline">Desconectado</span>';
                 const opBadge = p.op ? '<span class="badge badge-op"><i class="fas fa-crown"></i> OP</span>' : '<span class="badge badge-muted">—</span>';
@@ -3256,30 +3262,30 @@
 
                 let actions = '';
                 if (p.online) {
-                    actions += '<button class="act-btn act-kick" onclick="playerAction(\'kick\',\'' + p.name + '\')" title="Expulsar"><i class="fas fa-user-slash"></i></button>';
-                    actions += '<button class="act-btn act-ban" onclick="playerAction(\'ban\',\'' + p.name + '\')" title="Banear"><i class="fas fa-ban"></i></button>';
+                    actions += '<button class="act-btn act-kick" onclick="playerAction(\'kick\',\'' + jsName + '\')" title="Expulsar"><i class="fas fa-user-slash"></i></button>';
+                    actions += '<button class="act-btn act-ban" onclick="playerAction(\'ban\',\'' + jsName + '\')" title="Banear"><i class="fas fa-ban"></i></button>';
                 } else if (!p.banned) {
-                    actions += '<button class="act-btn act-ban" onclick="playerAction(\'ban\',\'' + p.name + '\')" title="Banear"><i class="fas fa-ban"></i></button>';
+                    actions += '<button class="act-btn act-ban" onclick="playerAction(\'ban\',\'' + jsName + '\')" title="Banear"><i class="fas fa-ban"></i></button>';
                 }
                 if (p.banned) {
-                    actions += '<button class="act-btn act-unban" onclick="playerAction(\'unban\',\'' + p.name + '\')" title="Desbanear"><i class="fas fa-undo"></i></button>';
+                    actions += '<button class="act-btn act-unban" onclick="playerAction(\'unban\',\'' + jsName + '\')" title="Desbanear"><i class="fas fa-undo"></i></button>';
                 }
                 if (p.op) {
-                    actions += '<button class="act-btn act-deop" onclick="playerAction(\'deop\',\'' + p.name + '\')" title="Quitar OP"><i class="fas fa-crown"></i></button>';
+                    actions += '<button class="act-btn act-deop" onclick="playerAction(\'deop\',\'' + jsName + '\')" title="Quitar OP"><i class="fas fa-crown"></i></button>';
                 } else {
-                    actions += '<button class="act-btn act-op" onclick="playerAction(\'op\',\'' + p.name + '\')" title="Hacer OP"><i class="fas fa-crown"></i></button>';
+                    actions += '<button class="act-btn act-op" onclick="playerAction(\'op\',\'' + jsName + '\')" title="Hacer OP"><i class="fas fa-crown"></i></button>';
                 }
                 if (p.whitelisted) {
-                    actions += '<button class="act-btn act-wl-remove" onclick="playerAction(\'wl-remove\',\'' + p.name + '\')" title="Quitar de whitelist"><i class="fas fa-user-minus"></i></button>';
+                    actions += '<button class="act-btn act-wl-remove" onclick="playerAction(\'wl-remove\',\'' + jsName + '\')" title="Quitar de whitelist"><i class="fas fa-user-minus"></i></button>';
                 } else {
-                    actions += '<button class="act-btn act-wl-add" onclick="playerAction(\'wl-add\',\'' + p.name + '\')" title="Agregar a whitelist"><i class="fas fa-user-plus"></i></button>';
+                    actions += '<button class="act-btn act-wl-add" onclick="playerAction(\'wl-add\',\'' + jsName + '\')" title="Agregar a whitelist"><i class="fas fa-user-plus"></i></button>';
                 }
                 if (!p.online) {
-                    actions += '<button class="act-btn act-delete" onclick="deletePlayer(\'' + p.name + '\')" title="Eliminar del registro"><i class="fas fa-trash"></i></button>';
+                    actions += '<button class="act-btn act-delete" onclick="deletePlayer(\'' + jsName + '\')" title="Eliminar del registro"><i class="fas fa-trash"></i></button>';
                 }
 
                 return '<tr>' +
-                    '<td><div class="player-cell"><img src="' + avatarUrl + '" onerror="this.src=\'' + avatarFallback + '\'"> ' + p.name + '</div></td>' +
+                    '<td><div class="player-cell"><img src="' + avatarUrl + '" onerror="this.src=\'' + avatarFallback + '\'"> ' + safeName + '</div></td>' +
                     '<td>' + onlineBadge + '</td>' +
                     '<td>' + opBadge + '</td>' +
                     '<td>' + wlBadge + '</td>' +
@@ -3379,7 +3385,7 @@
         }
 
         document.getElementById('broadcast-input')?.addEventListener('input', function() {
-            document.getElementById('broadcast-counter').textContent = this.textLength + '/256';
+            document.getElementById('broadcast-counter').textContent = this.value.length + '/256';
         });
 
         async function loadBanned() {
@@ -3389,8 +3395,8 @@
                 const tbody = document.getElementById('banned-tbody');
                 if (data.banned && data.banned.length > 0) {
                     tbody.innerHTML = data.banned.map(p => `
-                        <tr><td><div class="player-cell"><i class="fas fa-ban" style="color:#f85149;"></i> ${p}</div></td>
-                        <td class="actions-cell" style="justify-content:center;"><button class="btn btn-secondary btn-sm" onclick="playerAction('unban','${p}')"><i class="fas fa-undo"></i> Desbanear</button></td></tr>
+                        <tr><td><div class="player-cell"><i class="fas fa-ban" style="color:#f85149;"></i> ${escapeHtml(p)}</div></td>
+                        <td class="actions-cell" style="justify-content:center;"><button class="btn btn-secondary btn-sm" onclick="playerAction('unban','${escapeJs(p)}')"><i class="fas fa-undo"></i> Desbanear</button></td></tr>
                     `).join('');
                 } else {
                     tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#484f58;padding:20px;">No hay jugadores baneados</td></tr>';
@@ -3405,8 +3411,8 @@
                 const tbody = document.getElementById('whitelist-tbody');
                 if (data.whitelist && data.whitelist.length > 0) {
                     tbody.innerHTML = data.whitelist.map(p => `
-                        <tr><td><div class="player-cell"><img src="https://mc-heads.net/avatar/${p}/24" onerror="this.style.display='none'"> ${p}</div></td>
-                        <td class="actions-cell" style="justify-content:center;"><button class="btn btn-danger btn-sm" onclick="whitelistRemove('${p}')"><i class="fas fa-times"></i> Quitar</button></td></tr>
+                        <tr><td><div class="player-cell"><img src="https://mc-heads.net/avatar/${encodeURIComponent(p)}/24" onerror="this.style.display='none'"> ${escapeHtml(p)}</div></td>
+                        <td class="actions-cell" style="justify-content:center;"><button class="btn btn-danger btn-sm" onclick="whitelistRemove('${escapeJs(p)}')"><i class="fas fa-times"></i> Quitar</button></td></tr>
                     `).join('');
                 } else {
                     tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:#484f58;padding:20px;">Sin jugadores en whitelist</td></tr>';
@@ -4197,13 +4203,15 @@
                 const data = await res.json();
                 if (data.update_available) {
                     info.style.display = 'block';
+                    const latestVersionSafe = escapeHtml(data.latest_version);
+                    const currentVersionSafe = escapeHtml(data.current_version);
                     info.innerHTML = `<div style="padding:12px;border:1px solid #d2992240;border-radius:8px;background:#d2992208;">
                         <p style="color:#d29922;font-weight:600;"><i class="fas fa-download"></i> Actualización disponible</p>
-                        <p style="font-size:13px;color:#8b949e;">${data.current_version} → <strong style="color:var(--text-primary);">${data.latest_version}</strong></p>
+                        <p style="font-size:13px;color:#8b949e;">${currentVersionSafe} → <strong style="color:var(--text-primary);">${latestVersionSafe}</strong></p>
                         <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#8b949e;cursor:pointer;">
                             <input type="checkbox" id="chk-full-backup" checked> <i class="fas fa-archive"></i> Hacer backup completo (zip) antes de actualizar
                         </label>
-                        <button class="btn btn-primary" style="margin-top:12px;" onclick="performUpdate('${data.latest_version}')"><i class="fas fa-cloud-download-alt"></i> Actualizar a ${data.latest_version}</button>
+                        <button class="btn btn-primary" style="margin-top:12px;" onclick="performUpdate('${escapeJs(data.latest_version)}')"><i class="fas fa-cloud-download-alt"></i> Actualizar a ${latestVersionSafe}</button>
                     </div>`;
                 } else {
                     info.style.display = 'block';
@@ -4243,9 +4251,9 @@
                     const cancelBtn = document.getElementById('btn-plugin-warning-cancel');
                     let warningHtml = compatData.incompatible.map(p =>
                         `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid var(--border-color);">
-                            <span><strong style="color:#f85149;">${p.name}</strong><br>
-                            <span style="font-size:12px;color:#8b949e;">${p.reason}</span></span>
-                            <span style="font-size:11px;color:#484f58;">${p.latest_version || ''} ${p.latest_game_versions ? '('+p.latest_game_versions.join(', ')+')' : ''}</span>
+                            <span><strong style="color:#f85149;">${escapeHtml(p.name)}</strong><br>
+                            <span style="font-size:12px;color:#8b949e;">${escapeHtml(p.reason)}</span></span>
+                            <span style="font-size:11px;color:#484f58;">${escapeHtml(p.latest_version || '')} ${p.latest_game_versions ? '('+escapeHtml(p.latest_game_versions.join(', '))+')' : ''}</span>
                         </div>`
                     ).join('');
                     if (compatData.orphaned_deps && compatData.orphaned_deps.length > 0) {
@@ -4253,8 +4261,8 @@
                             <p style="color:#d29922;font-size:12px;font-weight:600;"><i class="fas fa-link"></i> Dependencias huérfanas:</p>`;
                         warningHtml += compatData.orphaned_deps.map(d =>
                             `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
-                                <span style="color:#8b949e;font-size:12px;">${d.name}</span>
-                                <span style="font-size:11px;color:#484f58;">${d.reason}</span>
+                                <span style="color:#8b949e;font-size:12px;">${escapeHtml(d.name)}</span>
+                                <span style="font-size:11px;color:#484f58;">${escapeHtml(d.reason)}</span>
                             </div>`
                         ).join('');
                         warningHtml += `</div>`;
@@ -5298,11 +5306,11 @@
                     container.innerHTML = '<table class="data-table"><thead><tr><th>Fecha</th><th>Tamaño</th><th style="text-align:center;">Acciones</th></tr></thead><tbody>' +
                         data.backups.map(b => `
                             <tr>
-                                <td><i class="fas fa-archive" style="color:#8b949e;margin-right:8px;"></i>${b.date}</td>
-                                <td>${b.size_display}</td>
+                                <td><i class="fas fa-archive" style="color:#8b949e;margin-right:8px;"></i>${escapeHtml(b.date)}</td>
+                                <td>${escapeHtml(b.size_display)}</td>
                                 <td style="text-align:center;">
-                                    <button class="btn btn-secondary btn-sm" onclick="restoreBackup('${b.name}')" title="Restaurar"><i class="fas fa-undo"></i></button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteBackup('${b.name}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                    <button class="btn btn-secondary btn-sm" onclick="restoreBackup('${escapeJs(b.name)}')" title="Restaurar"><i class="fas fa-undo"></i></button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteBackup('${escapeJs(b.name)}')" title="Eliminar"><i class="fas fa-trash"></i></button>
                                 </td>
                             </tr>
                         `).join('') + '</tbody></table>';
@@ -5404,7 +5412,7 @@
                 const res = await fetch('/api/files/list?' + params.toString());
                 const data = await res.json();
                 if (!data.success) {
-                    container.innerHTML = '<p style="font-size:13px;color:#f85149;">' + (data.error || 'Error') + '</p>';
+                    container.innerHTML = '<p style="font-size:13px;color:#f85149;">' + escapeHtml(data.error || 'Error') + '</p>';
                     return;
                 }
 
@@ -5418,9 +5426,9 @@
                     const isLast = i === parts.length - 1;
                     bc.innerHTML += ' <span style="color:var(--border-color);">/</span> ';
                     if (isLast) {
-                        bc.innerHTML += `<span style="color:var(--text-primary);">${p}</span>`;
+                        bc.innerHTML += '<span style="color:var(--text-primary);">' + escapeHtml(p) + '</span>';
                     } else {
-                        bc.innerHTML += `<a href="#" onclick="loadFiles('${acc.replace(/'/g, "\\'")}');return false;" style="color:#58a6ff;text-decoration:none;">${p}</a>`;
+                        bc.innerHTML += '<a href="#" onclick="loadFiles(\'' + escapeJs(acc) + '\');return false;" style="color:#58a6ff;text-decoration:none;">' + escapeHtml(p) + '</a>';
                     }
                 });
 
@@ -5430,9 +5438,9 @@
                 // Subir nivel
                 if (data.parent !== null) {
                     const parentPath = data.parent === '' ? '' : data.parent;
-                    html += `<tr class="file-row" onclick="loadFiles('${parentPath.replace(/'/g, "\\'")}')">
+                    html += '<tr class="file-row" onclick="loadFiles(\'' + escapeJs(parentPath) + '\')">
                         <td colspan="4"><i class="fas fa-level-up-alt" style="color:#8b949e;margin-right:8px;"></i> <span style="color:#8b949e;">..</span></td>
-                    </tr>`;
+                    </tr>';
                 }
 
                 const sorted = [...data.entries].sort((a, b) => {
@@ -5447,21 +5455,23 @@
                     const encodedPath = encodeURIComponent(entryPath);
                     const downloadUrl = '/api/files/download?path=' + encodedPath;
                     const editable = !e.is_dir && _editableExt(e.name);
+                    const jsEntryPath = escapeJs(entryPath);
+                    const jsName = escapeJs(e.name);
                     const onClick = e.is_dir
-                        ? `loadFiles('${entryPath.replace(/'/g, "\\'")}')`
+                        ? "loadFiles('" + jsEntryPath + "')"
                         : editable
-                            ? `openFileEditor('${entryPath.replace(/'/g, "\\'")}', '${e.name.replace(/'/g, "\\'")}')`
+                            ? "openFileEditor('" + jsEntryPath + "', '" + jsName + "')"
                             : '';
 
-                    html += `<tr class="file-row"${onClick ? ' onclick="' + onClick + '"' : ''}>
-                        <td><div class="player-cell"><i class="fas ${icon}" style="color:${iconColor};width:18px;text-align:center;"></i> ${e.name}</div></td>
-                        <td style="color:#8b949e;">${e.size_display || '-'}</td>
-                        <td style="color:#8b949e;">${e.modified}</td>
+                    html += '<tr class="file-row"' + (onClick ? ' onclick="' + onClick + '"' : '') + '>
+                        <td><div class="player-cell"><i class="fas ' + icon + '" style="color:' + iconColor + ';width:18px;text-align:center;"></i> ' + escapeHtml(e.name) + '</div></td>
+                        <td style="color:#8b949e;">' + escapeHtml(e.size_display || '-') + '</td>
+                        <td style="color:#8b949e;">' + escapeHtml(e.modified) + '</td>
                         <td style="text-align:center;white-space:nowrap;">
-                            ${!e.is_dir ? `<a href="${downloadUrl}" class="file-action-btn file-download" style="text-decoration:none;" title="Descargar" download><i class="fas fa-download"></i></a>` : ''}
-                            <button class="file-action-btn file-delete" onclick="event.stopPropagation();deleteServerFile('${entryPath.replace(/'/g, "\\'")}','${e.name.replace(/'/g, "\\'")}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                            ' + (!e.is_dir ? '<a href="' + escapeHtml(downloadUrl) + '" class="file-action-btn file-download" style="text-decoration:none;" title="Descargar" download><i class="fas fa-download"></i></a>' : '') + '
+                            <button class="file-action-btn file-delete" onclick="event.stopPropagation();deleteServerFile(\'' + jsEntryPath + '\',\'' + jsName + '\')" title="Eliminar"><i class="fas fa-trash"></i></button>
                         </td>
-                    </tr>`;
+                    </tr>';
                 }
 
                 html += '</tbody></table>';
