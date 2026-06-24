@@ -595,7 +595,7 @@
         [data-theme="light"] .setting-field select { color-scheme: light; }
         .setting-field select option { background: #1c2128; color: #e6edf3; padding: 8px; }
 .setting-field option { background: #1c2128; color: #e6edf3; }
-.setting-field .custom-select-trigger { width: 100%; box-sizing: border-box; background: rgba(22,27,34,0.96); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+.setting-field .custom-select-trigger { width: 100%; box-sizing: border-box; background: #161b22; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; }
 [data-theme="light"] .setting-field .custom-select-trigger { background: #ffffff; border-color: rgba(0,0,0,0.12); }
         [data-theme="light"] .setting-field select option { background: #ffffff; color: #1f2328; }
         .props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -3866,6 +3866,15 @@
                     document.getElementById('prop-spawn-protection').value = data.properties['spawn-protection'] || '16';
                     setToggle('prop-command-blocks', data.properties['enable-command-block'] === 'true');
                     setToggle('prop-white-list', data.properties['white-list'] === 'true');
+                    ['prop-difficulty', 'prop-gamemode'].forEach(function(id) {
+                        var sel = document.getElementById(id);
+                        if (sel) {
+                            sel._customSelect = false;
+                            var prev = sel.previousElementSibling;
+                            if (prev && prev.classList.contains('custom-select')) prev.remove();
+                            sel.style.display = '';
+                        }
+                    });
                     document.querySelectorAll('.custom-select').forEach(function(w) {
                         var s = w.nextElementSibling;
                         if (s && s.tagName === 'SELECT') {
