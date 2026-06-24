@@ -1506,10 +1506,11 @@
     <div class="modal-overlay" id="modal-plugin-warning" onclick="">
         <div class="modal" style="max-width:520px;">
             <h2><i class="fas fa-exclamation-triangle" style="color:#d29922;"></i> Plugins/Mods incompatibles</h2>
-            <p style="color:#8b949e;font-size:13px;margin:8px 0 16px 0;">Los siguientes plugins/mods no tienen versión compatible con la versión destino. Se eliminarán ellos y sus dependencias huérfanas al continuar.</p>
+            <p style="color:#8b949e;font-size:13px;margin:8px 0 16px 0;">Los siguientes plugins/mods no tienen versión compatible con la versión destino. Puedes eliminarlos, saltarlos o cancelar la actualización.</p>
             <div id="plugin-warning-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;margin-bottom:16px;"></div>
-            <div class="modal-actions" style="display:flex;gap:8px;">
-                <button class="btn btn-danger" id="btn-plugin-warning-confirm"><i class="fas fa-trash-alt"></i> Eliminar incompatibles y actualizar</button>
+            <div class="modal-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-danger" id="btn-plugin-warning-remove"><i class="fas fa-trash-alt"></i> Eliminar y actualizar</button>
+                <button class="btn btn-primary" id="btn-plugin-warning-skip"><i class="fas fa-forward"></i> Saltar y actualizar</button>
                 <button class="btn btn-secondary" id="btn-plugin-warning-cancel"><i class="fas fa-times"></i> Cancelar</button>
             </div>
         </div>
@@ -4237,7 +4238,8 @@
                 if (compatData.incompatible && compatData.incompatible.length > 0) {
                     const modal = document.getElementById('modal-plugin-warning');
                     const list = document.getElementById('plugin-warning-list');
-                    const confirmBtn = document.getElementById('btn-plugin-warning-confirm');
+                    const removeBtn = document.getElementById('btn-plugin-warning-remove');
+                    const skipBtn = document.getElementById('btn-plugin-warning-skip');
                     const cancelBtn = document.getElementById('btn-plugin-warning-cancel');
                     let warningHtml = compatData.incompatible.map(p =>
                         `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid var(--border-color);">
@@ -4248,7 +4250,7 @@
                     ).join('');
                     if (compatData.orphaned_deps && compatData.orphaned_deps.length > 0) {
                         warningHtml += `<div style="padding:8px;margin-top:8px;border-top:1px solid var(--border-color);">
-                            <p style="color:#d29922;font-size:12px;font-weight:600;"><i class="fas fa-link"></i> Dependencias huérfanas (se eliminarán también):</p>`;
+                            <p style="color:#d29922;font-size:12px;font-weight:600;"><i class="fas fa-link"></i> Dependencias huérfanas:</p>`;
                         warningHtml += compatData.orphaned_deps.map(d =>
                             `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">
                                 <span style="color:#8b949e;font-size:12px;">${d.name}</span>
@@ -4260,7 +4262,7 @@
                     list.innerHTML = warningHtml;
                     modal.style.display = 'flex';
                     return new Promise(resolve => {
-                        confirmBtn.onclick = async function() {
+                        removeBtn.onclick = async function() {
                             modal.style.display = 'none';
                             const toRemove = compatData.incompatible.map(p => p.file);
                             if (compatData.orphaned_deps) {
@@ -4277,6 +4279,11 @@
                                     });
                                 } catch(e) {}
                             }
+                            startUpdate(version, doFullBackup, stepsDiv);
+                            resolve();
+                        };
+                        skipBtn.onclick = function() {
+                            modal.style.display = 'none';
                             startUpdate(version, doFullBackup, stepsDiv);
                             resolve();
                         };
@@ -4307,6 +4314,7 @@
             stepsHtml += `
                 <div class="step" id="step-download"><i class="fas fa-circle"></i> Descargando Paper ${version}...</div>
                 <div class="step" id="step-restart"><i class="fas fa-circle"></i> Reiniciando servidor...</div>
+                <div class="step" id="step-plugins"><i class="fas fa-circle"></i> Actualizando plugins/mods compatibles...</div>
             `;
             stepsDiv.innerHTML = stepsHtml;
 
@@ -4329,12 +4337,43 @@
                 }
 
                 if (data.success) {
+                    var pluginsStep = document.getElementById('step-plugins');
+                    if (pluginsStep) {
+                        pluginsStep.className = 'step active';
+                        pluginsStep.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando plugins/mods a sus últimas versiones...';
+                    }
+                    try {
+                        const pluginRes = await fetch('/api/plugins/update-all', {method:'POST'});
+                        const pluginData = await pluginRes.json();
+                        if (pluginsStep) {
+                            var pluginMsg = '';
+                            if (pluginData.updated && pluginData.updated.length > 0) {
+                                pluginMsg = 'Actualizados: ' + pluginData.updated.join(', ');
+                            } else {
+                                pluginMsg = 'No había plugins que actualizar';
+                            }
+                            if (pluginData.errors && pluginData.errors.length > 0) {
+                                pluginMsg += ' | Errores: ' + pluginData.errors.join(', ');
+                            }
+                            pluginsStep.className = 'step done';
+                            pluginsStep.innerHTML = '<i class="fas fa-check-circle"></i> ' + pluginMsg;
+                        }
+                    } catch(pe) {
+                        if (pluginsStep) {
+                            pluginsStep.className = 'step done';
+                            pluginsStep.innerHTML = '<i class="fas fa-check-circle"></i> Plugins/mods mantenidos (no se pudo verificar actualizaciones)';
+                        }
+                    }
                     stepsDiv.innerHTML += '<div class="step done" style="color:#3fb950;"><i class="fas fa-check-circle"></i> ¡Actualización completada!</div>';
                     setTimeout(() => { loadSettings(); }, 2000);
                 } else {
+                    var pluginsStep = document.getElementById('step-plugins');
+                    if (pluginsStep) { pluginsStep.remove(); }
                     stepsDiv.innerHTML += '<div class="step" style="color:#f85149;"><i class="fas fa-exclamation-circle"></i> Error: ' + (data.error || 'desconocido') + '</div>';
                 }
             } catch(e) {
+                var pluginsStep = document.getElementById('step-plugins');
+                if (pluginsStep) { pluginsStep.remove(); }
                 stepsDiv.innerHTML += '<div class="step" style="color:#f85149;"><i class="fas fa-exclamation-circle"></i> Error: ' + e.message + '</div>';
             }
         }
