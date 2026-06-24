@@ -68,6 +68,7 @@ Minecraft_Server/
 | Commit | Descripción |
 |--------|-------------|
 | `52abfba` | fix: players-summary destruido por applyTranslations causaba "Cannot set properties of null" |
+| *(pendiente)* | fix: revertir DIFICULTAD y MODO DE JUEGO a select nativo + crossfade fondos |
 | `9ec7212` | fix: forzar reconstrucción custom-select dificultad/gamemode y fondo sólido |
 | `9fbabd6` | fix: convertir DIFICULTAD y MODO DE JUEGO a custom-select con fondo sólido |
 | `fece675` | fix: limpiar puerto 25565 en Oracle antes de iniciar túnel nuevo |

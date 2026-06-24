@@ -281,10 +281,11 @@
         .content { padding: 24px 32px; flex: 1; position: relative; }
 
         /* SECTIONS */
-        #page-bg { position: fixed; inset: 0; z-index: -1; opacity: 0.12; pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: opacity 0.8s ease; }
-        #page-bg::after { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%); pointer-events: none; }
-        #page-bg.loading { background: radial-gradient(ellipse at 20% 30%, rgba(63,185,80,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 70%, rgba(63,185,80,0.04) 0%, transparent 50%); }
-        [data-theme="light"] #page-bg { opacity: 0.06; }
+        .bg-layer { position: fixed; inset: 0; pointer-events: none; background-size: cover; background-position: center; background-repeat: no-repeat; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: opacity 0.6s ease; }
+        #page-bg { z-index: -2; opacity: 0.12; }
+        #page-bg-next { z-index: -1; opacity: 0; }
+        .bg-layer::after { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%); pointer-events: none; }
+        [data-theme="light"] #page-bg, [data-theme="light"] #page-bg-next { opacity: 0.06; }
         .section { display: none; }
         .section.active { display: block; animation: sectionIn 0.35s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform, opacity; }
         @keyframes sectionIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -595,8 +596,7 @@
         [data-theme="light"] .setting-field select { color-scheme: light; }
         .setting-field select option { background: #1c2128; color: #e6edf3; padding: 8px; }
 .setting-field option { background: #1c2128; color: #e6edf3; }
-.setting-field .custom-select-trigger { width: 100%; box-sizing: border-box; background: #161b22; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; }
-[data-theme="light"] .setting-field .custom-select-trigger { background: #ffffff; border-color: rgba(0,0,0,0.12); }
+
         [data-theme="light"] .setting-field select option { background: #ffffff; color: #1f2328; }
         .props-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         @media (max-width: 900px) { .props-grid { grid-template-columns: 1fr; } }
@@ -1118,7 +1118,7 @@
                         </div>
                         <div class="setting-field">
                             <label>Dificultad</label>
-                            <select id="prop-difficulty">
+                            <select id="prop-difficulty" class="native-prop-select">
                                 <option value="peaceful">Peaceful</option>
                                 <option value="easy">Easy</option>
                                 <option value="normal" selected>Normal</option>
@@ -1127,7 +1127,7 @@
                         </div>
                         <div class="setting-field">
                             <label>Modo de juego</label>
-                            <select id="prop-gamemode">
+                            <select id="prop-gamemode" class="native-prop-select">
                                 <option value="survival" selected>Survival</option>
                                 <option value="creative">Creative</option>
                                 <option value="adventure">Adventure</option>
@@ -1539,7 +1539,8 @@
 
     <!-- TOAST CONTAINER -->
     <div class="toast-container" id="toast-container"></div>
-    <div id="page-bg"></div>
+    <div id="page-bg" class="bg-layer"></div>
+    <div id="page-bg-next" class="bg-layer" style="opacity:0;"></div>
 </div>
 
     <script>
@@ -2278,6 +2279,29 @@
             img.src = url;
         }
 
+        function setBackground(url) {
+            var bg = document.getElementById('page-bg');
+            if (bg) bg.style.backgroundImage = 'url("' + url + '")';
+        }
+
+        function crossfadeBackground(url) {
+            if (!url) return;
+            var bg = document.getElementById('page-bg');
+            var next = document.getElementById('page-bg-next');
+            if (!bg || !next) return;
+            preloadBgImage(url, function() {
+                next.style.backgroundImage = 'url("' + url + '")';
+                next.style.opacity = '';
+                bg.style.opacity = '0';
+                setTimeout(function() {
+                    bg.style.backgroundImage = 'url("' + url + '")';
+                    bg.style.opacity = '';
+                    next.style.backgroundImage = '';
+                    next.style.opacity = '0';
+                }, 650);
+            });
+        }
+
         // ============ INIT ============
         document.addEventListener('DOMContentLoaded', () => {
             loadServerTypes();
@@ -2295,8 +2319,7 @@
             applyTranslations();
             setInterval(checkServerReady, 3000);
             preloadBgImage('/static/backgrounds/dashboard.jpg', function() {
-                var pageBg = document.getElementById('page-bg');
-                if (pageBg) { pageBg.classList.remove('loading'); pageBg.style.backgroundImage = 'url("/static/backgrounds/dashboard.jpg")'; }
+                setBackground('/static/backgrounds/dashboard.jpg');
             });
             var savedSection = localStorage.getItem('panel-section');
             if (savedSection && savedSection !== 'dashboard') {
@@ -2326,15 +2349,7 @@
             if (section === 'dashboard') { initStatsChart(); }
             localStorage.setItem('panel-section', section);
             var bgMap = { 'dashboard':'/static/backgrounds/dashboard.jpg','console':'/static/backgrounds/consola.jpg','players':'/static/backgrounds/jugadores.jpg','properties':'/static/backgrounds/propiedades.jpg','settings':'/static/backgrounds/configuracion.jpg','manage-server':'/static/backgrounds/gestionar_servidor.jpg','plugins':'/static/backgrounds/plugins.jpg','files':'/static/backgrounds/archivos.jpg' };
-            var pageBg = document.getElementById('page-bg');
-            if (pageBg && bgMap[section]) {
-                pageBg.classList.add('loading');
-                pageBg.style.backgroundImage = '';
-                preloadBgImage(bgMap[section], function() {
-                    pageBg.classList.remove('loading');
-                    pageBg.style.backgroundImage = 'url("' + bgMap[section] + '")';
-                });
-            }
+            if (bgMap[section]) crossfadeBackground(bgMap[section]);
         }
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
@@ -3866,15 +3881,6 @@
                     document.getElementById('prop-spawn-protection').value = data.properties['spawn-protection'] || '16';
                     setToggle('prop-command-blocks', data.properties['enable-command-block'] === 'true');
                     setToggle('prop-white-list', data.properties['white-list'] === 'true');
-                    ['prop-difficulty', 'prop-gamemode'].forEach(function(id) {
-                        var sel = document.getElementById(id);
-                        if (sel) {
-                            sel._customSelect = false;
-                            var prev = sel.previousElementSibling;
-                            if (prev && prev.classList.contains('custom-select')) prev.remove();
-                            sel.style.display = '';
-                        }
-                    });
                     document.querySelectorAll('.custom-select').forEach(function(w) {
                         var s = w.nextElementSibling;
                         if (s && s.tagName === 'SELECT') {
