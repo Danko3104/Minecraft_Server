@@ -5438,9 +5438,9 @@
                 // Subir nivel
                 if (data.parent !== null) {
                     const parentPath = data.parent === '' ? '' : data.parent;
-                    html += '<tr class="file-row" onclick="loadFiles(\'' + escapeJs(parentPath) + '\')">
+                    html += `<tr class="file-row" onclick="loadFiles('${escapeJs(parentPath)}')">
                         <td colspan="4"><i class="fas fa-level-up-alt" style="color:#8b949e;margin-right:8px;"></i> <span style="color:#8b949e;">..</span></td>
-                    </tr>';
+                    </tr>`;
                 }
 
                 const sorted = [...data.entries].sort((a, b) => {
@@ -5463,15 +5463,15 @@
                             ? "openFileEditor('" + jsEntryPath + "', '" + jsName + "')"
                             : '';
 
-                    html += '<tr class="file-row"' + (onClick ? ' onclick="' + onClick + '"' : '') + '>
-                        <td><div class="player-cell"><i class="fas ' + icon + '" style="color:' + iconColor + ';width:18px;text-align:center;"></i> ' + escapeHtml(e.name) + '</div></td>
-                        <td style="color:#8b949e;">' + escapeHtml(e.size_display || '-') + '</td>
-                        <td style="color:#8b949e;">' + escapeHtml(e.modified) + '</td>
+                    html += `<tr class="file-row"${onClick ? ' onclick="' + onClick + '"' : ''}>
+                        <td><div class="player-cell"><i class="fas ${icon}" style="color:${iconColor};width:18px;text-align:center;"></i> ${escapeHtml(e.name)}</div></td>
+                        <td style="color:#8b949e;">${escapeHtml(e.size_display || '-')}</td>
+                        <td style="color:#8b949e;">${escapeHtml(e.modified)}</td>
                         <td style="text-align:center;white-space:nowrap;">
-                            ' + (!e.is_dir ? '<a href="' + escapeHtml(downloadUrl) + '" class="file-action-btn file-download" style="text-decoration:none;" title="Descargar" download><i class="fas fa-download"></i></a>' : '') + '
-                            <button class="file-action-btn file-delete" onclick="event.stopPropagation();deleteServerFile(\'' + jsEntryPath + '\',\'' + jsName + '\')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                            ${!e.is_dir ? '<a href="' + escapeHtml(downloadUrl) + '" class="file-action-btn file-download" style="text-decoration:none;" title="Descargar" download><i class="fas fa-download"></i></a>' : ''}
+                            <button class="file-action-btn file-delete" onclick="event.stopPropagation();deleteServerFile('${jsEntryPath}','${jsName}')" title="Eliminar"><i class="fas fa-trash"></i></button>
                         </td>
-                    </tr>';
+                    </tr>`;
                 }
 
                 html += '</tbody></table>';
