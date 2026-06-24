@@ -115,6 +115,10 @@ session_start_time = datetime.now()  # Cuando arrancó Flask
 _upload_status: dict = {}
 _upload_lock = threading.Lock()
 
+# Estado de procesamiento de updates (task_id -> dict con status/steps/result/error)
+_update_status: dict = {}
+_update_lock = threading.Lock()
+
 # =============================================================================
 # RUTAS PRINCIPALES
 # =============================================================================
@@ -710,7 +714,8 @@ def api_settings_check_updates():
 @app.route('/api/settings/update', methods=['POST'])
 def api_settings_update():
     """
-    POST /api/settings/update — Actualiza PaperMC a la versión especificada.
+    POST /api/settings/update — Inicia actualización de PaperMC en segundo plano.
+    Retorna task_id para consultar progreso vía /api/settings/update-status.
     Body: {"version": "1.21.1"}
     """
     try:
@@ -725,8 +730,77 @@ def api_settings_update():
         if not version:
             return jsonify({"success": False, "error": "Falta 'version' en el body"}), 400
 
-        result = server_manager.update_paper(active_server, version, full_backup)
-        return jsonify(result)
+        import uuid
+        task_id = str(uuid.uuid4())
+
+        with _update_lock:
+            _update_status[task_id] = {"status": "starting", "steps": [], "result": None, "error": None}
+
+        def _run_update():
+            try:
+                def progress_callback(steps):
+                    with _update_lock:
+                        if task_id in _update_status:
+                            _update_status[task_id]["steps"] = steps
+                            if steps and steps[-1].get("status") == "error":
+                                _update_status[task_id]["status"] = "error"
+                                _update_status[task_id]["error"] = steps[-1].get("message", "")
+                            else:
+                                _update_status[task_id]["status"] = "running"
+
+                with _update_lock:
+                    if task_id in _update_status:
+                        _update_status[task_id]["status"] = "running"
+
+                result = server_manager.update_paper(active_server, version, full_backup, progress_callback=progress_callback)
+
+                with _update_lock:
+                    if task_id in _update_status:
+                        if result.get("success"):
+                            _update_status[task_id]["status"] = "done"
+                            _update_status[task_id]["result"] = result
+                        else:
+                            _update_status[task_id]["status"] = "error"
+                            _update_status[task_id]["error"] = result.get("error", "Error desconocido")
+                        _update_status[task_id]["steps"] = result.get("steps", [])
+            except Exception as e:
+                with _update_lock:
+                    if task_id in _update_status:
+                        _update_status[task_id]["status"] = "error"
+                        _update_status[task_id]["error"] = str(e)
+
+        threading.Thread(target=_run_update, daemon=True).start()
+
+        return jsonify({"success": True, "task_id": task_id, "processing": True})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/settings/update-status', methods=['GET'])
+def api_settings_update_status():
+    """
+    GET /api/settings/update-status?task_id=xxx
+    Retorna el estado de una actualización en curso.
+    """
+    try:
+        task_id = request.args.get('task_id', '')
+        if not task_id:
+            return jsonify({"success": False, "error": "Falta task_id"}), 400
+
+        with _update_lock:
+            status = _update_status.get(task_id)
+
+        if not status:
+            return jsonify({"success": False, "error": "task_id no encontrado"}), 404
+
+        return jsonify({
+            "success": True,
+            "status": status["status"],
+            "steps": status.get("steps", []),
+            "error": status.get("error"),
+            "result": status.get("result")
+        })
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

@@ -1413,9 +1413,10 @@ class ServerManager:
             print(f"[ERROR] check_paper_updates: {e}")
             return {"success": False, "error": str(e)}
 
-    def update_paper(self, server_name: str, target_version: str, full_backup: bool = False) -> Dict:
+    def update_paper(self, server_name: str, target_version: str, full_backup: bool = False, progress_callback=None) -> Dict:
         """
         Actualiza PaperMC: detiene servidor, respalda mundo, descarga nuevo JAR, reinicia.
+        Si se pasa progress_callback, se llama tras cada paso con la lista de steps actual.
         Retorna steps con estado para mostrar progreso en el frontend.
         """
         steps = []
@@ -1425,14 +1426,17 @@ class ServerManager:
 
             # Paso 1: Detener servidor
             steps.append({"step": "stop", "status": "active", "message": "Deteniendo servidor..."})
+            if progress_callback: progress_callback(steps)
             if self.is_running():
                 self.stop()
                 time.sleep(2)
             steps[-1]["status"] = "done"
             steps[-1]["message"] = "Servidor detenido"
+            if progress_callback: progress_callback(steps)
 
             # Paso 2: Backup comprimido del mundo
             steps.append({"step": "backup", "status": "active", "message": "Haciendo backup comprimido del mundo..."})
+            if progress_callback: progress_callback(steps)
             world_path = os.path.join(server_path, 'world')
             if os.path.exists(world_path):
                 backup_name = f'{server_name}_preupdate_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.zip'
@@ -1442,16 +1446,20 @@ class ServerManager:
             else:
                 steps[-1]["message"] = "No se encontró mundo para backup"
             steps[-1]["status"] = "done"
+            if progress_callback: progress_callback(steps)
 
             # Paso 2b: Backup completo opcional
             if full_backup:
                 steps.append({"step": "full_backup", "status": "active", "message": "Haciendo backup completo del servidor..."})
+                if progress_callback: progress_callback(steps)
                 fb = self._backup_full_server(server_name)
                 steps[-1]["message"] = f"Backup completo creado: {fb}" if fb else "Error al crear backup completo"
                 steps[-1]["status"] = "done"
+                if progress_callback: progress_callback(steps)
 
             # Paso 3: Descargar nuevo Paper
             steps.append({"step": "download", "status": "active", "message": f"Descargando Paper {target_version}..."})
+            if progress_callback: progress_callback(steps)
 
             import requests
             # Obtener builds
@@ -1477,6 +1485,8 @@ class ServerManager:
 
             # Descargar
             download_url = f'https://api.papermc.io/v2/projects/paper/versions/{target_version}/builds/{build}/downloads/{jar_name}'
+            steps[-1]["message"] = f"Descargando Paper {target_version} (build {build})..."
+            if progress_callback: progress_callback(steps)
             res = requests.get(download_url, stream=True, timeout=120)
             res.raise_for_status()
 
@@ -1490,9 +1500,11 @@ class ServerManager:
 
             steps[-1]["status"] = "done"
             steps[-1]["message"] = f"Paper {target_version} (build {build}) descargado"
+            if progress_callback: progress_callback(steps)
 
             # Paso 4: Iniciar servidor
             steps.append({"step": "restart", "status": "active", "message": "Reiniciando servidor..."})
+            if progress_callback: progress_callback(steps)
             start_result = self.start(server_name)
             if start_result.get("success"):
                 steps[-1]["status"] = "done"
@@ -1500,12 +1512,14 @@ class ServerManager:
             else:
                 steps[-1]["status"] = "done"
                 steps[-1]["message"] = f"Servidor listo para iniciar manualmente ({start_result.get('error', '')})"
+            if progress_callback: progress_callback(steps)
 
             return {"success": True, "steps": steps}
 
         except Exception as e:
             print(f"[ERROR] update_paper: {e}")
             steps.append({"step": "error", "status": "error", "message": str(e)})
+            if progress_callback: progress_callback(steps)
             return {"success": False, "error": str(e), "steps": steps}
 
     def reset_world(self, server_name: str) -> Dict:

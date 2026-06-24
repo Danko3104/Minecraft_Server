@@ -4312,6 +4312,17 @@
             setTimeout(() => startUpdate(version, doFullBackup, stepsDiv), 500);
         }
 
+        function _updateStepsUI(steps) {
+            if (!steps) return;
+            steps.forEach(s => {
+                const el = document.getElementById('step-' + s.step);
+                if (el) {
+                    el.className = 'step ' + (s.status === 'done' ? 'done' : s.status === 'active' ? 'active' : '');
+                    el.innerHTML = (s.status === 'done' ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-circle"></i> ') + escapeHtml(s.message);
+                }
+            });
+        }
+
         async function startUpdate(version, doFullBackup, stepsDiv) {
             let stepsHtml = `
                 <div class="step" id="step-stop"><i class="fas fa-circle"></i> Deteniendo servidor...</div>
@@ -4320,7 +4331,7 @@
                 stepsHtml += `<div class="step" id="step-full_backup"><i class="fas fa-circle"></i> Haciendo backup completo del servidor...</div>`;
             }
             stepsHtml += `
-                <div class="step" id="step-download"><i class="fas fa-circle"></i> Descargando Paper ${version}...</div>
+                <div class="step" id="step-download"><i class="fas fa-circle"></i> Descargando Paper ${escapeHtml(version)}...</div>
                 <div class="step" id="step-restart"><i class="fas fa-circle"></i> Reiniciando servidor...</div>
                 <div class="step" id="step-plugins"><i class="fas fa-circle"></i> Actualizando plugins/mods compatibles...</div>
             `;
@@ -4334,55 +4345,70 @@
                 });
                 const data = await res.json();
 
-                if (data.steps) {
-                    data.steps.forEach(s => {
-                        const el = document.getElementById('step-' + s.step);
-                        if (el) {
-                            el.className = 'step ' + (s.status === 'done' ? 'done' : s.status === 'active' ? 'active' : '');
-                            el.innerHTML = (s.status === 'done' ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-circle"></i> ') + s.message;
-                        }
-                    });
+                if (!data.task_id) {
+                    stepsDiv.innerHTML += '<div class="step" style="color:#f85149;"><i class="fas fa-exclamation-circle"></i> Error: ' + escapeHtml(data.error || 'No se pudo iniciar') + '</div>';
+                    return;
                 }
 
-                if (data.success) {
-                    var pluginsStep = document.getElementById('step-plugins');
-                    if (pluginsStep) {
-                        pluginsStep.className = 'step active';
-                        pluginsStep.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando plugins/mods a sus últimas versiones...';
-                    }
+                // Polling de progreso
+                const taskId = data.task_id;
+                let finished = false;
+
+                while (!finished) {
+                    await new Promise(r => setTimeout(r, 1500));
                     try {
-                        const pluginRes = await fetch('/api/plugins/update-all', {method:'POST'});
-                        const pluginData = await pluginRes.json();
-                        if (pluginsStep) {
-                            var pluginMsg = '';
-                            if (pluginData.updated && pluginData.updated.length > 0) {
-                                pluginMsg = 'Actualizados: ' + pluginData.updated.join(', ');
-                            } else {
-                                pluginMsg = 'No había plugins que actualizar';
+                        const pollRes = await fetch('/api/settings/update-status?task_id=' + encodeURIComponent(taskId));
+                        const pollData = await pollRes.json();
+                        if (pollData.success) {
+                            _updateStepsUI(pollData.steps);
+
+                            if (pollData.status === 'done') {
+                                finished = true;
+                                // Actualizar plugins
+                                var pluginsStep = document.getElementById('step-plugins');
+                                if (pluginsStep) {
+                                    pluginsStep.className = 'step active';
+                                    pluginsStep.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando plugins/mods a sus últimas versiones...';
+                                }
+                                try {
+                                    const pluginRes = await fetch('/api/plugins/update-all', {method:'POST'});
+                                    const pluginData = await pluginRes.json();
+                                    if (pluginsStep) {
+                                        var pluginMsg = '';
+                                        if (pluginData.updated && pluginData.updated.length > 0) {
+                                            pluginMsg = 'Actualizados: ' + pluginData.updated.join(', ');
+                                        } else {
+                                            pluginMsg = 'No había plugins que actualizar';
+                                        }
+                                        if (pluginData.errors && pluginData.errors.length > 0) {
+                                            pluginMsg += ' | Errores: ' + pluginData.errors.join(', ');
+                                        }
+                                        pluginsStep.className = 'step done';
+                                        pluginsStep.innerHTML = '<i class="fas fa-check-circle"></i> ' + pluginMsg;
+                                    }
+                                } catch(pe) {
+                                    if (pluginsStep) {
+                                        pluginsStep.className = 'step done';
+                                        pluginsStep.innerHTML = '<i class="fas fa-check-circle"></i> Plugins/mods mantenidos (no se pudo verificar actualizaciones)';
+                                    }
+                                }
+                                stepsDiv.innerHTML += '<div class="step done" style="color:#3fb950;"><i class="fas fa-check-circle"></i> ¡Actualización completada!</div>';
+                                setTimeout(() => { loadSettings(); }, 2000);
+                            } else if (pollData.status === 'error') {
+                                finished = true;
+                                var pluginsStep = document.getElementById('step-plugins');
+                                if (pluginsStep) { pluginsStep.remove(); }
+                                stepsDiv.innerHTML += '<div class="step" style="color:#f85149;"><i class="fas fa-exclamation-circle"></i> Error: ' + escapeHtml(pollData.error || 'desconocido') + '</div>';
                             }
-                            if (pluginData.errors && pluginData.errors.length > 0) {
-                                pluginMsg += ' | Errores: ' + pluginData.errors.join(', ');
-                            }
-                            pluginsStep.className = 'step done';
-                            pluginsStep.innerHTML = '<i class="fas fa-check-circle"></i> ' + pluginMsg;
                         }
-                    } catch(pe) {
-                        if (pluginsStep) {
-                            pluginsStep.className = 'step done';
-                            pluginsStep.innerHTML = '<i class="fas fa-check-circle"></i> Plugins/mods mantenidos (no se pudo verificar actualizaciones)';
-                        }
+                    } catch(e) {
+                        // Reintentar en el próximo ciclo
                     }
-                    stepsDiv.innerHTML += '<div class="step done" style="color:#3fb950;"><i class="fas fa-check-circle"></i> ¡Actualización completada!</div>';
-                    setTimeout(() => { loadSettings(); }, 2000);
-                } else {
-                    var pluginsStep = document.getElementById('step-plugins');
-                    if (pluginsStep) { pluginsStep.remove(); }
-                    stepsDiv.innerHTML += '<div class="step" style="color:#f85149;"><i class="fas fa-exclamation-circle"></i> Error: ' + (data.error || 'desconocido') + '</div>';
                 }
             } catch(e) {
                 var pluginsStep = document.getElementById('step-plugins');
                 if (pluginsStep) { pluginsStep.remove(); }
-                stepsDiv.innerHTML += '<div class="step" style="color:#f85149;"><i class="fas fa-exclamation-circle"></i> Error: ' + e.message + '</div>';
+                stepsDiv.innerHTML += '<div class="step" style="color:#f85149;"><i class="fas fa-exclamation-circle"></i> Error: ' + escapeHtml(e.message) + '</div>';
             }
         }
 
