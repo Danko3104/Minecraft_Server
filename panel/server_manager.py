@@ -1460,7 +1460,9 @@ class ServerManager:
                 steps.append({"step": "full_backup", "status": "active", "message": "Haciendo backup completo del servidor..."})
                 if progress_callback: progress_callback(steps)
                 fb = self._backup_full_server(server_name)
-                steps[-1]["message"] = f"Backup completo creado: {fb}" if fb else "Error al crear backup completo"
+                if not fb:
+                    raise Exception("Error al crear backup completo del servidor")
+                steps[-1]["message"] = f"Backup completo creado: {fb}"
                 steps[-1]["status"] = "done"
                 if progress_callback: progress_callback(steps)
 
@@ -1526,8 +1528,10 @@ class ServerManager:
                 steps[-1]["status"] = "done"
                 steps[-1]["message"] = "Servidor iniciado"
             else:
-                steps[-1]["status"] = "done"
-                steps[-1]["message"] = f"Servidor listo para iniciar manualmente ({start_result.get('error', '')})"
+                steps[-1]["status"] = "error"
+                steps[-1]["message"] = f"Error al iniciar servidor: {start_result.get('error', '')}"
+                if progress_callback: progress_callback(steps)
+                raise Exception(steps[-1]["message"])
             if progress_callback: progress_callback(steps)
 
             return {"success": True, "steps": steps}
