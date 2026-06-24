@@ -1483,20 +1483,29 @@ class ServerManager:
             build_data = res.json()
             jar_name = build_data['downloads']['application']['name']
 
-            # Descargar
+            # Descargar a temp (evita timeout de Drive FUSE)
             download_url = f'https://api.papermc.io/v2/projects/paper/versions/{target_version}/builds/{build}/downloads/{jar_name}'
             steps[-1]["message"] = f"Descargando Paper {target_version} (build {build})..."
             if progress_callback: progress_callback(steps)
             res = requests.get(download_url, stream=True, timeout=120)
             res.raise_for_status()
 
-            jar_path = os.path.join(server_path, 'paper.jar')
+            tmp_jar = tempfile.NamedTemporaryFile(delete=False, suffix='.jar')
+            tmp_path = tmp_jar.name
             total = int(res.headers.get('content-length', 0))
             downloaded = 0
-            with open(jar_path, 'wb') as f:
+            with open(tmp_path, 'wb') as f:
                 for chunk in res.iter_content(chunk_size=8192):
                     f.write(chunk)
                     downloaded += len(chunk)
+
+            # Copiar a Drive (operación rápida, local→FUSE)
+            try:
+                jar_path = os.path.join(server_path, 'paper.jar')
+                shutil.copy2(tmp_path, jar_path)
+            finally:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
 
             steps[-1]["status"] = "done"
             steps[-1]["message"] = f"Paper {target_version} (build {build}) descargado"
