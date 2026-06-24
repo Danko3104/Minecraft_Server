@@ -913,7 +913,14 @@ class ServerManager:
             backup_name = f"{server_name}_full_{timestamp}.zip"
             backup_path = os.path.join(backups_dir, backup_name)
 
-            shutil.make_archive(backup_path[:-4], 'zip', server_path)
+            # Crear zip en /tmp/ para evitar timeout de Drive FUSE
+            tmp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+            tmp_path = tmp_zip.name
+            tmp_zip.close()
+            base = tmp_path[:-4]  # make_archive agrega .zip
+
+            shutil.make_archive(base, 'zip', server_path)
+            shutil.move(tmp_path, backup_path)
             print(f"[INFO] Backup completo creado: {backup_path}")
             return backup_name
         except Exception as e:
