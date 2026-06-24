@@ -220,6 +220,13 @@ def api_select_server():
                 "error": "server_name no puede estar vacío"
             }), 400
 
+        # No permitir cambiar de servidor si hay uno corriendo
+        if server_manager.is_running():
+            return jsonify({
+                "success": False,
+                "error": "Debes detener el servidor actual antes de cambiar"
+            }), 400
+
         success = set_active_server(server_name)
 
         if success:

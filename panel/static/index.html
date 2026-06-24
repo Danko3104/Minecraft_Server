@@ -2601,6 +2601,10 @@
         // ============ SERVER SELECT ============
         async function selectServer(name) {
             if (!name) return;
+            if (state.running) {
+                if (!confirm('Hay un servidor corriendo. ¿Cambiar de servidor lo detendrá. ¿Continuar?')) return;
+                await stopServer();
+            }
             try {
                 const res = await fetch('/api/servers/select', {
                     method: 'POST',
